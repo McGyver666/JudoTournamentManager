@@ -1,0 +1,224 @@
+<section class="page-header">
+  <div>
+    <h1>{{ 'match.title' | t }}</h1>
+    <p class="match-subtitle">{{ 'match.subtitle' | t }}</p>
+  </div>
+  @if (!hubConnected()) {
+    <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
+  }
+</section>
+
+@if (!context.tournamentId()) {
+  <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
+} @else {
+  <div class="match-toolbar">
+    <div class="operator-row">
+      <label class="field-label" for="opName">{{ 'match.operatorName' | t }}</label>
+      <input
+        id="opName"
+        type="text"
+        class="field-input"
+        [ngModel]="operatorName()"
+        (ngModelChange)="saveOperatorName($event)"
+        maxlength="60"
+      />
+    </div>
+
+    <div class="tatami-selector">
+      @for (t of tatamis(); track t.id) {
+        <button
+          class="tatami-btn"
+          [class.selected]="selectedTatamiId() === t.id"
+          (click)="selectTatami(t.id)"
+        >{{ t.name }}</button>
+      }
+    </div>
+
+    <div class="tatami-display-links">
+      @for (t of tatamis(); track t.id) {
+        <a
+          class="tatami-display-link"
+          [href]="'/display/tatami/' + t.id + '?tournamentId=' + context.tournamentId()"
+          target="_blank"
+          rel="noopener">
+          {{ 'match.openTatamiDisplay' | t }}: {{ t.name }}
+        </a>
+      }
+    </div>
+  </div>
+
+  @if (errorMessage(); as err) {
+    <div class="error-banner" role="alert">
+      {{ err }}
+      <button class="btn-close" (click)="clearError()">✕</button>
+    </div>
+  }
+
+  @if (selectedTatamiId()) {
+    <div class="queue-panel">
+      @if (currentFight(); as fight) {
+        <section class="fight-card fight-card--current">
+          <div class="fight-card__header">
+            <div class="fight-card__meta">
+              <span class="badge-bracket">{{ fight.bracketType === 'Repechage' ? ('match.repechage' | t) : ('match.mainBracket' | t) }}</span>
+              <span class="fight-status">{{ fight.status }}</span>
+              @if (isPaused(fight)) {
+                <span class="badge-status">{{ 'match.paused' | t }}</span>
+              }
+            </div>
+            <div class="fight-card__timer">
+              <span class="fight-card__timer-label">{{ (timerIsGoldenScore() ? 'match.goldenScoreTimer' : 'match.matchTimer') | t }}</span>
+              <span class="timer" [class.timer--expired]="timerSeconds() === 0 && !timerIsGoldenScore()" [class.timer--golden]="timerIsGoldenScore()">{{ fightTimerLabel() }}</span>
+            </div>
+          </div>
+
+          <div class="fight-grid">
+            <article class="athlete-card athlete-card--white" [class.athlete-card--winner]="fight.winnerId === fight.whiteAthleteId">
+              <header class="athlete-card__header">
+                <span class="athlete-card__side">{{ 'match.whiteSide' | t }}</span>
+                <span class="athlete-card__name">{{ athleteName(fight.whiteAthleteId) }}</span>
+              </header>
+              <div class="athlete-card__score">{{ fight.whiteScore }}</div>
+              <div class="athlete-card__stats">
+                <span>Ippon {{ fight.whiteIpponCount }}</span>
+                <span>Waza-ari {{ fight.whiteWazaAriCount }}</span>
+                <span>Yuko {{ fight.whiteYukoCount }}</span>
+                <span>Shido {{ fight.whitePenalties }}</span>
+              </div>
+
+              <div class="score-stack">
+                @for (scoreType of scoreTypes; track scoreType) {
+                  <div class="score-row">
+                    <div class="score-row__label">
+                      <span>{{ scoreLabel(scoreType) }}</span>
+                      @if (scoreType === 'Shido') {
+                        <span class="shido-bubbles">
+                          @for (slot of shidoSlots(); track slot) {
+                            <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'white', scoreType)"></span>
+                          }
+                        </span>
+                      } @else {
+                        <span class="score-row__impact">{{ scoreImpact(scoreType) }}</span>
+                      }
+                    </div>
+                    <div class="score-row__actions">
+                        <button class="btn btn--tiny btn--positive" [disabled]="!canOperate() || !canRecordScore(fight) || !canAddScore(fight, 'white', scoreType)" (click)="adjustScore(fight, 'white', scoreType, 1)">+</button>
+                        <button class="btn btn--tiny btn--negative" [disabled]="!canOperate() || !canRecordScore(fight) || !canRemoveScore(fight, 'white', scoreType)" (click)="adjustScore(fight, 'white', scoreType, -1)">−</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+
+            <article class="center-column">
+              <div class="fight-vs">vs</div>
+
+              <div class="fight-controls">
+                @if (fight.status === 'Pending') {
+                  <button class="btn btn--primary btn--full" [disabled]="!canOperate()" (click)="startFight(fight)">{{ 'match.startFight' | t }}</button>
+                }
+                @if (fight.status === 'InProgress') {
+                  <button class="btn btn--secondary btn--full" [disabled]="!canOperate()" (click)="pauseFight(fight)">{{ 'match.stopFight' | t }}</button>
+                }
+                @if (fight.status === 'Paused') {
+                  <button class="btn btn--primary btn--full" [disabled]="!canOperate()" (click)="resumeFight(fight)">{{ 'match.resumeFight' | t }}</button>
+                }
+              </div>
+
+              <section class="osae-card">
+                <div class="osae-card__header">
+                  <span>{{ 'match.osaeKomi' | t }}</span>
+                  <span class="osae-card__timer">{{ holdTimerLabel() }}</span>
+                </div>
+                <div class="osae-card__controls">
+                  <button class="btn btn--tiny btn--white" [disabled]="!canOperate() || !canRecordScore(fight) || !canStartOsaeKomi(fight, 'white')" (click)="startOsaeKomi(fight, 'white')">{{ 'match.startOsaeWhite' | t }}</button>
+                  <button class="btn btn--tiny btn--blue" [disabled]="!canOperate() || !canRecordScore(fight) || !canStartOsaeKomi(fight, 'blue')" (click)="startOsaeKomi(fight, 'blue')">{{ 'match.startOsaeBlue' | t }}</button>
+                  <button class="btn btn--tiny btn--secondary" [disabled]="!canOperate() || !canRecordScore(fight) || osaeKomiSide() === null" (click)="stopOsaeKomi(fight)">{{ 'match.stopOsae' | t }}</button>
+                </div>
+                @if (osaeKomiSide(); as holdSide) {
+                  <div class="osae-card__note">
+                    {{ 'match.holdActive' | t }} {{ holdSide === 'white' ? ('match.whiteSide' | t) : ('match.blueSide' | t) }}
+                    @if (osaeKomiCapSeconds(); as cap) {
+                      <span>({{ cap }}s)</span>
+                    }
+                  </div>
+                }
+              </section>
+
+              @if (fight.status === 'InProgress' || fight.status === 'Paused') {
+                <div class="confirm-row">
+                  <button class="btn btn--confirm btn--white" [disabled]="!canOperate()" (click)="confirmWinner(fight, fight.whiteAthleteId!)">{{ 'match.confirmWhiteWins' | t }}</button>
+                  <button class="btn btn--confirm btn--blue" [disabled]="!canOperate()" (click)="confirmWinner(fight, fight.blueAthleteId!)">{{ 'match.confirmBlueWins' | t }}</button>
+                </div>
+              }
+            </article>
+
+            <article class="athlete-card athlete-card--blue" [class.athlete-card--winner]="fight.winnerId === fight.blueAthleteId">
+              <header class="athlete-card__header">
+                <span class="athlete-card__side">{{ 'match.blueSide' | t }}</span>
+                <span class="athlete-card__name">{{ athleteName(fight.blueAthleteId) }}</span>
+              </header>
+              <div class="athlete-card__score">{{ fight.blueScore }}</div>
+              <div class="athlete-card__stats">
+                <span>Ippon {{ fight.blueIpponCount }}</span>
+                <span>Waza-ari {{ fight.blueWazaAriCount }}</span>
+                <span>Yuko {{ fight.blueYukoCount }}</span>
+                <span>Shido {{ fight.bluePenalties }}</span>
+              </div>
+
+              <div class="score-stack">
+                @for (scoreType of scoreTypes; track scoreType) {
+                  <div class="score-row">
+                    <div class="score-row__label">
+                      <span>{{ scoreLabel(scoreType) }}</span>
+                      @if (scoreType === 'Shido') {
+                        <span class="shido-bubbles">
+                          @for (slot of shidoSlots(); track slot) {
+                            <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'blue', scoreType)"></span>
+                          }
+                        </span>
+                      } @else {
+                        <span class="score-row__impact">{{ scoreImpact(scoreType) }}</span>
+                      }
+                    </div>
+                    <div class="score-row__actions">
+                        <button class="btn btn--tiny btn--positive" [disabled]="!canOperate() || !canRecordScore(fight) || !canAddScore(fight, 'blue', scoreType)" (click)="adjustScore(fight, 'blue', scoreType, 1)">+</button>
+                        <button class="btn btn--tiny btn--negative" [disabled]="!canOperate() || !canRecordScore(fight) || !canRemoveScore(fight, 'blue', scoreType)" (click)="adjustScore(fight, 'blue', scoreType, -1)">−</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          </div>
+        </section>
+      } @else {
+        <p class="info-hint">{{ 'match.noCurrentFight' | t }}</p>
+      }
+
+      <div class="upcoming-row">
+        @if (queue()?.next; as next) {
+          <div class="fight-card fight-card--upcoming">
+            <div class="fight-card__label">{{ 'match.nextFight' | t }}</div>
+            <div class="fight-athletes-compact">
+              <span class="athlete--white">{{ athleteName(next.whiteAthleteId) }}</span>
+              <span> vs </span>
+              <span class="athlete--blue">{{ athleteName(next.blueAthleteId) }}</span>
+            </div>
+          </div>
+        }
+        @if (queue()?.onDeck; as onDeck) {
+          <div class="fight-card fight-card--upcoming">
+            <div class="fight-card__label">{{ 'match.onDeck' | t }}</div>
+            <div class="fight-athletes-compact">
+              <span class="athlete--white">{{ athleteName(onDeck.whiteAthleteId) }}</span>
+              <span> vs </span>
+              <span class="athlete--blue">{{ athleteName(onDeck.blueAthleteId) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <button class="btn btn--secondary" (click)="refreshQueue()">{{ 'common.reload' | t }}</button>
+    </div>
+  }
+}

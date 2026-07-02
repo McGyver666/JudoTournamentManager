@@ -1,0 +1,329 @@
+@if (!tournamentId) {
+  <div class="empty">{{ 'tournaments.none' | t }}</div>
+} @else {
+  <section class="config-shell">
+    <div class="toolbar config-toolbar">
+      <h1 class="config-title">{{ 'config.title' | t }}</h1>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn" [class.active]="tab() === 'tatamis'" (click)="setTab('tatamis')">{{ 'config.tatamis' | t }}</button>
+      <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
+      <button class="tab-btn" [class.active]="tab() === 'clubs'" (click)="setTab('clubs')">{{ 'config.clubs' | t }}</button>
+      <button class="tab-btn" [class.active]="tab() === 'athletes'" (click)="setTab('athletes')">{{ 'config.athletes' | t }}</button>
+    </div>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  <!-- Tatamis -->
+  @if (tab() === 'tatamis') {
+    <div class="toolbar">
+      <h2>{{ 'tatamis.title' | t }}</h2>
+      <button class="primary" (click)="newTatami()" [disabled]="!canOperate()">{{ 'tatamis.new' | t }}</button>
+    </div>
+    @if (showTatamiForm() && canOperate()) {
+      <div class="card">
+        <div class="row">
+          <div>
+            <label>{{ 'tatamis.name' | t }}</label>
+            <input [(ngModel)]="tatamiForm.name" name="tname" />
+          </div>
+          <div>
+            <label>{{ 'tatamis.displayOrder' | t }}</label>
+            <input type="number" [(ngModel)]="tatamiForm.displayOrder" name="torder" />
+          </div>
+          <div class="checkbox-field">
+            <label>{{ 'tatamis.active' | t }}</label>
+            <input class="checkbox-input" type="checkbox" [(ngModel)]="tatamiForm.isActive" name="tactive" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button (click)="showTatamiForm.set(false)">{{ 'common.cancel' | t }}</button>
+          <button class="primary" (click)="saveTatami()">{{ 'common.save' | t }}</button>
+        </div>
+      </div>
+    }
+    @if (tatamis().length === 0) {
+      <div class="empty">{{ 'tatamis.empty' | t }}</div>
+    } @else {
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'tatamis.displayOrder' | t }}</th>
+            <th>{{ 'tatamis.name' | t }}</th>
+            <th>{{ 'tatamis.active' | t }}</th>
+            <th>{{ 'common.actions' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of tatamis(); track t.id) {
+            <tr>
+              <td>{{ t.displayOrder }}</td>
+              <td>{{ t.name }}</td>
+              <td>{{ (t.isActive ? 'common.yes' : 'common.no') | t }}</td>
+              <td>
+                <button (click)="editTatami(t)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                <button class="danger" (click)="deleteTatami(t)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      </div>
+    }
+  }
+
+  <!-- Categories -->
+  @if (tab() === 'categories') {
+    <div class="toolbar">
+      <h2>{{ 'categories.title' | t }}</h2>
+      <button class="primary" (click)="newCategory()" [disabled]="!canOperate()">{{ 'categories.new' | t }}</button>
+    </div>
+    @if (showCategoryForm() && canOperate()) {
+      <div class="card">
+        <div class="row">
+          <div>
+            <label>{{ 'categories.name' | t }}</label>
+            <input [(ngModel)]="categoryForm.name" name="cname" />
+          </div>
+          <div>
+            <label>{{ 'categories.ageGroup' | t }}</label>
+            <input [(ngModel)]="categoryForm.ageGroup" name="cage" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>{{ 'categories.gender' | t }}</label>
+            <select [(ngModel)]="categoryForm.gender" name="cgender">
+              <option value="Male">{{ 'gender.male' | t }}</option>
+              <option value="Female">{{ 'gender.female' | t }}</option>
+            </select>
+          </div>
+          <div>
+            <label>{{ 'categories.weight' | t }}</label>
+            <input type="number" step="0.1" [(ngModel)]="categoryForm.weightClassKg" name="cweight"
+              placeholder="{{ 'categories.weightOpen' | t }}" />
+          </div>
+        </div>
+        <div>
+          <label>{{ 'categories.notes' | t }}</label>
+          <input [(ngModel)]="categoryForm.rulesetNotes" name="cnotes" />
+        </div>
+        <div class="row">
+          <div>
+            <label>{{ 'categories.minBirthYear' | t }}</label>
+            <input type="number" min="1900" max="2100" [(ngModel)]="categoryForm.minBirthYear" name="cminby"
+              placeholder="{{ 'common.optional' | t }}" />
+          </div>
+          <div>
+            <label>{{ 'categories.maxBirthYear' | t }}</label>
+            <input type="number" min="1900" max="2100" [(ngModel)]="categoryForm.maxBirthYear" name="cmaxby"
+              placeholder="{{ 'common.optional' | t }}" />
+          </div>
+        </div>
+        <div>
+          <label>{{ 'categories.matchDurationSeconds' | t }}</label>
+          <input type="number" min="60" max="3600" step="30"
+            [(ngModel)]="categoryForm.matchDurationSeconds" name="cduration" />
+        </div>
+        <div class="checkbox-field">
+          <label>{{ 'categories.goldenScoreEnabled' | t }}</label>
+          <input class="checkbox-input" type="checkbox" [(ngModel)]="categoryForm.goldenScoreEnabled" name="cgsenabled" />
+        </div>
+        @if (categoryForm.goldenScoreEnabled) {
+          <div>
+            <label>{{ 'categories.goldenScoreDurationSeconds' | t }}</label>
+            <input type="number" min="30" max="3600" step="30"
+              [(ngModel)]="categoryForm.goldenScoreDurationSeconds" name="cgsduration" />
+          </div>
+        }
+        <div class="form-actions">
+          <button (click)="showCategoryForm.set(false)">{{ 'common.cancel' | t }}</button>
+          <button class="primary" (click)="saveCategory()">{{ 'common.save' | t }}</button>
+        </div>
+      </div>
+    }
+    @if (categories().length === 0) {
+      <div class="empty">{{ 'categories.empty' | t }}</div>
+    } @else {
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'categories.name' | t }}</th>
+            <th>{{ 'categories.ageGroup' | t }}</th>
+            <th>{{ 'categories.gender' | t }}</th>
+            <th>{{ 'categories.weight' | t }}</th>
+            <th>{{ 'common.actions' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of categories(); track c.id) {
+            <tr>
+              <td>
+                {{ c.name }}
+                @if (c.isLocked) {
+                  <span class="badge locked">{{ 'common.locked' | t }}</span>
+                }
+              </td>
+              <td>{{ c.ageGroup }}</td>
+              <td>{{ genderLabel(c.gender) }}</td>
+              <td>{{ c.weightClassKg !== null ? ('-' + c.weightClassKg + ' kg') : ('categories.weightOpen' | t) }}</td>
+              <td>
+                <button (click)="editCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.edit' | t }}</button>
+                <button class="danger" (click)="deleteCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.delete' | t }}</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      </div>
+    }
+  }
+
+  <!-- Clubs -->
+  @if (tab() === 'clubs') {
+    <div class="toolbar">
+      <h2>{{ 'clubs.title' | t }}</h2>
+      <button class="primary" (click)="newClub()" [disabled]="!canOperate()">{{ 'clubs.new' | t }}</button>
+    </div>
+    @if (showClubForm() && canOperate()) {
+      <div class="card">
+        <div>
+          <label>{{ 'clubs.name' | t }}</label>
+          <input [(ngModel)]="clubForm.name" name="clname" />
+        </div>
+        <div class="form-actions">
+          <button (click)="showClubForm.set(false)">{{ 'common.cancel' | t }}</button>
+          <button class="primary" (click)="saveClub()">{{ 'common.save' | t }}</button>
+        </div>
+      </div>
+    }
+    @if (clubs().length === 0) {
+      <div class="empty">{{ 'clubs.empty' | t }}</div>
+    } @else {
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'clubs.name' | t }}</th>
+            <th>{{ 'common.actions' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of clubs(); track c.id) {
+            <tr>
+              <td>{{ c.name }}</td>
+              <td>
+                <button (click)="editClub(c)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                <button class="danger" (click)="deleteClub(c)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      </div>
+    }
+  }
+
+  <!-- Athletes -->
+  @if (tab() === 'athletes') {
+    <div class="toolbar">
+      <h2>{{ 'athletes.title' | t }}</h2>
+      <button class="primary" (click)="newAthlete()" [disabled]="!canOperate() || clubs().length === 0">{{ 'athletes.new' | t }}</button>
+    </div>
+    @if (clubs().length === 0) {
+      <p class="muted">{{ 'athletes.noClubs' | t }}</p>
+    }
+    @if (showAthleteForm() && canOperate()) {
+      <div class="card">
+        <div class="row">
+          <div>
+            <label>{{ 'athletes.firstName' | t }}</label>
+            <input [(ngModel)]="athleteForm.firstName" name="afirst" />
+          </div>
+          <div>
+            <label>{{ 'athletes.lastName' | t }}</label>
+            <input [(ngModel)]="athleteForm.lastName" name="alast" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>{{ 'athletes.birthYear' | t }}</label>
+            <input type="number" [(ngModel)]="athleteForm.birthYear" name="ayear" />
+          </div>
+          <div>
+            <label>{{ 'athletes.gender' | t }}</label>
+            <select [(ngModel)]="athleteForm.gender" name="agender">
+              <option value="Male">{{ 'gender.male' | t }}</option>
+              <option value="Female">{{ 'gender.female' | t }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>{{ 'athletes.club' | t }}</label>
+            <select [(ngModel)]="athleteForm.clubId" name="aclub">
+              @for (c of clubs(); track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label>{{ 'athletes.license' | t }}</label>
+            <input [(ngModel)]="athleteForm.licenseId" name="alicense" />
+          </div>
+          <div>
+            <label>{{ 'athletes.weight' | t }}</label>
+            <input type="number" min="1" max="300" step="0.1" [(ngModel)]="athleteForm.weightKg" name="aweight" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button (click)="showAthleteForm.set(false)">{{ 'common.cancel' | t }}</button>
+          <button class="primary" (click)="saveAthlete()">{{ 'common.save' | t }}</button>
+        </div>
+      </div>
+    }
+    @if (athletes().length === 0) {
+      <div class="empty">{{ 'athletes.empty' | t }}</div>
+    } @else {
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'athletes.lastName' | t }}</th>
+            <th>{{ 'athletes.firstName' | t }}</th>
+            <th>{{ 'athletes.birthYear' | t }}</th>
+            <th>{{ 'athletes.gender' | t }}</th>
+            <th>{{ 'athletes.club' | t }}</th>
+            <th>{{ 'athletes.license' | t }}</th>
+            <th>{{ 'athletes.weight' | t }}</th>
+            <th>{{ 'common.actions' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of athletes(); track a.id) {
+            <tr>
+              <td>{{ a.lastName }}</td>
+              <td>{{ a.firstName }}</td>
+              <td>{{ a.birthYear }}</td>
+              <td>{{ genderLabel(a.gender) }}</td>
+              <td>{{ clubName()(a.clubId) }}</td>
+              <td>{{ a.licenseId }}</td>
+              <td>{{ a.weightKg }}</td>
+              <td>
+                <button (click)="editAthlete(a)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                <button class="danger" (click)="deleteAthlete(a)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      </div>
+    }
+  }
+  </section>
+}

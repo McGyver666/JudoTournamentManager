@@ -1,0 +1,99 @@
+@if (!tournamentId) {
+  <div class="empty">{{ 'tournaments.none' | t }}</div>
+} @else {
+  <div class="toolbar">
+    <h1>{{ 'registrations.title' | t }}</h1>
+    <div style="display:flex;gap:0.5rem;">
+      <button (click)="exportCsv()" [disabled]="registrations().length === 0">{{ 'registrations.export' | t }}</button>
+      <button class="primary" (click)="startCreate()"
+        [disabled]="!canOperate() || athletes().length === 0">{{ 'registrations.new' | t }}</button>
+    </div>
+  </div>
+
+  @if (athletes().length === 0) {
+    <p class="muted">{{ 'registrations.noAthletes' | t }}</p>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (showForm() && canOperate()) {
+    <div class="card">
+      <h2>{{ 'registrations.new' | t }}</h2>
+      <div class="row">
+        <div>
+          <label>{{ 'registrations.athlete' | t }}</label>
+          <select [(ngModel)]="form.athleteId" (change)="onAthleteSelected()" name="ra">
+            @for (a of availableAthletes(); track a.id) {
+              <option [value]="a.id">{{ athleteLabel(a) }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label>{{ 'athletes.weight' | t }} *</label>
+          <input type="number" [(ngModel)]="form.weightKg" name="rw" step="0.1" min="1" max="300" required />
+        </div>
+        <div>
+          <label>{{ 'athletes.license' | t }}</label>
+          <input type="text" [(ngModel)]="form.licenseId" name="rl" maxlength="40" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label style="display:flex;align-items:center;gap:0.5rem;">
+            <input type="checkbox" [(ngModel)]="form.licenseConfirmed" name="rlc" />
+            {{ 'registrations.licenseConfirmed' | t }}
+          </label>
+        </div>
+      </div>
+      <div class="toolbar" style="justify-content:flex-end;margin-top:1rem;">
+        <button (click)="showForm.set(false)">{{ 'common.cancel' | t }}</button>
+        <button class="primary" (click)="save()" [disabled]="!isFormValid()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else if (registrations().length === 0) {
+    <div class="empty">{{ 'registrations.empty' | t }}</div>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'registrations.category' | t }}</th>
+          <th>{{ 'athletes.lastName' | t }}</th>
+          <th>{{ 'athletes.firstName' | t }}</th>
+          <th>{{ 'registrations.birthYear' | t }}</th>
+          <th>{{ 'athletes.weight' | t }}</th>
+          <th>{{ 'athletes.license' | t }}</th>
+          <th>{{ 'registrations.licenseConfirmed' | t }}</th>
+          <th>{{ 'common.actions' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of registrations(); track r.id) {
+          <tr>
+            <td>
+              @if (r.categoryName) {
+                {{ r.categoryName }} <span class="muted">({{ weightLabel(r.categoryWeightClassKg) }})</span>
+              } @else {
+                <span class="muted">({{ 'registrations.noCategory' | t }})</span>
+              }
+            </td>
+            <td>{{ r.athleteLastName }}</td>
+            <td>{{ r.athleteFirstName }}</td>
+            <td>{{ r.athleteBirthYear }}</td>
+            <td>{{ r.athleteWeightKg !== null ? (r.athleteWeightKg + ' kg') : '–' }}</td>
+            <td>{{ r.athleteLicenseId || '–' }}</td>
+            <td>{{ r.licenseConfirmed ? '✓' : '–' }}</td>
+            <td>
+              <button class="danger" (click)="remove(r)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}

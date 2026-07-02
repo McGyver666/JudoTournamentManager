@@ -1,0 +1,120 @@
+@if (!tournamentId) {
+  <div class="empty">{{ 'tournaments.none' | t }}</div>
+} @else {
+  <div class="toolbar">
+    <h1>{{ 'categoryAssignment.title' | t }}</h1>
+    <button class="primary" (click)="autoAssign()" [disabled]="autoAssigning() || registrations().length === 0">
+      @if (autoAssigning()) {
+        {{ 'common.loading' | t }}
+      } @else {
+        {{ 'categoryAssignment.autoAssign' | t }}
+      }
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (autoAssignResult(); as result) {
+    <div class="card" style="background: var(--color-surface, #f8f9fa); margin-bottom: 1rem;">
+      <strong>{{ 'categoryAssignment.autoAssignResult' | t }}</strong>
+      {{ result.assignedCount }} {{ 'categoryAssignment.assigned' | t }},
+      {{ result.unassignedCount }} {{ 'categoryAssignment.unassignedCount' | t }}
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else if (registrations().length === 0) {
+    <div class="empty">{{ 'categoryAssignment.noRegistrations' | t }}</div>
+  } @else {
+
+    <!-- Unassigned athletes -->
+    @if (unassigned().length > 0) {
+      <div class="card" style="border-left: 4px solid var(--color-warning, #f59e0b);">
+        <h2>{{ 'categoryAssignment.unassigned' | t }} ({{ unassigned().length }})</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'athletes.lastName' | t }}</th>
+              <th>{{ 'athletes.firstName' | t }}</th>
+              <th>{{ 'athletes.birthYear' | t }}</th>
+              <th>{{ 'athletes.weight' | t }}</th>
+              <th>{{ 'categoryAssignment.assignTo' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (reg of unassigned(); track reg.id) {
+              <tr>
+                <td>{{ reg.athleteLastName }}</td>
+                <td>{{ reg.athleteFirstName }}</td>
+                <td>{{ reg.athleteBirthYear }}</td>
+                <td>{{ reg.athleteWeightKg !== null ? (reg.athleteWeightKg + ' kg') : '–' }}</td>
+                <td>
+                  <select (change)="reassign(reg, $any($event.target).value)">
+                    <option value="">{{ 'categoryAssignment.noCategory' | t }}</option>
+                    @for (cat of categories(); track cat.id) {
+                      <option [value]="cat.id" [disabled]="cat.isLocked">{{ categoryLabel(cat) }}</option>
+                    }
+                  </select>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- Assigned by category -->
+    @for (cat of categories(); track cat.id) {
+      @if ((grouped().get(cat.id)?.length ?? 0) > 0 || true) {
+        <div class="card" style="margin-bottom: 1rem;">
+          <div class="toolbar" style="margin-bottom: 0.5rem;">
+            <h2 style="margin: 0;">
+              {{ cat.name }}
+              @if (ageBoundsLabel(cat)) {
+                <span class="muted" style="font-size:0.85em; font-weight:normal;"> · {{ ageBoundsLabel(cat) }}</span>
+              }
+              <span class="muted" style="font-size:0.85em; font-weight:normal;"> · {{ weightLabel(cat.weightClassKg) }}</span>
+            </h2>
+            <span class="badge">{{ (grouped().get(cat.id)?.length ?? 0) }} {{ 'categoryAssignment.athletes' | t }}</span>
+          </div>
+          @if ((grouped().get(cat.id)?.length ?? 0) === 0) {
+            <p class="muted" style="margin:0;">{{ 'categoryAssignment.noAthletes' | t }}</p>
+          } @else {
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ 'athletes.lastName' | t }}</th>
+                  <th>{{ 'athletes.firstName' | t }}</th>
+                  <th>{{ 'athletes.birthYear' | t }}</th>
+                  <th>{{ 'athletes.weight' | t }}</th>
+                  <th>{{ 'categoryAssignment.changeCategory' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (reg of grouped().get(cat.id) ?? []; track reg.id) {
+                  <tr>
+                    <td>{{ reg.athleteLastName }}</td>
+                    <td>{{ reg.athleteFirstName }}</td>
+                    <td>{{ reg.athleteBirthYear }}</td>
+                    <td>{{ reg.athleteWeightKg !== null ? (reg.athleteWeightKg + ' kg') : '–' }}</td>
+                    <td>
+                      <select [value]="reg.categoryId ?? ''" (change)="reassign(reg, $any($event.target).value)" [disabled]="cat.isLocked">
+                        <option value="">{{ 'categoryAssignment.noCategory' | t }}</option>
+                        @for (c of categories(); track c.id) {
+                          <option [value]="c.id" [selected]="c.id === reg.categoryId" [disabled]="c.isLocked">{{ categoryLabel(c) }}</option>
+                        }
+                      </select>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      }
+    }
+  }
+}

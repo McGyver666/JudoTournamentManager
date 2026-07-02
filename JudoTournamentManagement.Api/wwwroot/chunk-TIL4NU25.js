@@ -1,0 +1,1 @@
+import{Hb as n}from"./chunk-UU5NVCNY.js";function f(e,o){if(e instanceof n){let t=e.error;if(t&&typeof t=="object"){let r=t;if(r.errors){let i=Object.values(r.errors).flat()[0];if(i)return i}if(r.detail)return r.detail;if(r.title)return r.title}}return o}export{f as a};

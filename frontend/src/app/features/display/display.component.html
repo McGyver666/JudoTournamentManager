@@ -1,0 +1,490 @@
+<div class="display-page">
+  <header class="display-header">
+    <h1 class="tournament-title">{{ tournamentName() }}</h1>
+    <div class="display-meta">
+      @if (!hubConnected()) {
+        <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
+      }
+      <button class="btn-share" (click)="copyShareLink()" title="{{ 'display.copyLink' | t }}">
+        🔗 {{ 'display.copyLink' | t }}
+      </button>
+    </div>
+  </header>
+
+  @if (!tournamentId()) {
+    <p class="info-hint">{{ 'display.noTournamentParam' | t }}</p>
+  } @else if (isTatamiMode()) {
+    @if (tatamiDisplay(); as d) {
+      <section class="tatami-fullscreen">
+        <header class="tatami-fullscreen-header">
+          <div>
+            <div class="fight-label">{{ 'display.currentFight' | t }}</div>
+            <h2 class="tatami-fullscreen-tatami">{{ d.tatami.name }}</h2>
+            @if (d.current) {
+              <div class="tatami-fullscreen-category">{{ categoryName(d.current.categoryId) }}</div>
+            }
+          </div>
+          @if (d.current) {
+            <div
+              class="fight-timer fight-timer--xl"
+              [class.fight-timer--golden]="d.current.isGoldenScore"
+              [attr.aria-label]="'display.fightTime' | t">{{ timerForFight(d.current) }}</div>
+          }
+        </header>
+
+        @if (d.current) {
+          <div class="tatami-scoreboard">
+            <article class="tatami-athlete tatami-athlete--blue">
+              <div class="tatami-athlete-side">{{ 'match.blueSide' | t }}</div>
+              <div class="tatami-athlete-name">{{ athleteName(d.current.blueAthleteId) }}</div>
+              <div class="tatami-athlete-club">{{ athleteClub(d.current.blueAthleteId) }}</div>
+
+              @if (hasIppon(d.current, 'blue')) {
+                <div class="ippon-banner">{{ 'match.ippon' | t }}</div>
+              } @else {
+                <div class="tatami-counters">
+                  <div class="tatami-counter">
+                    <span>{{ 'match.wazaari' | t }}</span>
+                    <strong>{{ scoreCount(d.current, 'blue', 'wazaAri') }}</strong>
+                  </div>
+                  <div class="tatami-counter">
+                    <span>{{ 'match.yuko' | t }}</span>
+                    <strong>{{ scoreCount(d.current, 'blue', 'yuko') }}</strong>
+                  </div>
+                </div>
+              }
+
+              <div class="tatami-shido-row">
+                <span>{{ 'match.shido' | t }}</span>
+                <span class="shido-bubbles shido-bubbles--xl">
+                  @for (slot of shidoSlots(); track slot) {
+                    <span class="shido-bubble shido-bubble--xl" [class.active]="slot < scoreCount(d.current, 'blue', 'shido')"></span>
+                  }
+                </span>
+              </div>
+            </article>
+
+            <article class="tatami-athlete tatami-athlete--white">
+              <div class="tatami-athlete-side">{{ 'match.whiteSide' | t }}</div>
+              <div class="tatami-athlete-name">{{ athleteName(d.current.whiteAthleteId) }}</div>
+              <div class="tatami-athlete-club">{{ athleteClub(d.current.whiteAthleteId) }}</div>
+
+              @if (hasIppon(d.current, 'white')) {
+                <div class="ippon-banner">{{ 'match.ippon' | t }}</div>
+              } @else {
+                <div class="tatami-counters">
+                  <div class="tatami-counter">
+                    <span>{{ 'match.wazaari' | t }}</span>
+                    <strong>{{ scoreCount(d.current, 'white', 'wazaAri') }}</strong>
+                  </div>
+                  <div class="tatami-counter">
+                    <span>{{ 'match.yuko' | t }}</span>
+                    <strong>{{ scoreCount(d.current, 'white', 'yuko') }}</strong>
+                  </div>
+                </div>
+              }
+
+              <div class="tatami-shido-row">
+                <span>{{ 'match.shido' | t }}</span>
+                <span class="shido-bubbles shido-bubbles--xl">
+                  @for (slot of shidoSlots(); track slot) {
+                    <span class="shido-bubble shido-bubble--xl" [class.active]="slot < scoreCount(d.current, 'white', 'shido')"></span>
+                  }
+                </span>
+              </div>
+            </article>
+          </div>
+        } @else {
+          <p class="no-fight no-fight--xl">{{ 'display.idle' | t }}</p>
+        }
+
+        @if (d.nextFights.length > 0) {
+          <div class="next-section next-section--xl">
+            <div class="next-label">{{ 'display.nextFights' | t }}</div>
+            <div class="next-list next-list--xl">
+              @for (fight of d.nextFights; track fight.id) {
+                <div class="next-item next-item--xl">
+                  <div class="next-category">{{ categoryName(fight.categoryId) }}</div>
+                  <div class="next-line">
+                    <span class="blue-name">{{ athleteName(fight.blueAthleteId) }}</span>
+                    <span class="next-vs">vs</span>
+                    <span class="white-name">{{ athleteName(fight.whiteAthleteId) }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    } @else {
+      <p class="info-hint">{{ 'display.tatamiNotFound' | t }}</p>
+    }
+  } @else if (displays().length === 0) {
+    <p class="info-hint">{{ 'display.noTatamis' | t }}</p>
+  } @else {
+    <div class="tatami-grid">
+      @for (d of displays(); track d.tatami.id) {
+        <div class="tatami-card">
+          <div class="tatami-card-header">
+            <h2 class="tatami-name">{{ d.tatami.name }}</h2>
+            <a class="tatami-open-link" [href]="tatamiDisplayLink(d.tatami.id)" target="_blank" rel="noopener">
+              {{ 'display.openTatamiScreen' | t }}
+            </a>
+          </div>
+
+          @if (d.current) {
+            <div class="fight-section">
+              <div class="fight-header-row">
+                <div>
+                  <div class="fight-label">{{ 'display.currentFight' | t }}</div>
+                  <div class="fight-category">{{ categoryName(d.current.categoryId) }}</div>
+                </div>
+                <div class="fight-timer" [class.fight-timer--golden]="d.current.isGoldenScore" [attr.aria-label]="'display.fightTime' | t">{{ timerForFight(d.current) }}</div>
+              </div>
+              <div class="fight-row">
+                <div class="athlete-col athlete-col--blue-left">
+                  <span class="athlete-name">{{ athleteName(d.current.blueAthleteId) }}</span>
+                  <span class="athlete-club">{{ athleteClub(d.current.blueAthleteId) }}</span>
+                  <div class="score-grid">
+                    <div class="score-row"><span>{{ 'match.ippon' | t }}</span><strong>{{ scoreCount(d.current, 'blue', 'ippon') }}</strong></div>
+                    <div class="score-row"><span>{{ 'match.wazaari' | t }}</span><strong>{{ scoreCount(d.current, 'blue', 'wazaAri') }}</strong></div>
+                    <div class="score-row"><span>{{ 'match.yuko' | t }}</span><strong>{{ scoreCount(d.current, 'blue', 'yuko') }}</strong></div>
+                    <div class="score-row shido-row">
+                      <span>{{ 'match.shido' | t }}</span>
+                      <span class="shido-bubbles">
+                        @for (slot of shidoSlots(); track slot) {
+                          <span class="shido-bubble" [class.active]="slot < scoreCount(d.current, 'blue', 'shido')"></span>
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="fight-sep">—</div>
+                <div class="athlete-col athlete-col--white-right">
+                  <span class="athlete-name">{{ athleteName(d.current.whiteAthleteId) }}</span>
+                  <span class="athlete-club">{{ athleteClub(d.current.whiteAthleteId) }}</span>
+                  <div class="score-grid">
+                    <div class="score-row"><span>{{ 'match.ippon' | t }}</span><strong>{{ scoreCount(d.current, 'white', 'ippon') }}</strong></div>
+                    <div class="score-row"><span>{{ 'match.wazaari' | t }}</span><strong>{{ scoreCount(d.current, 'white', 'wazaAri') }}</strong></div>
+                    <div class="score-row"><span>{{ 'match.yuko' | t }}</span><strong>{{ scoreCount(d.current, 'white', 'yuko') }}</strong></div>
+                    <div class="score-row shido-row">
+                      <span>{{ 'match.shido' | t }}</span>
+                      <span class="shido-bubbles">
+                        @for (slot of shidoSlots(); track slot) {
+                          <span class="shido-bubble" [class.active]="slot < scoreCount(d.current, 'white', 'shido')"></span>
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <p class="no-fight">{{ 'display.idle' | t }}</p>
+          }
+
+          @if (d.nextFights.length > 0) {
+            <div class="next-section">
+              <div class="next-label">{{ 'display.nextFights' | t }}</div>
+              <div class="next-list">
+                @for (fight of d.nextFights; track fight.id) {
+                  <div class="next-item">
+                    <div class="next-category">{{ categoryName(fight.categoryId) }}</div>
+                    <div class="next-line">
+                      <span class="blue-name">{{ athleteName(fight.blueAthleteId) }}</span>
+                      <span class="next-vs">vs</span>
+                      <span class="white-name">{{ athleteName(fight.whiteAthleteId) }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <section class="all-matches-section">
+      <div class="all-matches-header-row">
+        <h2 class="all-matches-title">{{ 'display.allMatches' | t }}</h2>
+      </div>
+
+      @if (allMatchesLoading()) {
+        <p class="info-hint">{{ 'common.loading' | t }}</p>
+      } @else if (allMatchesError()) {
+        <p class="info-hint">{{ allMatchesError() }}</p>
+      } @else if (categoriesWithFights().length === 0) {
+        <p class="info-hint">{{ 'display.noMatches' | t }}</p>
+      } @else {
+        <div class="all-categories-list">
+          @for (cat of categoriesWithFights(); track cat.id) {
+            <article class="match-category-card">
+              <header class="match-category-header">
+                <h3 class="match-category-name">{{ cat.name }}</h3>
+                <span class="match-category-count">{{ fightsForCategory(cat.id).length }} {{ 'draw.fightsCount' | t }}</span>
+              </header>
+
+              @if (isCategoryPureRoundRobin(cat)) {
+                @if (allStandingsForCategory(cat.id).length > 0) {
+                  <div class="standings-wrap">
+                    <h4 class="round-title">{{ 'draw.standings' | t }}</h4>
+                    <table class="standings-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>{{ 'draw.athlete' | t }}</th>
+                          <th>{{ 'draw.standingsWins' | t }}</th>
+                          <th>{{ 'draw.standingsWazaAri' | t }}</th>
+                          <th>{{ 'draw.standingsYuko' | t }}</th>
+                          <th>{{ 'draw.standingsShidos' | t }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (s of allStandingsForCategory(cat.id); track s.athleteId) {
+                          <tr>
+                            <td>{{ s.rank }}</td>
+                            <td>
+                              <div>{{ s.athleteName }}</div>
+                              <div class="slot-club">{{ s.clubName }}</div>
+                            </td>
+                            <td>{{ s.wins }}</td>
+                            <td>{{ s.wazaAriScored }}</td>
+                            <td>{{ s.yukoScored }}</td>
+                            <td>{{ s.shidos }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                <div class="rounds-grid">
+                  @for (group of roundRobinMainRoundsForCategory(cat.id); track group.round) {
+                    <section class="round-block">
+                      <h5 class="round-title">{{ 'draw.round' | t: { n: group.round } }}</h5>
+                      <div class="fights-list">
+                        @for (f of group.fights; track f.id) {
+                          <div class="fight">
+                            <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                            <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                              @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                            <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                              @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </section>
+                  }
+                </div>
+              } @else if (isCategoryRoundRobinWithKnockout(cat)) {
+                @for (poolGroup of roundRobinPoolGroupsForCategory(cat.id); track poolGroup.pool) {
+                  <section class="pool-block">
+                    <h4 class="round-title">{{ 'draw.pool' | t }} {{ poolGroup.pool }}</h4>
+
+                    @if (standingsForPool(cat.id, poolGroup.pool).length > 0) {
+                      <table class="standings-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>{{ 'draw.athlete' | t }}</th>
+                            <th>{{ 'draw.standingsWins' | t }}</th>
+                            <th>{{ 'draw.standingsWazaAri' | t }}</th>
+                            <th>{{ 'draw.standingsYuko' | t }}</th>
+                            <th>{{ 'draw.standingsShidos' | t }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (s of standingsForPool(cat.id, poolGroup.pool); track s.athleteId) {
+                            <tr>
+                              <td>{{ s.rank }}</td>
+                              <td>
+                                <div>{{ s.athleteName }}</div>
+                                <div class="slot-club">{{ s.clubName }}</div>
+                              </td>
+                              <td>{{ s.wins }}</td>
+                              <td>{{ s.wazaAriScored }}</td>
+                              <td>{{ s.yukoScored }}</td>
+                              <td>{{ s.shidos }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+
+                    <div class="rounds-grid">
+                      @for (group of poolGroup.rounds; track group.round) {
+                        <section class="round-block">
+                          <h5 class="round-title">{{ 'draw.round' | t: { n: group.round } }}</h5>
+                          <div class="fights-list">
+                            @for (f of group.fights; track f.id) {
+                              <div class="fight">
+                                <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                                <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                                  @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                                <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                                  @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </section>
+                      }
+                    </div>
+                  </section>
+                }
+
+                @if (roundRobinMainRoundsForCategory(cat.id).length > 0) {
+                  <section class="ko-phase-block">
+                    <h4 class="round-title">{{ 'draw.knockoutPhase' | t }}</h4>
+                    <div class="bracket-shell">
+                      <svg
+                        class="bracket-connectors"
+                        [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                        [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                        [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                        preserveAspectRatio="none">
+                        @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                          <path [attr.d]="path.d" />
+                        }
+                      </svg>
+                      <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                        @for (group of roundRobinMainRoundsForCategory(cat.id); track group.round) {
+                          <div class="round">
+                            <h4>{{ 'draw.round' | t: { n: group.round } }}</h4>
+                            @for (f of group.fights; track f.id) {
+                              <div class="fight"
+                                [attr.data-fight-id]="f.id"
+                                [attr.data-round]="f.round"
+                                [attr.data-fight-number]="f.fightNumber"
+                                [attr.data-bracket-type]="f.bracketType">
+                                <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                                <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                                  @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                                <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                                  @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </section>
+                }
+              } @else {
+                <div class="bracket-shell">
+                  <svg
+                    class="bracket-connectors"
+                    [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                    [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                    [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                    preserveAspectRatio="none">
+                    @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                      <path [attr.d]="path.d" />
+                    }
+                  </svg>
+                  <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                    @for (group of mainRoundsForCategory(cat.id); track group.round) {
+                      <div class="round">
+                        <h4>{{ 'draw.round' | t: { n: group.round } }}</h4>
+                        @for (f of group.fights; track f.id) {
+                          <div class="fight"
+                            [attr.data-fight-id]="f.id"
+                            [attr.data-round]="f.round"
+                            [attr.data-fight-number]="f.fightNumber"
+                            [attr.data-bracket-type]="f.bracketType">
+                            <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                            <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                              @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                            <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                              @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (repechageRoundsForCategory(cat.id).length > 0) {
+                  <section class="pool-block">
+                    <h4 class="round-title">{{ 'draw.repechageSection' | t }}</h4>
+                    <div class="bracket-shell">
+                      <svg
+                        class="bracket-connectors"
+                        [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Repechage'))"
+                        [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Repechage'))"
+                        [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Repechage'))"
+                        preserveAspectRatio="none">
+                        @for (path of connectorPaths(cat.id, 'Repechage'); track path.id) {
+                          <path [attr.d]="path.d" />
+                        }
+                      </svg>
+                      <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Repechage')" (scroll)="onBracketScrolled()">
+                        @for (group of repechageRoundsForCategory(cat.id); track group.round) {
+                          <div class="round">
+                            <h5>{{ 'draw.round' | t: { n: group.round } }}</h5>
+                            @for (f of group.fights; track f.id) {
+                              <div class="fight"
+                                [attr.data-fight-id]="f.id"
+                                [attr.data-round]="f.round"
+                                [attr.data-fight-number]="f.fightNumber"
+                                [attr.data-bracket-type]="f.bracketType">
+                                <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                                <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                                  @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                                <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                                  @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </section>
+                }
+              }
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>

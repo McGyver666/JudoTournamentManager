@@ -1,0 +1,68 @@
+# =========================
+# .NET / Visual Studio
+# =========================
+[Bb]in/
+[Oo]bj/
+.vs/
+TestResults/
+*.user
+*.suo
+*.cache
+*.pdb
+*.trx
+
+# ReSharper / Rider
+_ReSharper*/
+*.DotSettings.user
+.idea/
+
+# =========================
+# Frontend (Angular / Node)
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/tmp/
+frontend/out-tsc/
+frontend/.angular/cache/
+frontend/coverage/
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Local runtime / tooling
+# =========================
+.dotnet/
+.venv/
+
+# SQLite runtime files
+JudoTournamentManagement.Api/App_Data/*.db
+JudoTournamentManagement.Api/App_Data/*.db-shm
+JudoTournamentManagement.Api/App_Data/*.db-wal
+
+# Local environment files
+appsettings*.Development.json
+.env
+.env.*
+!.env.example
+
+# Generated local reports / logs
+lan-validation-report-*.json
+*.log
+
+# =========================
+# Editor / OS files
+# =========================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+.DS_Store
+Thumbs.db
+Desktop.ini

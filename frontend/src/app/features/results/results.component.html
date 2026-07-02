@@ -1,0 +1,91 @@
+<section class="page-header">
+  <h1>{{ 'results.title' | t }}</h1>
+  <button class="btn btn--secondary no-print" (click)="printPage()">{{ 'results.print' | t }}</button>
+</section>
+
+@if (!context.tournamentId()) {
+  <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
+} @else {
+  <!-- Tab bar -->
+  <div class="tab-bar no-print">
+    <button class="tab-btn" [class.active]="activeTab() === 'rankings'" (click)="setTab('rankings')">
+      {{ 'results.tab.rankings' | t }}
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'medals'" (click)="setTab('medals')">
+      {{ 'results.tab.medals' | t }}
+    </button>
+  </div>
+
+  <!-- Rankings tab -->
+  @if (activeTab() === 'rankings') {
+    <div class="rankings-section">
+      <p class="provisional-hint">{{ 'results.provisional' | t }}</p>
+
+      @for (r of rankings(); track r.category.id) {
+        <div class="category-block">
+          <h2 class="category-title">{{ r.category.name }}</h2>
+          @if (r.loading) {
+            <p class="loading-hint">{{ 'common.loading' | t }}</p>
+          } @else if (r.entries.length === 0) {
+            <p class="info-hint">{{ 'results.noResults' | t }}</p>
+          } @else {
+            <table class="ranking-table">
+              <thead>
+                <tr>
+                  <th class="col-place">Platz</th>
+                  <th>{{ 'results.athlete' | t }}</th>
+                  <th>{{ 'results.club' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of r.entries; track e.athleteId) {
+                  <tr [class.podium-gold]="e.place === 1"
+                      [class.podium-silver]="e.place === 2"
+                      [class.podium-bronze]="e.place === 3">
+                    <td class="col-place">{{ placeLabel(e.place) }}</td>
+                    <td>{{ e.athleteName }}</td>
+                    <td>{{ e.clubName }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Medal table tab -->
+  @if (activeTab() === 'medals') {
+    <div class="medals-section">
+      <p class="provisional-hint">{{ 'results.provisional' | t }}</p>
+
+      @if (medalLoading()) {
+        <p class="loading-hint">{{ 'common.loading' | t }}</p>
+      } @else if (medalTable().length === 0) {
+        <p class="info-hint">{{ 'results.noResults' | t }}</p>
+      } @else {
+        <table class="medal-table">
+          <thead>
+            <tr>
+              <th>{{ 'results.club' | t }}</th>
+              <th class="medal-col">🥇</th>
+              <th class="medal-col">🥈</th>
+              <th class="medal-col">🥉</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of medalTable(); track m.clubId) {
+              <tr>
+                <td>{{ m.clubName }}</td>
+                <td class="medal-col gold">{{ m.gold }}</td>
+                <td class="medal-col silver">{{ m.silver }}</td>
+                <td class="medal-col bronze">{{ m.bronze }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+}
