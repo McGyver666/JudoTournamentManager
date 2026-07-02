@@ -1,0 +1,48 @@
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-title">{{ 'app.title' | t }}</span>
+    <span class="brand-sub">{{ 'app.subtitle' | t }}</span>
+  </div>
+  <nav class="app-nav">
+    @if (isAuthenticated()) {
+      <a routerLink="/tournaments" routerLinkActive="active">{{ 'nav.tournaments' | t }}</a>
+      @if (canOperate()) {
+        <a routerLink="/config" routerLinkActive="active">{{ 'nav.config' | t }}</a>
+        <a routerLink="/registrations" routerLinkActive="active">{{ 'nav.registrations' | t }}</a>
+        <a routerLink="/category-assignment" routerLinkActive="active">{{ 'nav.categoryAssignment' | t }}</a>
+        <a routerLink="/draw" routerLinkActive="active">{{ 'nav.draw' | t }}</a>
+        <a routerLink="/tatami-assignment" routerLinkActive="active">{{ 'nav.tatamiAssignment' | t }}</a>
+        <a routerLink="/match" routerLinkActive="active">{{ 'nav.match' | t }}</a>
+      }
+      @if (context.tournamentId(); as tid) {
+        <a [routerLink]="['/display']" [queryParams]="{ tournamentId: tid }" routerLinkActive="active">{{ 'nav.display' | t }}</a>
+      }
+      <a routerLink="/results" routerLinkActive="active">{{ 'nav.results' | t }}</a>
+      @if (isAdmin()) {
+        <a routerLink="/users" routerLinkActive="active">{{ 'nav.users' | t }}</a>
+      }
+    } @else {
+      <a routerLink="/login" routerLinkActive="active">{{ 'auth.login' | t }}</a>
+    }
+  </nav>
+  <div class="app-tools">
+    @if (currentUser(); as u) {
+      <span class="active-tournament">{{ u.userName }} ({{ u.role }})</span>
+      <button (click)="logout()">{{ 'auth.logout' | t }}</button>
+    }
+    @if (context.tournament(); as t) {
+      <span class="active-tournament" title="{{ 'tournaments.selected' | t }}">{{ t.name }}</span>
+    }
+    <label class="lang-switch">
+      <span class="sr-only">{{ 'lang.label' | t }}</span>
+      <select [value]="language()" (change)="switchLanguage($event)">
+        <option value="de">{{ 'lang.de' | t }}</option>
+        <option value="en">{{ 'lang.en' | t }}</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<main class="app-main">
+  <router-outlet />
+</main>

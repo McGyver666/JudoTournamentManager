@@ -1,0 +1,102 @@
+@if (!tournamentId) {
+  <div class="empty">{{ 'tournaments.none' | t }}</div>
+} @else {
+  <div class="toolbar">
+    <h1>{{ 'tatamiAssignment.title' | t }}</h1>
+    <div class="toolbar-actions">
+      <button class="primary" (click)="autoAssign()" [disabled]="!canOperate() || assigning() || assignableFightViews().length === 0">
+        {{ 'tatamiAssignment.autoAssign' | t }}
+      </button>
+      <a routerLink="/match">{{ 'tatamiAssignment.openMatch' | t }}</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>{{ 'tatamiAssignment.activeTatamis' | t }}</label>
+        <p class="muted">{{ activeTatamis().length }}</p>
+      </div>
+      <div>
+        <label>{{ 'tatamiAssignment.assignedFights' | t }}</label>
+        <p class="muted">{{ assignedCount() }} / {{ assignableFightViews().length }}</p>
+      </div>
+    </div>
+    <div class="allocation-mode">
+      <label class="checkbox-label" for="keep-category-single-tatami">
+        <input
+          id="keep-category-single-tatami"
+          type="checkbox"
+          [ngModel]="keepCategoryOnSingleTatami()"
+          (ngModelChange)="keepCategoryOnSingleTatami.set($event)"
+          [disabled]="!canOperate() || assigning()"
+        />
+        {{ 'tatamiAssignment.keepCategoryOnSingleTatami' | t }}
+      </label>
+      <p class="muted">{{ 'tatamiAssignment.keepCategoryOnSingleTatamiHint' | t }}</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (info()) {
+    <p class="muted">{{ info() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="muted">{{ 'common.loading' | t }}</p>
+  } @else if (categories().length === 0) {
+    <div class="empty">
+      {{ 'tatamiAssignment.noCategories' | t }}
+      <a routerLink="/config">{{ 'tatamiAssignment.openConfig' | t }}</a>
+    </div>
+  } @else if (activeTatamis().length === 0) {
+    <div class="empty">
+      {{ 'tatamiAssignment.noActiveTatamis' | t }}
+      <a routerLink="/config">{{ 'tatamiAssignment.openConfig' | t }}</a>
+    </div>
+  } @else if (assignableFightViews().length === 0) {
+    <div class="empty">{{ 'tatamiAssignment.noAssignableFights' | t }}</div>
+  } @else {
+    <div class="card">
+      <p class="muted">{{ 'tatamiAssignment.hint' | t }}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'draw.category' | t }}</th>
+            <th>{{ 'tatamiAssignment.round' | t }}</th>
+            <th>{{ 'tatamiAssignment.fight' | t }}</th>
+            <th>{{ 'tatamiAssignment.whiteAthlete' | t }}</th>
+            <th>{{ 'tatamiAssignment.blueAthlete' | t }}</th>
+            <th>{{ 'tatamiAssignment.tatami' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (view of assignableFightViews(); track view.fight.id) {
+            <tr>
+              <td>{{ view.categoryName }}</td>
+              <td>{{ view.fight.round }}</td>
+              <td>{{ view.fight.fightNumber }}</td>
+              <td>{{ view.whiteName }}</td>
+              <td>{{ view.blueName }}</td>
+              <td>
+                <select
+                  [ngModel]="view.fight.tatamiId ?? ''"
+                  (ngModelChange)="assignFight(view.fight.id, $event)"
+                  [disabled]="!canOperate() || assigning()"
+                >
+                  <option value="">{{ 'tatamiAssignment.notAssigned' | t }}</option>
+                  @for (tatami of selectableTatamis(); track tatami.id) {
+                    <option [value]="tatami.id">{{ tatami.name }}</option>
+                  }
+                </select>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+}

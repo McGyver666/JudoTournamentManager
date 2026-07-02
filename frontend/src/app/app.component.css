@@ -1,0 +1,86 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--c-primary);
+}
+
+.brand-sub {
+  font-size: 0.75rem;
+  color: var(--c-muted);
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.app-nav a {
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius);
+  color: var(--c-text);
+  font-weight: 500;
+}
+
+.app-nav a:hover {
+  background: #eef1f5;
+}
+
+.app-nav a.active {
+  background: var(--c-primary);
+  color: #fff;
+}
+
+.app-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.active-tournament {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  background: #eef1f5;
+  border-radius: 999px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lang-switch select {
+  width: auto;
+  padding: 0.35rem 0.5rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.app-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}

@@ -1,0 +1,36 @@
+.toolbar-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.toolbar-actions a {
+  display: inline-block;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  color: var(--c-text);
+}
+
+.empty a {
+  margin-left: 0.5rem;
+}
+
+p.muted {
+  margin: 0.25rem 0;
+}
+
+.allocation-mode {
+  margin-top: 0.75rem;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.checkbox-label input {
+  width: auto;
+}

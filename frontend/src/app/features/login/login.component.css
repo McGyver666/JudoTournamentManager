@@ -1,0 +1,45 @@
+.auth-wrap {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  background: #fff;
+  border: 1px solid #dfe3eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.auth-card p {
+  margin: 0;
+  color: #485266;
+}
+
+.error {
+  color: #a61b29;
+}
+
+label {
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #c8cfdb;
+  border-radius: 8px;
+}
+
+button.primary {
+  margin-top: 0.5rem;
+  justify-self: end;
+}

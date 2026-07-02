@@ -1,0 +1,92 @@
+<div class="toolbar">
+  <h1>{{ 'tournaments.title' | t }}</h1>
+  <div class="row" style="justify-content: flex-end;">
+    @if (isAdmin()) {
+      <input #restoreInput type="file" accept="application/json,.json" style="display: none;" (change)="restoreFromFile($event)" />
+      <button (click)="openRestoreDialog(restoreInput)" [disabled]="restoring()">{{ 'tournaments.restore' | t }}</button>
+    }
+    @if (canManage()) {
+      <button class="primary" (click)="startCreate()">{{ 'tournaments.new' | t }}</button>
+    }
+  </div>
+</div>
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+@if (info()) {
+  <p class="muted">{{ info() }}</p>
+}
+
+@if (showForm() && canManage()) {
+  <div class="card">
+    <h2>{{ (editId() ? 'tournaments.edit' : 'tournaments.new') | t }}</h2>
+    <div class="row">
+      <div>
+        <label>{{ 'tournaments.name' | t }}</label>
+        <input [(ngModel)]="form.name" name="name" />
+      </div>
+      <div>
+        <label>{{ 'tournaments.date' | t }}</label>
+        <input type="date" [(ngModel)]="form.date" name="date" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>{{ 'tournaments.venue' | t }}</label>
+        <input [(ngModel)]="form.venue" name="venue" />
+      </div>
+      <div>
+        <label>{{ 'tournaments.organizer' | t }}</label>
+        <input [(ngModel)]="form.organizer" name="organizer" />
+      </div>
+    </div>
+    <div class="toolbar" style="margin-top: 1rem; justify-content: flex-end;">
+      <button (click)="cancel()">{{ 'common.cancel' | t }}</button>
+      <button class="primary" (click)="save()">{{ 'common.save' | t }}</button>
+    </div>
+  </div>
+}
+
+@if (loading()) {
+  <p class="muted">{{ 'common.loading' | t }}</p>
+} @else if (tournaments().length === 0) {
+  <div class="empty">{{ 'tournaments.empty' | t }}</div>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>{{ 'tournaments.name' | t }}</th>
+        <th>{{ 'tournaments.date' | t }}</th>
+        <th>{{ 'tournaments.venue' | t }}</th>
+        <th>{{ 'tournaments.organizer' | t }}</th>
+        <th>{{ 'common.actions' | t }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (t of tournaments(); track t.id) {
+        <tr>
+          <td>
+            {{ t.name }}
+            @if (isActive(t)) {
+              <span class="badge">{{ 'tournaments.selected' | t }}</span>
+            }
+          </td>
+          <td>{{ t.date | date: 'dd.MM.yyyy' }}</td>
+          <td>{{ t.venue }}</td>
+          <td>{{ t.organizer }}</td>
+          <td>
+            <button (click)="select(t)" [disabled]="isActive(t)">{{ 'tournaments.open' | t }}</button>
+            @if (isAdmin()) {
+              <button (click)="backup(t)" [disabled]="isBackupBusy(t.id)">{{ 'tournaments.backup' | t }}</button>
+            }
+            @if (canManage()) {
+              <button (click)="startEdit(t)">{{ 'common.edit' | t }}</button>
+              <button class="danger" (click)="remove(t)">{{ 'common.delete' | t }}</button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

@@ -1,0 +1,89 @@
+<section class="users-page">
+  <div class="toolbar">
+    <h1>{{ 'users.title' | t }}</h1>
+    <button (click)="load()">{{ 'common.reload' | t }}</button>
+  </div>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+  @if (info()) {
+    <p class="info">{{ info() }}</p>
+  }
+
+  <div class="card create-form">
+    <h2>{{ 'users.new' | t }}</h2>
+    <div class="row">
+      <div>
+        <label>{{ 'auth.userName' | t }}</label>
+        <input [ngModel]="form().userName" (ngModelChange)="updateUserName($event)" />
+      </div>
+      <div>
+        <label>{{ 'users.role' | t }}</label>
+        <select [ngModel]="form().role" (ngModelChange)="updateRole($event)">
+          <option value="Admin">Admin</option>
+          <option value="Operator">Operator</option>
+          <option value="Display">Display</option>
+        </select>
+      </div>
+      <div>
+        <label>{{ 'auth.password' | t }}</label>
+        <input type="password" [ngModel]="form().password" (ngModelChange)="updatePassword($event)" />
+      </div>
+    </div>
+    <button class="primary" [disabled]="saving()" (click)="createUser()">{{ 'common.create' | t }}</button>
+  </div>
+
+  @if (loading()) {
+    <div class="empty">{{ 'common.loading' | t }}</div>
+  } @else if (users().length === 0) {
+    <div class="empty">{{ 'common.empty' | t }}</div>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'auth.userName' | t }}</th>
+          <th>{{ 'users.role' | t }}</th>
+          <th>{{ 'users.active' | t }}</th>
+          <th>{{ 'common.actions' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of users(); track u.id) {
+          <tr>
+            <td>{{ u.userName }}</td>
+            <td>{{ u.role }}</td>
+            <td>{{ (u.isActive ? 'common.yes' : 'common.no') | t }}</td>
+            <td>
+              <button (click)="toggleActive(u)">{{ u.isActive ? ('users.deactivate' | t) : ('users.activate' | t) }}</button>
+              <button (click)="openResetPassword(u)">{{ 'users.resetPassword' | t }}</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (resetTarget(); as target) {
+    <div class="reset-overlay" (click)="closeResetPassword()">
+      <div class="reset-dialog card" (click)="$event.stopPropagation()">
+        <h2>{{ 'users.resetPassword' | t }}</h2>
+        <p>{{ 'users.resetPasswordFor' | t }}: <strong>{{ target.userName }}</strong></p>
+
+        <label>{{ 'users.newPassword' | t }}</label>
+        <input
+          type="password"
+          [ngModel]="resetPasswordValue()"
+          (ngModelChange)="updateResetPassword($event)"
+          autocomplete="new-password" />
+
+        <p class="hint">{{ 'users.passwordMinLength' | t }}</p>
+
+        <div class="dialog-actions">
+          <button type="button" (click)="closeResetPassword()">{{ 'common.cancel' | t }}</button>
+          <button type="button" class="primary" (click)="confirmResetPassword()">{{ 'users.resetPassword' | t }}</button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

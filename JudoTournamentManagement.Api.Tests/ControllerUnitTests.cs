@@ -1,0 +1,398 @@
+using JudoTournamentManagement.Api.Contracts;
+using JudoTournamentManagement.Api.Controllers;
+using JudoTournamentManagement.Api.Models;
+using JudoTournamentManagement.Api.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using Xunit;
+
+namespace JudoTournamentManagement.Api.Tests;
+
+/// <summary>
+/// Unit tests for all API controller endpoints.
+/// Tests the controller logic, validation, and HTTP response contracts using mocked dependencies.
+/// </summary>
+[Trait("Category", "UnitTest")]
+public sealed class ControllerUnitTests
+{
+    #region Tournament Controller Tests
+
+    [Fact]
+    public async Task TournamentsController_GetAllAsync_ReturnsOk()
+    {
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Tournament>());
+        var controller = new TournamentsController(mockStore.Object);
+
+        var result = await controller.GetAllAsync(CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task TournamentsController_CreateAsync_WithValidData_ReturnsCreated()
+    {
+        var tournamentId = Guid.NewGuid();
+        var tournament = new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.CreateAsync(It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tournament);
+        var controller = new TournamentsController(mockStore.Object);
+        var request = new CreateTournamentRequest { Name = "Test", Date = new DateOnly(2026, 7, 15), Venue = "Venue", Organizer = "Org" };
+
+        var result = await controller.CreateAsync(request, CancellationToken.None);
+
+        var createdResult = Assert.IsType<CreatedResult>(result.Result);
+        Assert.Equal(StatusCodes.Status201Created, createdResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task TournamentsController_GetByIdAsync_WithValidId_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var tournament = new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tournament);
+        var controller = new TournamentsController(mockStore.Object);
+
+        var result = await controller.GetByIdAsync(tournamentId, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task TournamentsController_GetByIdAsync_WithInvalidId_ReturnsNotFound()
+    {
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Tournament?)null);
+        var controller = new TournamentsController(mockStore.Object);
+
+        var result = await controller.GetByIdAsync(Guid.NewGuid(), CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task TournamentsController_UpdateAsync_WithValidData_ReturnsNoContent()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var controller = new TournamentsController(mockStore.Object);
+        var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org" };
+
+        var result = await controller.UpdateAsync(tournamentId, request, CancellationToken.None);
+
+        var noContentResult = Assert.IsType<NoContentResult>(result);
+        Assert.Equal(StatusCodes.Status204NoContent, noContentResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task TournamentsController_UpdateAsync_WithInvalidId_ReturnsNotFound()
+    {
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var controller = new TournamentsController(mockStore.Object);
+        var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org" };
+
+        var result = await controller.UpdateAsync(Guid.NewGuid(), request, CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task TournamentsController_DeleteAsync_WithValidId_ReturnsNoContent()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var controller = new TournamentsController(mockStore.Object);
+
+        var result = await controller.DeleteAsync(tournamentId, CancellationToken.None);
+
+        var noContentResult = Assert.IsType<NoContentResult>(result);
+        Assert.Equal(StatusCodes.Status204NoContent, noContentResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task TournamentsController_DeleteAsync_WithInvalidId_ReturnsNotFound()
+    {
+        var mockStore = new Mock<ITournamentStore>();
+        mockStore.Setup(s => s.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var controller = new TournamentsController(mockStore.Object);
+
+        var result = await controller.DeleteAsync(Guid.NewGuid(), CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    #endregion
+
+    #region Tatami Controller Tests
+
+    [Fact]
+    public async Task TatamisController_GetAllAsync_WithValidTournament_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockTatamisStore = new Mock<ITatamisStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockTatamisStore.Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Tatami>());
+        var controller = new TatamisController(mockTatamisStore.Object, mockTournamentStore.Object);
+
+        var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task TatamisController_CreateAsync_WithValidData_ReturnsCreated()
+    {
+        var tournamentId = Guid.NewGuid();
+        var tatamiId = Guid.NewGuid();
+        var mockTatamisStore = new Mock<ITatamisStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockTatamisStore.Setup(s => s.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tatami(tatamiId, tournamentId, "Test", 1, true, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        var controller = new TatamisController(mockTatamisStore.Object, mockTournamentStore.Object);
+        var request = new CreateTatamiRequest { Name = "Test", DisplayOrder = 1 };
+
+        var result = await controller.CreateAsync(tournamentId, request, CancellationToken.None);
+
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(StatusCodes.Status201Created, createdResult.StatusCode);
+    }
+
+    #endregion
+
+    #region Category Controller Tests
+
+    [Fact]
+    public async Task CategoriesController_GetAllAsync_WithValidTournament_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockCategoriesStore = new Mock<ICategoriesStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockCategoriesStore.Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Category>());
+        var controller = new CategoriesController(mockCategoriesStore.Object, mockTournamentStore.Object);
+
+        var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task CategoriesController_CreateAsync_WithValidData_ReturnsCreated()
+    {
+        var tournamentId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        var mockCategoriesStore = new Mock<ICategoriesStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockCategoriesStore.Setup(s => s.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Gender>(), null, null, null, null, It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Category(categoryId, tournamentId, "U12", "U12", Gender.Male, null, null, null, null, 300, false, 180, null, false, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        var controller = new CategoriesController(mockCategoriesStore.Object, mockTournamentStore.Object);
+        var request = new CreateCategoryRequest { Name = "U12", AgeGroup = "U12", Gender = Gender.Male };
+
+        var result = await controller.CreateAsync(tournamentId, request, CancellationToken.None);
+
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(StatusCodes.Status201Created, createdResult.StatusCode);
+    }
+
+    #endregion
+
+    #region Club Controller Tests
+
+    [Fact]
+    public async Task ClubsController_GetAllAsync_WithValidTournament_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockClubsStore = new Mock<IClubsStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockClubsStore.Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Club>());
+        var controller = new ClubsController(mockClubsStore.Object, mockTournamentStore.Object);
+
+        var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task ClubsController_CreateAsync_WithValidData_ReturnsCreated()
+    {
+        var tournamentId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+        var mockClubsStore = new Mock<IClubsStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockClubsStore.Setup(s => s.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Club(clubId, tournamentId, "Test Club", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        var controller = new ClubsController(mockClubsStore.Object, mockTournamentStore.Object);
+        var request = new CreateClubRequest { Name = "Test Club" };
+
+        var result = await controller.CreateAsync(tournamentId, request, CancellationToken.None);
+
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(StatusCodes.Status201Created, createdResult.StatusCode);
+    }
+
+    #endregion
+
+    #region Athlete Controller Tests
+
+    [Fact]
+    public async Task AthletesController_GetAllAsync_WithValidTournament_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockAthletesStore = new Mock<IAthletesStore>();
+        var mockClubsStore = new Mock<IClubsStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockAthletesStore.Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Athlete>());
+        var controller = new AthletesController(mockAthletesStore.Object, mockClubsStore.Object, mockTournamentStore.Object);
+
+        var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    #endregion
+
+    #region Registration Controller Tests
+
+    [Fact]
+    public async Task RegistrationsController_GetAllAsync_WithValidTournament_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockRegistrationsStore = new Mock<IRegistrationsStore>();
+        var mockAthletesStore = new Mock<IAthletesStore>();
+        var mockCategoriesStore = new Mock<ICategoriesStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        var mockBracketService = new Mock<IBracketService>();
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockRegistrationsStore.Setup(s => s.GetDetailedAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<RegistrationDetail>());
+        var controller = new RegistrationsController(
+            mockRegistrationsStore.Object,
+            mockAthletesStore.Object,
+            mockCategoriesStore.Object,
+            mockTournamentStore.Object,
+            mockBracketService.Object,
+            NullLogger<RegistrationsController>.Instance);
+
+        var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task RegistrationsController_AssignCategoryAsync_RegeneratesAffectedUnlockedDraws()
+    {
+        var tournamentId = Guid.NewGuid();
+        var registrationId = Guid.NewGuid();
+        var oldCategoryId = Guid.NewGuid();
+        var newCategoryId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+
+        var mockRegistrationsStore = new Mock<IRegistrationsStore>();
+        var mockAthletesStore = new Mock<IAthletesStore>();
+        var mockCategoriesStore = new Mock<ICategoriesStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        var mockBracketService = new Mock<IBracketService>();
+
+        mockTournamentStore
+            .Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", now, now));
+
+        mockRegistrationsStore
+            .Setup(s => s.GetByIdAsync(registrationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Registration(registrationId, tournamentId, Guid.NewGuid(), oldCategoryId, now));
+
+        mockCategoriesStore
+            .Setup(s => s.GetByIdAsync(newCategoryId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Category(newCategoryId, tournamentId, "U18", "U18", Gender.Male, 73m, null, null, null, 300, false, 180, BracketFormat.SingleElimination, false, now, now));
+
+        mockCategoriesStore
+            .Setup(s => s.GetByIdAsync(oldCategoryId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Category(oldCategoryId, tournamentId, "U16", "U16", Gender.Male, 66m, null, null, null, 300, false, 180, BracketFormat.SingleElimination, false, now, now));
+
+        mockRegistrationsStore
+            .Setup(s => s.AssignCategoryAsync(registrationId, newCategoryId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Registration(registrationId, tournamentId, Guid.NewGuid(), newCategoryId, now));
+
+        mockBracketService
+            .Setup(s => s.GenerateAsync(
+                tournamentId,
+                It.IsAny<Guid>(),
+                BracketFormat.SingleElimination,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Fight>());
+
+        var controller = new RegistrationsController(
+            mockRegistrationsStore.Object,
+            mockAthletesStore.Object,
+            mockCategoriesStore.Object,
+            mockTournamentStore.Object,
+            mockBracketService.Object,
+            NullLogger<RegistrationsController>.Instance);
+
+        var result = await controller.AssignCategoryAsync(
+            tournamentId,
+            registrationId,
+            new AssignCategoryRequest { CategoryId = newCategoryId },
+            CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+
+        mockBracketService.Verify(
+            s => s.GenerateAsync(
+                tournamentId,
+                oldCategoryId,
+                BracketFormat.SingleElimination,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        mockBracketService.Verify(
+            s => s.GenerateAsync(
+                tournamentId,
+                newCategoryId,
+                BracketFormat.SingleElimination,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    #endregion
+}

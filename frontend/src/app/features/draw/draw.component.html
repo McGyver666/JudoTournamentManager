@@ -1,0 +1,433 @@
+@if (!tournamentId) {
+  <div class="empty">{{ 'tournaments.none' | t }}</div>
+} @else {
+  <div class="toolbar">
+    <h1>{{ 'draw.title' | t }}</h1>
+    <div class="toolbar-actions">
+      <label>{{ 'draw.globalFormat' | t }}</label>
+      <select [ngModel]="globalFormat()" (ngModelChange)="applyGlobalFormat($event)" name="globalFormat">
+        <option value="SingleElimination">{{ 'draw.format.single' | t }}</option>
+        <option value="SingleEliminationWithRepechage">{{ 'draw.format.repechage' | t }}</option>
+        <option value="RoundRobin">{{ 'draw.format.roundRobin' | t }}</option>
+        <option value="RoundRobinWithKnockout">{{ 'draw.format.roundRobinWithKnockout' | t }}</option>
+      </select>
+      <button class="primary" (click)="generateAll()" [disabled]="!canOperate() || generatingAll()">
+        {{ (generatingAll() ? 'common.loading' : 'draw.generateAll') | t }}
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (showNextStepHint()) {
+    <div class="card next-step-card">
+      <strong>{{ 'draw.nextStepTitle' | t }}</strong>
+      <p class="muted">{{ 'draw.nextStepHint' | t }}</p>
+      <div class="next-step-actions">
+        <a class="primary" routerLink="/tatami-assignment">{{ 'draw.goTatamiAssignment' | t }}</a>
+        <a routerLink="/match">{{ 'draw.goMatch' | t }}</a>
+      </div>
+    </div>
+  }
+
+  @if (categories().length === 0) {
+    <div class="empty">{{ 'draw.noCategories' | t }}</div>
+  } @else {
+    @for (cat of categories(); track cat.id) {
+      <div class="card category-section">
+        <div class="toolbar category-header">
+          <div>
+            <h2>{{ cat.name }}</h2>
+            @if (cat.isLocked) {
+              <p class="muted" style="margin:0.25rem 0 0;">{{ 'draw.locked' | t }}</p>
+            }
+          </div>
+          <span class="badge">{{ fightsForCategory(cat.id).length }} {{ 'draw.fightsCount' | t }}</span>
+        </div>
+
+        <div class="row category-controls">
+          <div>
+            <label>{{ 'draw.format' | t }}</label>
+            <select
+              [ngModel]="categoryFormat(cat.id)"
+              (ngModelChange)="setCategoryFormat(cat.id, $event)"
+              [disabled]="cat.isLocked || !canOperate() || isCategoryLoading(cat.id) || generatingAll()"
+              [name]="'format-' + cat.id">
+              <option value="SingleElimination">{{ 'draw.format.single' | t }}</option>
+              <option value="SingleEliminationWithRepechage">{{ 'draw.format.repechage' | t }}</option>
+              <option value="RoundRobin">{{ 'draw.format.roundRobin' | t }}</option>
+              <option value="RoundRobinWithKnockout">{{ 'draw.format.roundRobinWithKnockout' | t }}</option>
+            </select>
+          </div>
+          @if (canOperate()) {
+            <div class="category-generate">
+              <button
+                class="primary"
+                (click)="generateForCategory(cat)"
+                [disabled]="cat.isLocked || isCategoryLoading(cat.id) || generatingAll()">
+                {{ (hasFights(cat.id) ? 'draw.regenerate' : 'draw.generate') | t }}
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (categoryError(cat.id)) {
+          <p class="error">{{ categoryError(cat.id) }}</p>
+        }
+
+        @if (isCategoryLoading(cat.id)) {
+          <p class="muted">{{ 'common.loading' | t }}</p>
+        } @else if (!hasFights(cat.id)) {
+          <div class="empty">{{ 'draw.empty' | t }}</div>
+        } @else {
+          <div class="card swap-bar">
+            <span class="muted">{{ 'draw.swapHint' | t }}</span>
+            @if (canOperate()) {
+              <button
+                class="primary"
+                (click)="confirmSwap(cat.id)"
+                [disabled]="swapSelectionCount(cat.id) !== 2 || cat.isLocked || generatingAll()">
+                {{ 'draw.swapConfirm' | t }}
+              </button>
+            }
+          </div>
+
+          <h3>{{ 'draw.mainSection' | t }}</h3>
+
+          @if (isCategoryPureRoundRobin(cat.id)) {
+            @if (allStandingsForCategory(cat.id).length > 0) {
+              <div class="card">
+                <h3 class="pool-title">{{ 'draw.standings' | t }}</h3>
+                <table class="standings-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>{{ 'draw.athlete' | t }}</th>
+                      <th>{{ 'draw.standingsWins' | t }}</th>
+                      <th>{{ 'draw.standingsWazaAri' | t }}</th>
+                      <th>{{ 'draw.standingsYuko' | t }}</th>
+                      <th>{{ 'draw.standingsShidos' | t }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (s of allStandingsForCategory(cat.id); track s.athleteId) {
+                      <tr>
+                        <td>{{ s.rank }}</td>
+                        <td>
+                          <div>{{ s.athleteName }}</div>
+                          <div class="slot-club">{{ s.clubName }}</div>
+                        </td>
+                        <td>{{ s.wins }}</td>
+                        <td>{{ s.wazaAriScored }}</td>
+                        <td>{{ s.yukoScored }}</td>
+                        <td>{{ s.shidos }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            <div class="bracket">
+              @for (group of roundRobinMainRoundsForCategory(cat.id); track group.round) {
+                <div class="round">
+                  <h3>{{ 'draw.round' | t: { n: group.round } }}</h3>
+                  @for (f of group.fights; track f.id) {
+                    <div class="fight">
+                      <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                      <div class="slot white"
+                        [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
+                        [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
+                        (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
+                        <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                        @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                          <div class="slot-club">{{ clubName }}</div>
+                        }
+                      </div>
+                      <div class="slot blue"
+                        [class.selected]="isSelected(cat.id, f.blueAthleteId)"
+                        [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
+                        (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
+                        <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                        @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                          <div class="slot-club">{{ clubName }}</div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else if (isCategoryRoundRobinWithKnockout(cat.id)) {
+            @for (pg of roundRobinPoolGroupsForCategory(cat.id); track pg.pool) {
+              <div class="card pool-section">
+                <h3 class="pool-title">{{ 'draw.pool' | t }} {{ pg.pool }}</h3>
+                @if (standingsForPool(cat.id, pg.pool).length > 0) {
+                  <table class="standings-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>{{ 'draw.athlete' | t }}</th>
+                        <th>{{ 'draw.standingsWins' | t }}</th>
+                        <th>{{ 'draw.standingsWazaAri' | t }}</th>
+                        <th>{{ 'draw.standingsYuko' | t }}</th>
+                        <th>{{ 'draw.standingsShidos' | t }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (s of standingsForPool(cat.id, pg.pool); track s.athleteId) {
+                        <tr [class.advances]="s.rank <= 2">
+                          <td>{{ s.rank }}</td>
+                          <td>
+                            <div>{{ s.athleteName }}</div>
+                            <div class="slot-club">{{ s.clubName }}</div>
+                          </td>
+                          <td>{{ s.wins }}</td>
+                          <td>{{ s.wazaAriScored }}</td>
+                          <td>{{ s.yukoScored }}</td>
+                          <td>{{ s.shidos }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+
+                <div class="bracket pool-fights">
+                  @for (group of pg.rounds; track group.round) {
+                    <div class="round">
+                      <h3>{{ 'draw.round' | t: { n: group.round } }}</h3>
+                      @for (f of group.fights; track f.id) {
+                        <div class="fight">
+                          <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                          <div class="slot white"
+                            [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
+                            [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
+                            (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
+                            <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                            @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                              <div class="slot-club">{{ clubName }}</div>
+                            }
+                          </div>
+                          <div class="slot blue"
+                            [class.selected]="isSelected(cat.id, f.blueAthleteId)"
+                            [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
+                            (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
+                            <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                            @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                              <div class="slot-club">{{ clubName }}</div>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (roundRobinMainRoundsForCategory(cat.id).length > 0) {
+              <h3>{{ 'draw.knockoutPhase' | t }}</h3>
+              <div class="bracket-shell">
+                <svg
+                  class="bracket-connectors"
+                  [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                  [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                  [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                  preserveAspectRatio="none">
+                  @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                    <path [attr.d]="path.d" />
+                  }
+                </svg>
+                <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                  @for (group of roundRobinMainRoundsForCategory(cat.id); track group.round) {
+                    <div class="round">
+                      <h3>{{ 'draw.round' | t: { n: group.round } }}</h3>
+                      @for (f of group.fights; track f.id) {
+                        <div class="fight"
+                          [attr.data-fight-id]="f.id"
+                          [attr.data-round]="f.round"
+                          [attr.data-fight-number]="f.fightNumber"
+                          [attr.data-bracket-type]="f.bracketType">
+                        <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                        <div class="slot white"
+                          [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
+                          [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
+                          (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
+                          <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                          @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                            <div class="slot-club">{{ clubName }}</div>
+                          }
+                        </div>
+                        <div class="slot blue"
+                          [class.selected]="isSelected(cat.id, f.blueAthleteId)"
+                          [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
+                          (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
+                          <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                          @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                            <div class="slot-club">{{ clubName }}</div>
+                          }
+                        </div>
+                      </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              @if (repechageRoundsForCategory(cat.id).length > 0) {
+                <h3>{{ 'draw.repechageSection' | t }}</h3>
+                <div class="bracket-shell">
+                  <svg
+                    class="bracket-connectors"
+                    [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Repechage'))"
+                    [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Repechage'))"
+                    [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Repechage'))"
+                    preserveAspectRatio="none">
+                    @for (path of connectorPaths(cat.id, 'Repechage'); track path.id) {
+                      <path [attr.d]="path.d" />
+                    }
+                  </svg>
+                  <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Repechage')" (scroll)="onBracketScrolled()">
+                    @for (group of repechageRoundsForCategory(cat.id); track group.round) {
+                      <div class="round">
+                        <h3>{{ 'draw.round' | t: { n: group.round } }}</h3>
+                        @for (f of group.fights; track f.id) {
+                          <div class="fight"
+                            [attr.data-fight-id]="f.id"
+                            [attr.data-round]="f.round"
+                            [attr.data-fight-number]="f.fightNumber"
+                            [attr.data-bracket-type]="f.bracketType">
+                          <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                          <div class="slot white"
+                            [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
+                            [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
+                            (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
+                            <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                            @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                              <div class="slot-club">{{ clubName }}</div>
+                            }
+                          </div>
+                          <div class="slot blue"
+                            [class.selected]="isSelected(cat.id, f.blueAthleteId)"
+                            [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
+                            (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
+                            <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                            @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                              <div class="slot-club">{{ clubName }}</div>
+                            }
+                          </div>
+                        </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            } @else {
+              <p class="muted knockout-pending">{{ 'draw.knockoutPending' | t }}</p>
+            }
+          } @else {
+            <div class="bracket-shell">
+              <svg
+                class="bracket-connectors"
+                [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                preserveAspectRatio="none">
+                @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                  <path [attr.d]="path.d" />
+                }
+              </svg>
+              <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                @for (group of mainRoundsForCategory(cat.id); track group.round) {
+                  <div class="round">
+                    <h3>{{ 'draw.round' | t: { n: group.round } }}</h3>
+                    @for (f of group.fights; track f.id) {
+                      <div class="fight"
+                        [attr.data-fight-id]="f.id"
+                        [attr.data-round]="f.round"
+                        [attr.data-fight-number]="f.fightNumber"
+                        [attr.data-bracket-type]="f.bracketType">
+                      <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                      <div class="slot white"
+                        [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
+                        [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
+                        (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
+                        <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                        @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                          <div class="slot-club">{{ clubName }}</div>
+                        }
+                      </div>
+                      <div class="slot blue"
+                        [class.selected]="isSelected(cat.id, f.blueAthleteId)"
+                        [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
+                        (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
+                        <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                        @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                          <div class="slot-club">{{ clubName }}</div>
+                        }
+                      </div>
+                    </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            @if (repechageRoundsForCategory(cat.id).length > 0) {
+              <h3>{{ 'draw.repechageSection' | t }}</h3>
+              <div class="bracket-shell">
+                <svg
+                  class="bracket-connectors"
+                  [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Repechage'))"
+                  [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Repechage'))"
+                  [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Repechage'))"
+                  preserveAspectRatio="none">
+                  @for (path of connectorPaths(cat.id, 'Repechage'); track path.id) {
+                    <path [attr.d]="path.d" />
+                  }
+                </svg>
+                <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Repechage')" (scroll)="onBracketScrolled()">
+                  @for (group of repechageRoundsForCategory(cat.id); track group.round) {
+                    <div class="round">
+                      <h3>{{ 'draw.round' | t: { n: group.round } }}</h3>
+                      @for (f of group.fights; track f.id) {
+                        <div class="fight"
+                          [attr.data-fight-id]="f.id"
+                          [attr.data-round]="f.round"
+                          [attr.data-fight-number]="f.fightNumber"
+                          [attr.data-bracket-type]="f.bracketType">
+                        <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                        <div class="slot white"
+                          [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
+                          [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
+                          (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
+                          <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                          @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                            <div class="slot-club">{{ clubName }}</div>
+                          }
+                        </div>
+                        <div class="slot blue"
+                          [class.selected]="isSelected(cat.id, f.blueAthleteId)"
+                          [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
+                          (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
+                          <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                          @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                            <div class="slot-club">{{ clubName }}</div>
+                          }
+                        </div>
+                      </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        }
+      </div>
+    }
+  }
+}

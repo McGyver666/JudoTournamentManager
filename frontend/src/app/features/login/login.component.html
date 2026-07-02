@@ -1,0 +1,22 @@
+<section class="auth-wrap">
+  <div class="auth-card">
+    <h1>{{ 'auth.loginTitle' | t }}</h1>
+    <p>{{ 'auth.loginSubtitle' | t }}</p>
+
+    <form (ngSubmit)="submit()">
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
+
+      <label for="username">{{ 'auth.userName' | t }}</label>
+      <input id="username" [ngModel]="userName()" (ngModelChange)="userName.set($event)" name="username" />
+
+      <label for="password">{{ 'auth.password' | t }}</label>
+      <input id="password" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" />
+
+      <button class="primary" type="submit" [disabled]="loading()">
+        {{ 'auth.login' | t }}
+      </button>
+    </form>
+  </div>
+</section>
