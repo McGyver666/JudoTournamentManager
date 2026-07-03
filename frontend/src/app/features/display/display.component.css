@@ -13,7 +13,7 @@
 	border: none;
 	border-radius: 0;
 	box-shadow: none;
-	background: #0f2a47;
+	background: #081a2f;
 }
 
 .display-header {
@@ -42,7 +42,7 @@
 }
 
 .tatami-fullscreen {
-	background: linear-gradient(165deg, #0f2a47 0%, #15375f 46%, #0f4c81 100%);
+	background: linear-gradient(165deg, #081a2f 0%, #0d2743 46%, #12395d 100%);
 	border: none;
 	border-radius: 0;
 	padding: 1.65rem 1.8rem;
@@ -83,7 +83,7 @@
 	text-align: center;
 	padding: .35rem 1rem;
 	border-radius: 18px;
-	border: 2px solid rgba(206, 230, 255, 0.38);
+	border: 2px solid var(--side-accent-soft);
 	background: rgba(25, 40, 60, 0.38);
 	color: #dcecff;
 	font-weight: 800;
@@ -91,7 +91,7 @@
 }
 
 .hold-timer--blue {
-	border-color: rgba(161, 219, 255, 0.8);
+	border-color: var(--side-accent-soft);
 }
 
 .hold-timer--white {
@@ -120,7 +120,7 @@
 }
 
 .hold-timer--blue .hold-timer-value {
-	color: #8fd4ff;
+	color: var(--side-accent-contrast);
 }
 
 .hold-timer--white .hold-timer-value {
@@ -146,13 +146,13 @@
 	color: #f3f8ff;
 }
 
-.tatami-athlete--blue {box-shadow:inset 0 0 0 2px rgba(62,168,237,.3);color:#bfe5ff}
+.tatami-athlete--blue {box-shadow:inset 0 0 0 2px var(--side-accent-soft);color:var(--side-accent-contrast)}
 .tatami-athlete--white {box-shadow:inset 0 0 0 2px rgba(227,236,247,.34)}
-.tatami-athlete-side {font-size:1.275rem;text-transform:uppercase;letter-spacing:.08em;color:#9ed4ff}
+.tatami-athlete-side {font-size:1.275rem;text-transform:uppercase;letter-spacing:.08em;color:var(--side-accent-muted)}
 .tatami-athlete--white .tatami-athlete-side {color:#ecf2fb}
 .tatami-athlete-name {font-size:clamp(1.725rem,4.5vw,3.3rem);font-weight:800;line-height:1.1}
 .tatami-athlete-club {font-size:clamp(1.35rem,2.55vw,1.875rem);color:#d4dfed}
-.tatami-athlete--blue .tatami-athlete-club {color:#a9d8ff}
+.tatami-athlete--blue .tatami-athlete-club {color:var(--side-accent-contrast)}
 
 .tatami-counters {display:grid;grid-template-columns:1fr 1fr;gap:1.125rem}
 .tatami-counters--triple {grid-template-columns:1fr 1fr 1fr}
@@ -204,7 +204,7 @@
 .next-section--xl .next-line {font-size:1.35rem}
 .next-section--xl .next-category {font-size:1.08rem;color:#dcecff}
 .next-section--xl .next-vs {color:#aac8e6}
-.next-name--blue {color:#8fd4ff}
+.next-name--blue {color:var(--side-accent-contrast)}
 .next-name--white {color:#f4f9ff}
 .no-fight--xl {font-size:clamp(1.95rem,3.6vw,3rem);padding:1rem 0;color:#e8f2ff}
 

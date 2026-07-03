@@ -11,9 +11,10 @@ import { ActivatedRoute } from '@angular/router';
 import { catchError, combineLatest, forkJoin, of, Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { I18nService } from '../../core/i18n.service';
+import { SideThemeService } from '../../core/side-theme.service';
 import { CategoryFightsUpdatedEvent, TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
-import { Athlete, Category, Club, Fight, FightSide, RoundRobinStanding, Tatami } from '../../core/models';
+import { Athlete, Category, Club, Fight, FightSide, RoundRobinStanding, Tatami, Tournament } from '../../core/models';
 
 interface TatamiDisplay {
   tatami: Tatami;
@@ -46,11 +47,13 @@ interface ConnectorPath {
 export class DisplayComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly i18n = inject(I18nService);
+  protected readonly sideTheme = inject(SideThemeService);
   private readonly hub = inject(TournamentHubService);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly tournamentId = signal<string | null>(null);
   protected readonly tatamiModeTatamiId = signal<string | null>(null);
+  protected readonly tournament = signal<Tournament | null>(null);
   protected readonly tournamentName = signal<string>('');
   protected readonly displays = signal<TatamiDisplay[]>([]);
   protected readonly athletes = signal<Map<string, Athlete>>(new Map());
@@ -134,7 +137,11 @@ export class DisplayComponent implements OnInit, OnDestroy {
   }
 
   private loadData(tid: string): void {
-    this.api.getTournament(tid).subscribe(t => this.tournamentName.set(t.name));
+    this.api.getTournament(tid).subscribe(t => {
+      this.tournament.set(t);
+      this.tournamentName.set(t.name);
+      this.sideTheme.applyTheme(document.documentElement, t);
+    });
     this.api.getAthletes(tid).subscribe(athletes => {
       this.athletes.set(new Map(athletes.map(a => [a.id, a])));
     });

@@ -53,6 +53,18 @@ public sealed class SqliteTournamentStore : ITournamentStore
         string organizer,
         CancellationToken cancellationToken)
     {
+        return await CreateAsync(name, date, venue, organizer, "Blue", cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Tournament> CreateAsync(
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(venue);
         ArgumentNullException.ThrowIfNull(organizer);
@@ -65,6 +77,7 @@ public sealed class SqliteTournamentStore : ITournamentStore
             Date = date,
             Venue = venue.Trim(),
             Organizer = organizer.Trim(),
+            AccentSideColor = NormalizeAccentSideColor(accentSideColor),
             CreatedAtUtc = utcNow,
             UpdatedAtUtc = utcNow
         };
@@ -85,6 +98,19 @@ public sealed class SqliteTournamentStore : ITournamentStore
         string organizer,
         CancellationToken cancellationToken)
     {
+        return await UpdateAsync(tournamentId, name, date, venue, organizer, "Blue", cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> UpdateAsync(
+        Guid tournamentId,
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(venue);
         ArgumentNullException.ThrowIfNull(organizer);
@@ -102,6 +128,7 @@ public sealed class SqliteTournamentStore : ITournamentStore
         record.Date = date;
         record.Venue = venue.Trim();
         record.Organizer = organizer.Trim();
+        record.AccentSideColor = NormalizeAccentSideColor(accentSideColor);
         record.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -118,7 +145,15 @@ public sealed class SqliteTournamentStore : ITournamentStore
             record.Venue,
             record.Organizer,
             record.CreatedAtUtc,
-            record.UpdatedAtUtc);
+            record.UpdatedAtUtc)
+        {
+            AccentSideColor = NormalizeAccentSideColor(record.AccentSideColor)
+        };
+    }
+
+    private static string NormalizeAccentSideColor(string accentSideColor)
+    {
+        return string.Equals(accentSideColor, "Red", StringComparison.OrdinalIgnoreCase) ? "Red" : "Blue";
     }
 
     /// <inheritdoc />

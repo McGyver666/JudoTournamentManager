@@ -161,6 +161,7 @@ static async Task InitializeDatabaseAsync(WebApplication application)
 
     await EnsureLegacyFightTatamiColumnAsync(dbContext, logger);
     await EnsureLegacyFightWhiteSideColumnsAsync(dbContext, logger);
+    await EnsureLegacyTournamentAccentSideColorColumnAsync(dbContext, logger);
 }
 
 static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, ILogger logger)
@@ -381,6 +382,40 @@ static async Task EnsureLegacyFightWhiteSideColumnsAsync(AppDbContext dbContext,
 
     await dbContext.Database.ExecuteSqlRawAsync(
         "UPDATE Fights SET OsaeKomiSide = 'White' WHERE OsaeKomiSide = 'Red';");
+}
+
+static async Task EnsureLegacyTournamentAccentSideColorColumnAsync(AppDbContext dbContext, ILogger logger)
+{
+    await using var connection = dbContext.Database.GetDbConnection();
+    if (connection.State != System.Data.ConnectionState.Open)
+    {
+        await connection.OpenAsync();
+    }
+
+    await using var command = connection.CreateCommand();
+    command.CommandText = "PRAGMA table_info('Tournaments');";
+
+    var hasAccentSideColor = false;
+    await using (var reader = await command.ExecuteReaderAsync())
+    {
+        while (await reader.ReadAsync())
+        {
+            if (string.Equals(reader.GetString(1), "AccentSideColor", StringComparison.OrdinalIgnoreCase))
+            {
+                hasAccentSideColor = true;
+                break;
+            }
+        }
+    }
+
+    if (hasAccentSideColor)
+    {
+        logger.LogInformation("Schema check: Tournaments.AccentSideColor already exists.");
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE Tournaments ADD COLUMN AccentSideColor TEXT NOT NULL DEFAULT 'Blue';");
+    logger.LogWarning("Schema patch applied: added missing Tournaments.AccentSideColor column.");
 }
 
 /// <summary>

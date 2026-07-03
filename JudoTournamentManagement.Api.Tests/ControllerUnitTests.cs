@@ -37,17 +37,21 @@ public sealed class ControllerUnitTests
     public async Task TournamentsController_CreateAsync_WithValidData_ReturnsCreated()
     {
         var tournamentId = Guid.NewGuid();
-        var tournament = new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        var tournament = new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        {
+            AccentSideColor = "Red"
+        };
         var mockStore = new Mock<ITournamentStore>();
-        mockStore.Setup(s => s.CreateAsync(It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        mockStore.Setup(s => s.CreateAsync(It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tournament);
         var controller = new TournamentsController(mockStore.Object);
-        var request = new CreateTournamentRequest { Name = "Test", Date = new DateOnly(2026, 7, 15), Venue = "Venue", Organizer = "Org" };
+        var request = new CreateTournamentRequest { Name = "Test", Date = new DateOnly(2026, 7, 15), Venue = "Venue", Organizer = "Org", AccentSideColor = "Red" };
 
         var result = await controller.CreateAsync(request, CancellationToken.None);
 
         var createdResult = Assert.IsType<CreatedResult>(result.Result);
         Assert.Equal(StatusCodes.Status201Created, createdResult.StatusCode);
+        mockStore.Verify(s => s.CreateAsync("Test", new DateOnly(2026, 7, 15), "Venue", "Org", "Red", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -84,25 +88,26 @@ public sealed class ControllerUnitTests
     {
         var tournamentId = Guid.NewGuid();
         var mockStore = new Mock<ITournamentStore>();
-        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var controller = new TournamentsController(mockStore.Object);
-        var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org" };
+        var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org", AccentSideColor = "Red" };
 
         var result = await controller.UpdateAsync(tournamentId, request, CancellationToken.None);
 
         var noContentResult = Assert.IsType<NoContentResult>(result);
         Assert.Equal(StatusCodes.Status204NoContent, noContentResult.StatusCode);
+        mockStore.Verify(s => s.UpdateAsync(tournamentId, "Updated", new DateOnly(2026, 8, 15), "Venue", "Org", "Red", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task TournamentsController_UpdateAsync_WithInvalidId_ReturnsNotFound()
     {
         var mockStore = new Mock<ITournamentStore>();
-        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var controller = new TournamentsController(mockStore.Object);
-        var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org" };
+        var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org", AccentSideColor = "Blue" };
 
         var result = await controller.UpdateAsync(Guid.NewGuid(), request, CancellationToken.None);
 

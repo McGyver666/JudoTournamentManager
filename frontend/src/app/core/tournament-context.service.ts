@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Tournament } from './models';
+import { SideThemeService } from './side-theme.service';
 import { TournamentHubService } from './tournament-hub.service';
 
 const STORAGE_KEY = 'judo.activeTournament';
@@ -14,12 +15,13 @@ const STORAGE_KEY = 'judo.activeTournament';
 export class TournamentContextService {
   private readonly active = signal<Tournament | null>(this.restore());
 
-  constructor(private readonly hub: TournamentHubService) {
+  constructor(private readonly hub: TournamentHubService, private readonly sideTheme: SideThemeService) {
     // Connect to hub for any tournament already restored from localStorage.
     const restored = this.active();
     if (restored) {
       void this.hub.connect(restored.id);
     }
+    this.sideTheme.applyTheme(document.documentElement, restored);
   }
 
   /** The currently selected tournament, or null when none is chosen. */
@@ -32,6 +34,7 @@ export class TournamentContextService {
   select(tournament: Tournament): void {
     this.active.set(tournament);
     void this.hub.connect(tournament.id);
+    this.sideTheme.applyTheme(document.documentElement, tournament);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tournament));
     } catch {
@@ -43,6 +46,7 @@ export class TournamentContextService {
   clear(): void {
     this.active.set(null);
     void this.hub.disconnect();
+    this.sideTheme.applyTheme(document.documentElement, null);
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -65,24 +69,25 @@ export class TournamentContextService {
       }
 
       const parsed: unknown = JSON.parse(raw);
-      if (!this.isTournament(parsed)) {
+      const tournament = this.normalizeTournament(parsed);
+      if (!tournament) {
         localStorage.removeItem(STORAGE_KEY);
         return null;
       }
 
-      return parsed;
+      return tournament;
     } catch {
       return null;
     }
   }
 
-  private isTournament(value: unknown): value is Tournament {
+  private normalizeTournament(value: unknown): Tournament | null {
     if (!value || typeof value !== 'object') {
-      return false;
+      return null;
     }
 
     const x = value as Record<string, unknown>;
-    return (
+    if (!(
       typeof x['id'] === 'string' &&
       typeof x['name'] === 'string' &&
       typeof x['date'] === 'string' &&
@@ -90,6 +95,19 @@ export class TournamentContextService {
       typeof x['organizer'] === 'string' &&
       typeof x['createdAtUtc'] === 'string' &&
       typeof x['updatedAtUtc'] === 'string'
-    );
+    )) {
+      return null;
+    }
+
+    return {
+      id: x['id'],
+      name: x['name'],
+      date: x['date'],
+      venue: x['venue'],
+      organizer: x['organizer'],
+      accentSideColor: x['accentSideColor'] === 'Red' ? 'Red' : 'Blue',
+      createdAtUtc: x['createdAtUtc'],
+      updatedAtUtc: x['updatedAtUtc'],
+    };
   }
 }

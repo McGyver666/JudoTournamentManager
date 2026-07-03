@@ -28,6 +28,17 @@ public interface ITournamentStore
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Creates a new tournament with an explicit non-white side color.
+    /// </summary>
+    Task<Tournament> CreateAsync(
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Updates an existing tournament.
     /// </summary>
     Task<bool> UpdateAsync(
@@ -36,6 +47,18 @@ public interface ITournamentStore
         DateOnly date,
         string venue,
         string organizer,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates an existing tournament with an explicit non-white side color.
+    /// </summary>
+    Task<bool> UpdateAsync(
+        Guid tournamentId,
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
         CancellationToken cancellationToken);
 
     /// <summary>

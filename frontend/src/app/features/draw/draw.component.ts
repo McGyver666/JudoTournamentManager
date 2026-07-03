@@ -70,6 +70,9 @@ export class DrawComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.context.tournamentId()) {
+      this.api.getTournament(this.context.tournamentId()!).subscribe((tournament) => {
+        this.context.refreshIfActive(tournament);
+      });
       this.loadCategories();
       this.loadAthletes();
       this.loadClubs();

@@ -154,7 +154,7 @@
 }
 
 .athlete-card--blue {
-  box-shadow: inset 0 0 0 1px rgba(21, 101, 192, 0.08);
+  box-shadow: inset 0 0 0 1px var(--side-accent-soft);
 }
 
 .athlete-card--winner {
@@ -180,19 +180,19 @@
 }
 
 .athlete-card--blue .athlete-card__side {
-  color: #1565c0;
+  color: var(--side-accent);
 }
 
 .athlete-card--blue .athlete-card__name {
-  color: #1565c0;
+  color: var(--side-accent);
 }
 
 .athlete-card--blue .athlete-card__score {
-  color: #1565c0;
+  color: var(--side-accent);
 }
 
 .athlete-card--blue .athlete-card__stats {
-  color: #1565c0;
+  color: var(--side-accent);
 }
 
 .athlete-card__name {
@@ -384,7 +384,7 @@
 .btn--secondary { background: #e5e7eb; color: #111827; }
 .btn--full { width: 100%; }
 .btn--white { background: #f3f4f6; color: #111827; border-color: #e5e7eb; }
-.btn--blue { background: #edf4ff; color: #1565c0; border-color: #c9daf8; }
+.btn--blue { background: var(--side-accent-soft); color: var(--side-accent); border-color: var(--side-accent); }
 .btn--confirm { padding: 0.65rem 0.8rem; }
 .btn--tiny { padding: 0.34rem 0.55rem; border-radius: 10px; font-size: 0.72rem; }
 .btn--positive { background: #f0fdf4; color: #166534; border-color: #ccead6; }
@@ -417,7 +417,7 @@
 }
 
 .athlete--white { color: #111827; }
-.athlete--blue { color: #1565c0; }
+.athlete--blue { color: var(--side-accent); }
 
 .shido-bubbles {
   display: inline-flex;

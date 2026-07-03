@@ -9,7 +9,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { I18nService } from '../../core/i18n.service';
 import { extractApiError } from '../../core/http-error';
-import { CreateTournamentRequest, Tournament } from '../../core/models';
+import { AccentSideColor, CreateTournamentRequest, Tournament } from '../../core/models';
 
 /** Tournament administration: list, create, edit, delete and select the active tournament. */
 @Component({
@@ -34,6 +34,7 @@ export class TournamentsComponent implements OnInit {
   protected readonly restoring = signal(false);
   protected readonly canManage = this.auth.canOperate;
   protected readonly isAdmin = this.auth.isAdmin;
+  protected readonly accentSideColors: AccentSideColor[] = ['Blue', 'Red'];
 
   protected form: CreateTournamentRequest = this.emptyForm();
 
@@ -47,6 +48,13 @@ export class TournamentsComponent implements OnInit {
     this.api.getTournaments().subscribe({
       next: (list) => {
         this.tournaments.set(list);
+        const activeTournamentId = this.context.tournamentId();
+        if (activeTournamentId) {
+          const activeTournament = list.find((t) => t.id === activeTournamentId);
+          if (activeTournament) {
+            this.context.refreshIfActive(activeTournament);
+          }
+        }
         this.loading.set(false);
       },
       error: (err) => {
@@ -72,7 +80,13 @@ export class TournamentsComponent implements OnInit {
     }
     this.info.set(null);
     this.editId.set(t.id);
-    this.form = { name: t.name, date: t.date, venue: t.venue, organizer: t.organizer };
+    this.form = {
+      name: t.name,
+      date: t.date,
+      venue: t.venue,
+      organizer: t.organizer,
+      accentSideColor: t.accentSideColor,
+    };
     this.showForm.set(true);
   }
 
@@ -203,7 +217,11 @@ export class TournamentsComponent implements OnInit {
   }
 
   private emptyForm(): CreateTournamentRequest {
-    return { name: '', date: '', venue: '', organizer: '' };
+    return { name: '', date: '', venue: '', organizer: '', accentSideColor: 'Blue' };
+  }
+
+  protected colorLabelKey(color: AccentSideColor): string {
+    return `tournaments.${color.toLowerCase()}`;
   }
 
   private saveBackupFile(t: Tournament, response: HttpResponse<Blob>): void {

@@ -48,7 +48,7 @@
         @if (d.current) {
           <div class="tatami-scoreboard">
             <article class="tatami-athlete tatami-athlete--blue">
-              <div class="tatami-athlete-side">{{ 'match.blueSide' | t }}</div>
+              <div class="tatami-athlete-side">{{ sideTheme.accentSideLabelKey(tournament()) | t }}</div>
               <div class="tatami-athlete-name">{{ athleteName(d.current.blueAthleteId) }}</div>
               <div class="tatami-athlete-club">{{ athleteClub(d.current.blueAthleteId) }}</div>
 
