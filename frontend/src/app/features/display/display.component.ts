@@ -7,7 +7,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { UpperCasePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { catchError, combineLatest, forkJoin, of, Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
@@ -40,7 +39,7 @@ interface ConnectorPath {
 @Component({
   selector: 'app-display',
   standalone: true,
-  imports: [UpperCasePipe, TranslatePipe],
+  imports: [TranslatePipe],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
 })
@@ -638,20 +637,29 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return fight.osaeKomiSide === 'White' ? 'white' : 'blue';
   }
 
-  protected osaeKomiTimerLabel(fight: Fight): string {
+  protected osaeKomiSecondsLabel(fight: Fight): string {
     if (!fight.osaeKomiSide || !fight.osaeKomiStartedAtUtc) {
-      return '--s';
+      return '--';
     }
 
     const side = this.osaeKomiSideLabel(fight);
     if (!side) {
-      return '--s';
+      return '--';
     }
 
     const capSeconds = this.hasWazaAri(fight, side) ? 20 : 25;
     const elapsedSeconds = Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000);
     const runningSeconds = Math.min(capSeconds, Math.max(0, elapsedSeconds));
-    return `${runningSeconds}s / ${capSeconds}s`;
+    return `${runningSeconds}s`;
+  }
+
+  protected osaeKomiCapSecondsLabel(fight: Fight): string {
+    const side = this.osaeKomiSideLabel(fight);
+    if (!side) {
+      return '--';
+    }
+
+    return `${this.hasWazaAri(fight, side) ? 20 : 25}s`;
   }
 
   private hasWazaAri(fight: Fight, side: FightSide): boolean {
