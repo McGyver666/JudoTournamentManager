@@ -23,7 +23,7 @@
               <div class="tatami-fullscreen-category">{{ categoryName(d.current.categoryId) }}</div>
             }
           </div>
-          @if (d.current && isOsaeKomiRunning(d.current)) {
+          @if (d.current && (isOsaeKomiRunning(d.current) || hasFrozenOsaeKomi(d.current))) {
             <div
               class="hold-timer hold-timer--xl"
               [class.hold-timer--blue]="osaeKomiSideLabel(d.current) === 'blue'"
@@ -40,7 +40,8 @@
           @if (d.current) {
             <div
               class="fight-timer fight-timer--xl"
-              [class.fight-timer--golden]="d.current.isGoldenScore"
+              [class.fight-timer--golden]="d.current.startedAtUtc && d.current.isGoldenScore"
+              [class.fight-timer--paused]="d.current.startedAtUtc && d.current.status === 'Paused' && !d.current.isGoldenScore"
               [attr.aria-label]="'display.fightTime' | t">{{ timerForFight(d.current) }}</div>
           }
         </header>
@@ -152,7 +153,7 @@
                   <div class="fight-label">{{ 'display.currentFight' | t }}</div>
                   <div class="fight-category">{{ categoryName(d.current.categoryId) }}</div>
                 </div>
-                <div class="fight-timer" [class.fight-timer--golden]="d.current.isGoldenScore" [attr.aria-label]="'display.fightTime' | t">{{ timerForFight(d.current) }}</div>
+                <div class="fight-timer" [class.fight-timer--golden]="d.current.startedAtUtc && d.current.isGoldenScore" [class.fight-timer--paused]="d.current.startedAtUtc && d.current.status === 'Paused' && !d.current.isGoldenScore" [attr.aria-label]="'display.fightTime' | t">{{ timerForFight(d.current) }}</div>
               </div>
               <div class="fight-row">
                 <div class="athlete-col athlete-col--blue-left">

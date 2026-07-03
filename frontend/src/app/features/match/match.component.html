@@ -68,7 +68,7 @@
             </div>
             <div class="fight-card__timer">
               <span class="fight-card__timer-label">{{ (timerIsGoldenScore() ? 'match.goldenScoreTimer' : 'match.matchTimer') | t }}</span>
-              <span class="timer" [class.timer--expired]="timerSeconds() === 0 && !timerIsGoldenScore()" [class.timer--golden]="timerIsGoldenScore()">{{ fightTimerLabel() }}</span>
+              <span class="timer" [class.timer--expired]="timerSeconds() === 0 && !timerIsGoldenScore()" [class.timer--golden]="timerIsGoldenScore() && (timerSeconds() ?? 0) > 0" [class.timer--paused]="isPaused(fight) && !timerIsGoldenScore() && (timerSeconds() ?? 0) > 0">{{ fightTimerLabel() }}</span>
             </div>
           </div>
 

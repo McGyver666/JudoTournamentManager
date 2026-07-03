@@ -67,6 +67,12 @@ export class DisplayComponent implements OnInit, OnDestroy {
   protected readonly nowEpochMs = signal<number>(Date.now());
   protected readonly hubConnected = computed(() => this.hub.connected());
   protected readonly isTatamiMode = computed(() => this.tatamiModeTatamiId() !== null);
+
+  /** Map of fight IDs to frozen osae-komi display when the hold has stopped. */
+  private readonly frozenOsaeKomiMap = new Map<string, { seconds: number; cap: number; side: FightSide }>();
+  /** Track previous fight states to detect osae-komi transitions. */
+  private readonly previousFightMap = new Map<string, Fight>();
+
   protected readonly tatamiDisplay = computed(() => {
     const tatamiId = this.tatamiModeTatamiId();
     if (!tatamiId) {
@@ -104,7 +110,38 @@ export class DisplayComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.fightSub = this.hub.fightUpdated$.subscribe(() => {
+    this.fightSub = this.hub.fightUpdated$.subscribe((fight) => {
+      // Detect osae-komi transitions and update the frozen osae-komi map.
+      const prevFight = this.previousFightMap.get(fight.id);
+      this.previousFightMap.set(fight.id, fight);
+
+      if (prevFight !== undefined) {
+        const prevHadOsaeKomi = prevFight.osaeKomiSide !== null && prevFight.osaeKomiStartedAtUtc !== null;
+        const newHasOsaeKomi = fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
+        const wasPausedNowRunning = prevFight.status === 'Paused' && fight.status === 'InProgress';
+        const isNowPaused = fight.status === 'Paused';
+
+        // Osae-komi was active and is now stopped: freeze the display (but not if being paused or just resumed).
+        if (prevHadOsaeKomi && !newHasOsaeKomi && !isNowPaused && !wasPausedNowRunning) {
+          const side = prevFight.osaeKomiSide === 'White' ? 'white' : 'blue';
+          const cap = this.getOsaeKomiCapForFight(prevFight, side);
+          const now = Date.now();
+          const osaeStartMs = new Date(prevFight.osaeKomiStartedAtUtc!).getTime();
+          const seconds = Math.min(cap, Math.ceil((now - osaeStartMs) / 1000));
+          this.frozenOsaeKomiMap.set(fight.id, { seconds, cap, side });
+        }
+
+        // New osae-komi started: clear frozen display.
+        if (!prevHadOsaeKomi && newHasOsaeKomi) {
+          this.frozenOsaeKomiMap.delete(fight.id);
+        }
+
+        // Fight was resumed: clear frozen display.
+        if (wasPausedNowRunning) {
+          this.frozenOsaeKomiMap.delete(fight.id);
+        }
+      }
+
       const tid = this.tournamentId();
       if (tid) {
         this.refreshQueues(tid);
@@ -636,28 +673,47 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
   }
 
+  protected hasFrozenOsaeKomi(fight: Fight): boolean {
+    // Never show frozen if osae-komi is currently active.
+    if (fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null) {
+      return false;
+    }
+    // Show frozen during running or paused states (until fight resumes).
+    return this.frozenOsaeKomiMap.has(fight.id);
+  }
+
   protected osaeKomiSideLabel(fight: Fight): FightSide | null {
-    if (!fight.osaeKomiSide) {
-      return null;
+    // First check if osae-komi is active.
+    if (fight.osaeKomiSide) {
+      return fight.osaeKomiSide === 'White' ? 'white' : 'blue';
     }
 
-    return fight.osaeKomiSide === 'White' ? 'white' : 'blue';
+    // Fall back to frozen display if available.
+    const frozen = this.frozenOsaeKomiMap.get(fight.id);
+    return frozen?.side ?? null;
   }
 
   protected osaeKomiSecondsLabel(fight: Fight): string {
-    if (!fight.osaeKomiSide || !fight.osaeKomiStartedAtUtc) {
-      return '--';
+    // Check if osae-komi is currently active.
+    if (fight.osaeKomiSide && fight.osaeKomiStartedAtUtc) {
+      const side = this.osaeKomiSideLabel(fight);
+      if (!side) {
+        return '--';
+      }
+
+      const capSeconds = this.hasWazaAri(fight, side) ? 20 : 25;
+      const elapsedSeconds = Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000);
+      const runningSeconds = Math.min(capSeconds, Math.max(0, elapsedSeconds));
+      return `${runningSeconds}s`;
     }
 
-    const side = this.osaeKomiSideLabel(fight);
-    if (!side) {
-      return '--';
+    // Fall back to frozen display if available.
+    const frozen = this.frozenOsaeKomiMap.get(fight.id);
+    if (frozen) {
+      return `${frozen.seconds}s`;
     }
 
-    const capSeconds = this.hasWazaAri(fight, side) ? 20 : 25;
-    const elapsedSeconds = Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000);
-    const runningSeconds = Math.min(capSeconds, Math.max(0, elapsedSeconds));
-    return `${runningSeconds}s`;
+    return '--';
   }
 
   protected osaeKomiCapSecondsLabel(fight: Fight): string {
@@ -671,6 +727,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
   private hasWazaAri(fight: Fight, side: FightSide): boolean {
     return side === 'white' ? fight.whiteWazaAriCount > 0 : fight.blueWazaAriCount > 0;
+  }
+
+  private getOsaeKomiCapForFight(fight: Fight, side: FightSide): number {
+    return this.hasWazaAri(fight, side) ? 20 : 25;
   }
 
   protected tatamiDisplayLink(tatamiId: string): string {
@@ -721,11 +781,15 @@ export class DisplayComponent implements OnInit, OnDestroy {
     const now = this.nowEpochMs();
     void now;
 
-    if (!fight.startedAtUtc) return '--:--';
+    if (!fight.startedAtUtc) {
+      // Fight not yet started: show configured match duration.
+      const cat = this.categories().get(fight.categoryId);
+      const matchDuration = cat?.matchDurationSeconds ?? 300;
+      return this.formatTimer(matchDuration);
+    }
 
     const cat = this.categories().get(fight.categoryId);
     const matchDuration = cat?.matchDurationSeconds ?? 300;
-    const goldenScoreEnabled = cat?.goldenScoreEnabled ?? false;
     const goldenScoreDuration = cat?.goldenScoreDurationSeconds ?? 180;
 
     const timerReference = fight.status === 'Paused' && fight.pausedAtUtc
@@ -733,8 +797,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
       : Date.now();
     const elapsedSeconds = (timerReference - new Date(fight.startedAtUtc).getTime()) / 1000;
 
-    if (goldenScoreEnabled && elapsedSeconds >= matchDuration) {
-      // Golden-score phase: count down the golden-score duration.
+    // Use fight.isGoldenScore from server (reload-safe, score-aware).
+    if (fight.isGoldenScore) {
       const gsElapsed = elapsedSeconds - matchDuration;
       const gsRemaining = Math.max(0, Math.ceil(goldenScoreDuration - gsElapsed));
       return this.formatTimer(gsRemaining);

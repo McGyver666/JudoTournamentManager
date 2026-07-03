@@ -60,8 +60,11 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly osaeKomiSide = signal<FightSide | null>(null);
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private autoPauseInFlightFightId: string | null = null;
-  /** Tracks fights that already transitioned from regular to golden score (awaiting manual resume). */
-  private readonly goldenScoreTransitionedFightIds = new Set<string>();
+
+  /** Track the previous fight to detect osae-komi transitions and cleanup. */
+  private previousFight: Fight | null = null;
+  /** When osae-komi ends, store the frozen display until a new one starts or fight resumes. */
+  private frozenOsaeKomiDisplay: { seconds: number; cap: number; side: FightSide } | null = null;
 
   protected readonly scoreTypes: ScoreType[] = ['Ippon', 'WazaAri', 'Yuko', 'Shido'];
 
@@ -122,8 +125,43 @@ export class MatchComponent implements OnInit, OnDestroy {
   private restartTimer(fight: Fight | null): void {
     this.stopTimer();
     this.autoPauseInFlightFightId = null;
+
+    // Detect osae-komi transitions before resetting state.
+    if (this.previousFight !== null && fight !== null) {
+      const prevHadOsaeKomi = this.previousFight.osaeKomiSide !== null;
+      const newHasOsaeKomi = fight.osaeKomiSide !== null;
+      const wasPausedNowRunning = this.previousFight.status === 'Paused' && fight.status === 'InProgress';
+      const isNowPaused = fight.status === 'Paused';
+
+      // Osae-komi was active and is now stopped: freeze the display (but not if fight is being paused or just resumed).
+      if (prevHadOsaeKomi && !newHasOsaeKomi && !isNowPaused && !wasPausedNowRunning) {
+        const s = this.osaeKomiSeconds();
+        const c = this.osaeKomiCapSeconds();
+        const side = this.osaeKomiSide();
+        if (s !== null && c !== null && side !== null) {
+          this.frozenOsaeKomiDisplay = { seconds: s, cap: c, side };
+        }
+      }
+
+      // New osae-komi started: clear frozen display.
+      if (newHasOsaeKomi) {
+        this.frozenOsaeKomiDisplay = null;
+      }
+
+      // Fight was resumed: clear frozen display.
+      if (wasPausedNowRunning) {
+        this.frozenOsaeKomiDisplay = null;
+      }
+    }
+
+    this.previousFight = fight;
+
+    // Not started: show configured duration.
     if (!fight || !fight.startedAtUtc) {
-      this.timerSeconds.set(null);
+      const categoryId = fight?.categoryId;
+      const cat = categoryId ? this.categories().find(c => c.id === categoryId) : null;
+      const duration = cat?.matchDurationSeconds ?? 300;
+      this.timerSeconds.set(duration);
       this.timerIsGoldenScore.set(false);
       this.osaeKomiSeconds.set(null);
       this.osaeKomiCapSeconds.set(null);
@@ -134,27 +172,15 @@ export class MatchComponent implements OnInit, OnDestroy {
     const categoryId = fight.categoryId;
     const cat = this.categories().find(c => c.id === categoryId);
     const duration = cat?.matchDurationSeconds ?? 300;
-    const goldenScoreEnabled = cat?.goldenScoreEnabled ?? false;
     const goldenScoreDuration = cat?.goldenScoreDurationSeconds ?? 180;
 
     const tick = () => {
       const timerReference = fight.status === 'Paused' && fight.pausedAtUtc ? fight.pausedAtUtc : new Date();
       const elapsed = (new Date(timerReference).getTime() - new Date(fight.startedAtUtc!).getTime()) / 1000;
       const regularRemaining = Math.max(0, duration - elapsed);
-      const isTransitioned = this.goldenScoreTransitionedFightIds.has(fight.id);
 
-      // First regular expiry with golden enabled while InProgress: stop and wait for manual resume.
-      if (!isTransitioned && goldenScoreEnabled && fight.status === 'InProgress' && regularRemaining <= 0) {
-        this.goldenScoreTransitionedFightIds.add(fight.id);
-        this.timerIsGoldenScore.set(true);
-        this.timerSeconds.set(goldenScoreDuration);
-        this.stopTimer();
-        this.tryAutoPauseAtLimit(fight);
-        return;
-      }
-
-      if (isTransitioned) {
-        // Golden score phase: frozen while paused, counting down while in progress.
+      // Use fight.isGoldenScore from server (reload-safe, score-aware).
+      if (fight.isGoldenScore) {
         this.timerIsGoldenScore.set(true);
         if (fight.status === 'Paused') {
           this.timerSeconds.set(goldenScoreDuration);
@@ -169,6 +195,7 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.timerSeconds.set(Math.ceil(regularRemaining));
       }
 
+      // Update osae-komi display or use frozen display if stopped.
       if (fight.osaeKomiSide && fight.osaeKomiStartedAtUtc) {
         const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
         const cap = this.getOsaeKomiCap(fight, side);
@@ -176,17 +203,20 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.osaeKomiSeconds.set(holdSeconds);
         this.osaeKomiCapSeconds.set(cap);
         this.osaeKomiSide.set(side);
+        this.frozenOsaeKomiDisplay = null; // Active hold, no frozen display.
       } else {
+        // No active osae-komi: clear signals (display will use frozen fallback).
+        // This allows start buttons to be re-enabled after stopping osae-komi.
         this.osaeKomiSeconds.set(null);
         this.osaeKomiCapSeconds.set(null);
         this.osaeKomiSide.set(null);
       }
 
-      // For non-golden categories: stop at regular expiry.
-      // For golden categories after manual resume: stop when golden countdown reaches zero.
-      const reachedRegularLimit = !goldenScoreEnabled && regularRemaining <= 0;
-      const reachedGoldenLimit = isTransitioned && fight.status === 'InProgress' && this.timerSeconds() === 0;
-      if ((reachedRegularLimit || reachedGoldenLimit) && this.timerHandle !== null) {
+      // Auto-pause condition: only when time expired AND no osae-komi is active.
+      const timeExpired = (fight.isGoldenScore && this.timerSeconds() === 0) || (!fight.isGoldenScore && regularRemaining <= 0);
+      const shouldAutoPause = timeExpired && fight.status === 'InProgress' && fight.osaeKomiSide === null;
+
+      if (shouldAutoPause && this.timerHandle !== null) {
         this.stopTimer();
         this.tryAutoPauseAtLimit(fight);
       }
@@ -204,6 +234,11 @@ export class MatchComponent implements OnInit, OnDestroy {
   }
 
   private tryAutoPauseAtLimit(fight: Fight): void {
+    // Do not auto-pause if osae-komi is active; let the hold continue.
+    if (fight.osaeKomiSide !== null) {
+      return;
+    }
+
     if (!this.canOperate() || fight.status !== 'InProgress') {
       return;
     }
@@ -338,7 +373,7 @@ export class MatchComponent implements OnInit, OnDestroy {
     const tid = this.context.tournamentId();
     if (!tid) return;
     this.api.confirmResult(tid, fight.id, { winnerId }, this.operatorName()).subscribe({
-      next: () => { this.goldenScoreTransitionedFightIds.delete(fight.id); this.queue.set(null); this.refreshQueue(); },
+      next: () => { this.queue.set(null); this.refreshQueue(); },
       error: () => this.errorMessage.set('Ergebnis konnte nicht bestätigt werden.'),
     });
   }
@@ -403,9 +438,10 @@ export class MatchComponent implements OnInit, OnDestroy {
   }
 
   protected holdTimerLabel(): string {
-    const seconds = this.osaeKomiSeconds();
+    const seconds = this.osaeKomiSeconds() ?? this.frozenOsaeKomiDisplay?.seconds ?? null;
+    const cap = this.osaeKomiCapSeconds() ?? this.frozenOsaeKomiDisplay?.cap ?? 25;
     if (seconds === null) return '--s';
-    return `${seconds}s / ${this.osaeKomiCapSeconds() ?? 25}s`;
+    return `${seconds}s / ${cap}s`;
   }
 
   protected fightTimerLabel(): string {

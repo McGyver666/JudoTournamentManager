@@ -185,7 +185,8 @@ for ($i = 0; $i -lt 40; $i++) {
     $firstName = Get-RandomItem -Items $firstNames
     $lastName = Get-RandomItem -Items $lastNames
     $birthYear = Get-Random -Minimum 2014 -Maximum 2018
-    $licenseId = if ((Get-Random -Minimum 0 -Maximum 4) -eq 0) { "LIZ-{0:D4}" -f ($i + 1) } else { $null }
+    # Generate unique license ID with timestamp and counter to avoid conflicts across runs
+    $licenseId = "LIZ-{0}-{1:D3}" -f (Get-Date -Format "yyyyMMddHHmm"), ($i + 1)
 
     $athleteBody = @{
         clubId = $club.id
@@ -207,3 +208,9 @@ for ($i = 0; $i -lt 40; $i++) {
 Write-Host "`nSeed complete." -ForegroundColor Cyan
 Write-Host "Tournament ID: $tournamentId" -ForegroundColor DarkGray
 Write-Host "Open the UI and select 'UI Testturnier 2026'." -ForegroundColor DarkGray
+
+Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Yellow
+Write-Host "Admin Credentials:" -ForegroundColor Yellow
+Write-Host "  Username: admin" -ForegroundColor White
+Write-Host "  Password: $adminPassword" -ForegroundColor White
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Yellow
