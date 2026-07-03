@@ -16,6 +16,9 @@ export type FightStatus = 'Pending' | 'InProgress' | 'Paused' | 'Completed';
 /** Supported score buckets. */
 export type ScoreType = 'Ippon' | 'WazaAri' | 'Yuko' | 'Shido';
 
+/** Side color used for the non-white athlete in a tournament. */
+export type AccentSideColor = 'Blue' | 'Red';
+
 /** Side designation used by the match API. */
 export type FightSide = 'white' | 'blue';
 
@@ -29,6 +32,7 @@ export interface Tournament {
   date: string;
   venue: string;
   organizer: string;
+  accentSideColor: AccentSideColor;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -38,6 +42,7 @@ export interface CreateTournamentRequest {
   date: string;
   venue: string;
   organizer: string;
+  accentSideColor: AccentSideColor;
 }
 
 export type UpdateTournamentRequest = CreateTournamentRequest;

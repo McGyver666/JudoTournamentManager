@@ -76,6 +76,7 @@ public sealed class TournamentsController : ControllerBase
             request.Date.Value,
             request.Venue,
             request.Organizer,
+            request.AccentSideColor,
             cancellationToken);
 
         return Created($"/api/tournaments/{created.Id}", created);
@@ -106,6 +107,7 @@ public sealed class TournamentsController : ControllerBase
             request.Date.Value,
             request.Venue,
             request.Organizer,
+            request.AccentSideColor,
             cancellationToken);
 
         return updated ? NoContent() : NotFound();

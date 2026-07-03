@@ -17,4 +17,10 @@ public sealed record Tournament(
     string Venue,
     string Organizer,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    /// <summary>
+    /// Side color used for the non-white athlete in the UI.
+    /// </summary>
+    public string AccentSideColor { get; init; } = "Blue";
+}

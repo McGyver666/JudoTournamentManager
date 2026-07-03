@@ -139,7 +139,7 @@ $categories = @(
 
 foreach ($categoryData in $categories) {
     $body = @{
-        name = "U13 Maennlich $($categoryData.Label) kg"
+        name = "U13 Männlich $($categoryData.Label) kg"
         ageGroup = "U13"
         gender = "Male"
         matchDurationSeconds = 120

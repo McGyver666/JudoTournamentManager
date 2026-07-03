@@ -23,6 +23,7 @@ public sealed class SqliteTournamentStoreTests
             new DateOnly(2026, 7, 12),
             "Essen",
             "JC Essen",
+            "Red",
             CancellationToken.None);
 
         // Assert
@@ -31,6 +32,7 @@ public sealed class SqliteTournamentStoreTests
         Assert.Equal(new DateOnly(2026, 7, 12), created.Date);
         Assert.Equal("Essen", created.Venue);
         Assert.Equal("JC Essen", created.Organizer);
+        Assert.Equal("Red", created.AccentSideColor);
         Assert.True(File.Exists(databasePath));
     }
 
@@ -49,6 +51,7 @@ public sealed class SqliteTournamentStoreTests
                 new DateOnly(2026, 8, 20),
                 "Dortmund",
                 "Bezirk West",
+                "Red",
                 CancellationToken.None);
         }
 
@@ -62,6 +65,7 @@ public sealed class SqliteTournamentStoreTests
         // Assert
         Assert.NotNull(loaded);
         Assert.Equal(created.Id, loaded.Id);
+        Assert.Equal("Red", loaded.AccentSideColor);
     }
 
     [Fact]
@@ -79,6 +83,7 @@ public sealed class SqliteTournamentStoreTests
                 new DateOnly(2026, 10, 5),
                 "Hamburg",
                 "Nordverband",
+                "Blue",
                 CancellationToken.None);
         }
 
@@ -108,6 +113,7 @@ public sealed class SqliteTournamentStoreTests
         Assert.Equal("Nordcup Final", loaded.Name);
         Assert.Equal(new DateOnly(2026, 10, 6), loaded.Date);
         Assert.Equal("Luebeck", loaded.Venue);
+        Assert.Equal("Blue", loaded.AccentSideColor);
     }
 
     [Fact]
@@ -158,7 +164,7 @@ public sealed class SqliteTournamentStoreTests
         await ctx.Database.EnsureCreatedAsync();
 
         var store = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
-        var tournament = await store.CreateAsync("Lösch-Test", new DateOnly(2026, 9, 1), "Berlin", "BJV", CancellationToken.None);
+        var tournament = await store.CreateAsync("Lösch-Test", new DateOnly(2026, 9, 1), "Berlin", "BJV", "Blue", CancellationToken.None);
 
         // Seed dependents
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);

@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
+import { SideThemeService } from '../../core/side-theme.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -37,6 +38,7 @@ const OPERATOR_NAME_KEY = 'judo.operatorName';
 export class MatchComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthStateService);
+  protected readonly sideTheme = inject(SideThemeService);
   protected readonly context = inject(TournamentContextService);
   private readonly hub = inject(TournamentHubService);
   protected readonly canOperate = this.auth.canOperate;
@@ -71,6 +73,10 @@ export class MatchComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const tid = this.context.tournamentId();
     if (!tid) return;
+
+    this.api.getTournament(tid).subscribe((tournament) => {
+      this.context.refreshIfActive(tournament);
+    });
 
     this.api.getTatamis(tid).subscribe(t => this.tatamis.set(t));
     this.api.getCategories(tid).subscribe(cats => this.categories.set(cats));
@@ -418,14 +424,16 @@ export class MatchComponent implements OnInit, OnDestroy {
     return fight.status === 'InProgress' && this.osaeKomiSide() === null;
   }
 
-  protected activeHoldSideLabel(): string | null {
-    const side = this.osaeKomiSide();
-    if (!side) return null;
-    return this.sideLabel(side);
+  protected sideLabelKey(side: FightSide): string {
+    return this.sideTheme.sideLabelKey(side, this.context.tournament());
   }
 
-  protected sideLabel(side: FightSide): string {
-    return side === 'white' ? 'Weiß' : 'Blau';
+  protected startOsaeLabelKey(): string {
+    return this.sideTheme.startOsaeLabelKey(this.context.tournament());
+  }
+
+  protected confirmWinnerLabelKey(): string {
+    return this.sideTheme.confirmWinnerLabelKey(this.context.tournament());
   }
 
   protected canRecordScore(fight: Fight): boolean {

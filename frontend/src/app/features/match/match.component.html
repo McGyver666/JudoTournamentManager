@@ -132,12 +132,12 @@
                 </div>
                 <div class="osae-card__controls">
                   <button class="btn btn--tiny btn--white" [disabled]="!canOperate() || !canRecordScore(fight) || !canStartOsaeKomi(fight, 'white')" (click)="startOsaeKomi(fight, 'white')">{{ 'match.startOsaeWhite' | t }}</button>
-                  <button class="btn btn--tiny btn--blue" [disabled]="!canOperate() || !canRecordScore(fight) || !canStartOsaeKomi(fight, 'blue')" (click)="startOsaeKomi(fight, 'blue')">{{ 'match.startOsaeBlue' | t }}</button>
+                  <button class="btn btn--tiny btn--blue" [disabled]="!canOperate() || !canRecordScore(fight) || !canStartOsaeKomi(fight, 'blue')" (click)="startOsaeKomi(fight, 'blue')">{{ startOsaeLabelKey() | t }}</button>
                   <button class="btn btn--tiny btn--secondary" [disabled]="!canOperate() || !canRecordScore(fight) || osaeKomiSide() === null" (click)="stopOsaeKomi(fight)">{{ 'match.stopOsae' | t }}</button>
                 </div>
                 @if (osaeKomiSide(); as holdSide) {
                   <div class="osae-card__note">
-                    {{ 'match.holdActive' | t }} {{ holdSide === 'white' ? ('match.whiteSide' | t) : ('match.blueSide' | t) }}
+                    {{ 'match.holdActive' | t }} {{ holdSide === 'white' ? ('match.whiteSide' | t) : (sideLabelKey(holdSide) | t) }}
                     @if (osaeKomiCapSeconds(); as cap) {
                       <span>({{ cap }}s)</span>
                     }
@@ -148,14 +148,14 @@
               @if (fight.status === 'InProgress' || fight.status === 'Paused') {
                 <div class="confirm-row">
                   <button class="btn btn--confirm btn--white" [disabled]="!canOperate()" (click)="confirmWinner(fight, fight.whiteAthleteId!)">{{ 'match.confirmWhiteWins' | t }}</button>
-                  <button class="btn btn--confirm btn--blue" [disabled]="!canOperate()" (click)="confirmWinner(fight, fight.blueAthleteId!)">{{ 'match.confirmBlueWins' | t }}</button>
+                  <button class="btn btn--confirm btn--blue" [disabled]="!canOperate()" (click)="confirmWinner(fight, fight.blueAthleteId!)">{{ confirmWinnerLabelKey() | t }}</button>
                 </div>
               }
             </article>
 
             <article class="athlete-card athlete-card--blue" [class.athlete-card--winner]="fight.winnerId === fight.blueAthleteId">
               <header class="athlete-card__header">
-                <span class="athlete-card__side">{{ 'match.blueSide' | t }}</span>
+                <span class="athlete-card__side">{{ sideTheme.accentSideLabelKey(context.tournament()) | t }}</span>
                 <span class="athlete-card__name">{{ athleteName(fight.blueAthleteId) }}</span>
               </header>
               <div class="athlete-card__score">{{ fight.blueScore }}</div>

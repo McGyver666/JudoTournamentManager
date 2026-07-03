@@ -5,7 +5,7 @@
   --bracket-fight-number-color: var(--c-muted);
   --bracket-slot-border: var(--c-border);
   --bracket-slot-white-accent: #d9dce1;
-  --bracket-slot-blue-accent: #3ea8ed;
+  --bracket-slot-blue-accent: var(--side-accent);
   --bracket-slot-white-color: inherit;
   --bracket-slot-blue-color: inherit;
   --bracket-slot-winner-color: var(--c-success);

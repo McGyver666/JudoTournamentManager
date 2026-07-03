@@ -31,6 +31,11 @@ public sealed class TournamentRecord
     public string Organizer { get; set; } = string.Empty;
 
     /// <summary>
+    /// Side color used for the non-white athlete in the UI.
+    /// </summary>
+    public string AccentSideColor { get; set; } = "Blue";
+
+    /// <summary>
     /// Creation timestamp in UTC.
     /// </summary>
     public DateTimeOffset CreatedAtUtc { get; set; }
