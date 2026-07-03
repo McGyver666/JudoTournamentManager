@@ -23,7 +23,8 @@
               (click)="toggleDisplayMenu()"
               [attr.aria-expanded]="displayMenuOpen()"
               aria-haspopup="menu">
-              {{ 'nav.display' | t }}
+              <span>{{ 'nav.display' | t }}</span>
+              <span class="nav-dropdown-chevron" aria-hidden="true"></span>
             </button>
             <div class="nav-dropdown-menu" role="menu">
               <a

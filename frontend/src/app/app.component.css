@@ -45,6 +45,12 @@
   cursor: pointer;
 }
 
+.nav-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
 .app-nav a:hover,
 .nav-dropdown-toggle:hover {
   background: #eef1f5;
@@ -61,6 +67,19 @@
 
 .nav-dropdown.open .nav-dropdown-toggle {
   background: #eef1f5;
+}
+
+.nav-dropdown-chevron {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.08rem) rotate(45deg);
+  transition: transform 0.18s ease;
+}
+
+.nav-dropdown.open .nav-dropdown-chevron {
+  transform: translateY(0.08rem) rotate(-135deg);
 }
 
 .nav-dropdown-menu {
