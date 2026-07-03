@@ -237,12 +237,13 @@ public sealed class TatamiQueueServiceTests
     }
 
     /// <summary>
-    /// When a fight is in-progress, golden score is enabled, and the fight has run longer than
-    /// the regular match duration, the queue entry should report <c>IsGoldenScore = true</c>.
+    /// When a fight is in-progress, golden score is enabled, elapsed time exceeds the regular match
+    /// duration, and the fighters have tied scores (equal waza-ari and yuko), the queue entry
+    /// should report <c>IsGoldenScore = true</c>.
     /// </summary>
     [Fact]
     [Trait("Category", "UnitTest")]
-    public async Task GetQueue_InProgressFightExceedsMatchDuration_IsGoldenScoreTrue()
+    public async Task GetQueue_InProgressFightExceedsMatchDuration_TiedScores_IsGoldenScoreTrue()
     {
         var db = CreateDatabasePath();
         Guid tid, cid, tatamiId;
@@ -271,10 +272,15 @@ public sealed class TatamiQueueServiceTests
             await match.StartAsync(fightId, "T1", CancellationToken.None);
         }
 
-        // Backdate StartedAtUtc so elapsed time exceeds regular match duration (300 s).
+        // Set tied scores: both fighters with 1 waza-ari and 1 yuko.
         await using (var ctx = CreateDbContext(db))
         {
             var record = await ctx.Fights.FirstAsync(f => f.Id == fightId);
+            record.WhiteWazaAriCount = 1;
+            record.BlueWazaAriCount = 1;
+            record.WhiteYukoCount = 1;
+            record.BlueYukoCount = 1;
+            // Backdate StartedAtUtc so elapsed time exceeds regular match duration (300 s).
             record.StartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-(300 + 30)); // 30 s into GS
             await ctx.SaveChangesAsync();
         }
@@ -284,7 +290,64 @@ public sealed class TatamiQueueServiceTests
 
         Assert.NotNull(queue?.Current);
         Assert.Equal(fightId, queue!.Current!.Id);
-        Assert.True(queue.Current.IsGoldenScore, "Fight should be in golden-score phase.");
+        Assert.True(queue.Current.IsGoldenScore, "Fight with tied scores past match duration should be in golden-score phase.");
+    }
+
+    /// <summary>
+    /// When a fight is in-progress, golden score is enabled, elapsed time exceeds the regular
+    /// match duration, but one fighter has a higher score (leading), the queue entry should
+    /// report <c>IsGoldenScore = false</c> (no golden score when winner is determined).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task GetQueue_InProgressFightExceedsMatchDuration_LeadingScore_IsGoldenScoreFalse()
+    {
+        var db = CreateDatabasePath();
+        Guid tid, cid, tatamiId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (tid, cid, tatamiId) = await SeedAsync(ctx, 4);
+        }
+
+        // Enable golden score for the category.
+        await using (var ctx = CreateDbContext(db))
+        {
+            var cat = await ctx.Categories.FirstAsync(c => c.Id == cid);
+            cat.GoldenScoreEnabled = true;
+            cat.GoldenScoreDurationSeconds = 180;
+            await ctx.SaveChangesAsync();
+        }
+
+        var roundOne = await RoundOneFightsAsync(db, cid);
+        var fightId = roundOne[0].Id;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var match = CreateMatchService(ctx);
+            await match.AssignTatamiAsync(fightId, tatamiId, "Admin", CancellationToken.None);
+            await match.StartAsync(fightId, "T1", CancellationToken.None);
+        }
+
+        // Set leading score: white has 1 waza-ari, blue has 0 (white leads).
+        await using (var ctx = CreateDbContext(db))
+        {
+            var record = await ctx.Fights.FirstAsync(f => f.Id == fightId);
+            record.WhiteWazaAriCount = 1;
+            record.BlueWazaAriCount = 0;
+            record.WhiteYukoCount = 1;
+            record.BlueYukoCount = 1;
+            // Backdate StartedAtUtc so elapsed time exceeds regular match duration.
+            record.StartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-(300 + 30));
+            await ctx.SaveChangesAsync();
+        }
+
+        await using var ctx2 = CreateDbContext(db);
+        var queue = await new TatamiQueueService(ctx2).GetQueueAsync(tid, tatamiId, CancellationToken.None);
+
+        Assert.NotNull(queue?.Current);
+        Assert.Equal(fightId, queue!.Current!.Id);
+        Assert.False(queue.Current.IsGoldenScore, "Fight with unequal waza-ari (leading score) should not enter golden-score phase.");
     }
 
     /// <summary>

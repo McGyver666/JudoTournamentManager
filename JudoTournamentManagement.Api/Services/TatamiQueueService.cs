@@ -66,7 +66,8 @@ public sealed class TatamiQueueService : ITatamiQueueService
     /// <summary>
     /// Computes whether the fight is currently in the golden-score overtime phase.
     /// True only when: the fight is active (InProgress or Paused), the category has golden score
-    /// enabled, and elapsed fight time has exceeded the regular match duration.
+    /// enabled, the elapsed fight time has exceeded the regular match duration, AND the fighters
+    /// have tied scores (equal waza-ari counts and equal yuko counts).
     /// </summary>
     private static bool ComputeIsGoldenScore(FightRecord r)
     {
@@ -78,7 +79,15 @@ public sealed class TatamiQueueService : ITatamiQueueService
             ? r.PausedAtUtc.Value
             : DateTimeOffset.UtcNow;
         var elapsedSeconds = (referenceTime - r.StartedAtUtc.Value).TotalSeconds;
-        return elapsedSeconds >= r.Category.MatchDurationSeconds;
+        if (elapsedSeconds < r.Category.MatchDurationSeconds) return false;
+
+        // Golden score only applies when fighters have equal waza-ari and yuko counts (tied).
+        var whiteWazaAri = r.WhiteWazaAriCount;
+        var blueWazaAri = r.BlueWazaAriCount;
+        var whiteYuko = r.WhiteYukoCount;
+        var blueYuko = r.BlueYukoCount;
+
+        return whiteWazaAri == blueWazaAri && whiteYuko == blueYuko;
     }
 
     private static Fight MapToModel(FightRecord r) =>

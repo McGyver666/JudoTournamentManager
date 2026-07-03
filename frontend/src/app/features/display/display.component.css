@@ -64,6 +64,14 @@
 .tatami-fullscreen-category {font-size:clamp(1.5rem,3vw,2.325rem);color:#f4f9ff;font-weight:700}
 .fight-timer--xl {font-size:clamp(3.9rem,12vw,9rem);line-height:1;font-weight:900;letter-spacing:.08em;color:#f9fcff;justify-self:end;text-align:right}
 
+.fight-timer--golden {
+	color: #1a1a1a;
+}
+
+.fight-timer--paused {
+	color: #aaa;
+}
+
 .hold-timer,
 .hold-timer-spacer {
 	justify-self: center;
