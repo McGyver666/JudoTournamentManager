@@ -8,6 +8,14 @@
 	box-shadow: 0 18px 32px rgba(28, 34, 48, 0.08);
 }
 
+.display-page--tatami {
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	background: #0f2a47;
+}
+
 .display-header {
 	display: flex;
 	justify-content: space-between;
@@ -84,7 +92,7 @@
 .fight-header-row {display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;margin-bottom:.6rem}
 .fight-category {font-size:.84rem;color:#1c2230;font-weight:700;margin-top:.15rem}
 .fight-timer {font-size:1.16rem;font-weight:800;letter-spacing:.05em;color:#123c70}
-.fight-timer--golden {color:#b8860b}
+.fight-timer--golden {color:#ffd84d}
 
 .fight-row {display:grid;grid-template-columns:1fr auto 1fr;align-items:flex-start;gap:.5rem}
 .athlete-col {display:flex;flex-direction:column;gap:.24rem}
@@ -109,7 +117,7 @@
 .score-row strong {font-size:.95rem}
 .shido-row {align-items:center}
 .shido-bubbles {display:inline-flex;gap:.2rem}
-.shido-bubble {width:.56rem;height:.56rem;border-radius:999px;border:1px solid #b6c3d6;background:#d5dde8}
+.shido-bubble {width:.56rem;height:.56rem;border-radius:999px;border:1px solid #b6c3d6;background:transparent}
 .shido-bubble.active {background:#f2cf58;border-color:#e4b80e}
 
 .fight-sep {font-size:1.4rem;color:#8ea2bc;text-align:center;margin-top:.9rem}
@@ -202,20 +210,44 @@
 
 .tatami-fullscreen {
 	background: linear-gradient(165deg, #0f2a47 0%, #15375f 46%, #0f4c81 100%);
-	border: 1px solid #34689d;
-	border-radius: 16px;
-	padding: 1.1rem 1.2rem;
-	min-height: calc(100vh - 8.5rem);
+	border: none;
+	border-radius: 0;
+	padding: 1.65rem 1.8rem;
+	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
-	gap: 1rem;
-	box-shadow: 0 16px 30px rgba(8, 27, 47, 0.28);
+	gap: 1.5rem;
+	box-shadow: none;
 }
 
-.tatami-fullscreen-header {display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
-.tatami-fullscreen-tatami {margin:.2rem 0 .15rem;font-size:clamp(1.4rem,2.8vw,2.4rem);letter-spacing:.07em;text-transform:uppercase;color:#d5ebff}
-.tatami-fullscreen-category {font-size:clamp(1rem,2vw,1.55rem);color:#f4f9ff;font-weight:700}
-.fight-timer--xl {font-size:clamp(2.6rem,8vw,6rem);line-height:1;font-weight:900;letter-spacing:.08em;color:#f9fcff}
+.tatami-fullscreen-header {display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:1.25rem}
+.tatami-fullscreen-tatami {margin:.2rem 0 .15rem;font-size:clamp(2.1rem,4.2vw,3.6rem);letter-spacing:.07em;text-transform:uppercase;color:#d5ebff}
+.tatami-fullscreen-category {font-size:clamp(1.5rem,3vw,2.325rem);color:#f4f9ff;font-weight:700}
+.fight-timer--xl {font-size:clamp(3.9rem,12vw,9rem);line-height:1;font-weight:900;letter-spacing:.08em;color:#f9fcff;justify-self:end;text-align:right}
+
+.hold-timer,
+.hold-timer-spacer {
+	justify-self: center;
+	align-self: center;
+	min-width: 20rem;
+}
+
+.hold-timer {
+	text-align: center;
+	padding: .55rem 1rem;
+	border-radius: 999px;
+	border: 2px solid rgba(255, 216, 77, 0.75);
+	background: rgba(25, 40, 60, 0.55);
+	color: #ffe27a;
+	font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+	font-weight: 800;
+	letter-spacing: .04em;
+}
+
+.hold-timer--blue {
+	border-color: rgba(161, 219, 255, 0.8);
+	color: #bfe7ff;
+}
 
 .tatami-scoreboard {display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 
@@ -223,56 +255,66 @@
 	background: linear-gradient(180deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.05) 100%);
 	border: 1px solid rgba(206, 230, 255, 0.35);
 	border-radius: 14px;
-	padding: 1rem;
+	padding: 1.5rem;
 	display: flex;
 	flex-direction: column;
-	gap: .6rem;
+	gap: .9rem;
 	color: #f3f8ff;
 }
 
-.tatami-athlete--blue {box-shadow:inset 0 0 0 2px rgba(62,168,237,.3)}
+.tatami-athlete--blue {box-shadow:inset 0 0 0 2px rgba(62,168,237,.3);color:#bfe5ff}
 .tatami-athlete--white {box-shadow:inset 0 0 0 2px rgba(227,236,247,.34)}
-.tatami-athlete-side {font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:#9ed4ff}
+.tatami-athlete-side {font-size:1.275rem;text-transform:uppercase;letter-spacing:.08em;color:#9ed4ff}
 .tatami-athlete--white .tatami-athlete-side {color:#ecf2fb}
-.tatami-athlete-name {font-size:clamp(1.15rem,3vw,2.2rem);font-weight:800;line-height:1.1}
-.tatami-athlete-club {font-size:clamp(.9rem,1.7vw,1.25rem);color:#d4dfed}
+.tatami-athlete-name {font-size:clamp(1.725rem,4.5vw,3.3rem);font-weight:800;line-height:1.1}
+.tatami-athlete-club {font-size:clamp(1.35rem,2.55vw,1.875rem);color:#d4dfed}
+.tatami-athlete--blue .tatami-athlete-club {color:#a9d8ff}
 
-.tatami-counters {display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.tatami-counters {display:grid;grid-template-columns:1fr 1fr;gap:1.125rem}
+.tatami-counters--triple {grid-template-columns:1fr 1fr 1fr}
 
 .tatami-counter {
 	background: rgba(8, 24, 44, 0.36);
 	border: 1px solid rgba(206, 230, 255, 0.28);
 	border-radius: 10px;
-	padding: .65rem;
+	padding: .975rem;
 	display: flex;
 	flex-direction: column;
 	gap: .2rem;
 	align-items: center;
+	justify-content: center;
+	min-height: 8rem;
 }
 
-.tatami-counter span {font-size:clamp(.85rem,1.55vw,1.1rem);color:#dce8f8;text-transform:uppercase;letter-spacing:.06em}
-.tatami-counter strong {font-size:clamp(1.8rem,5vw,3.4rem);line-height:1}
+.tatami-counter span {font-size:clamp(1.275rem,2.325vw,1.65rem);color:#dce8f8;text-transform:uppercase;letter-spacing:.06em}
+.tatami-counter strong {font-size:clamp(2.7rem,7.5vw,5.1rem);line-height:1}
 
-.ippon-banner {
-	display:grid;
-	place-items:center;
-	height:8rem;
-	border-radius:12px;
-	background:linear-gradient(160deg,#fff8dc 0%,#f9d746 58%,#e6a700 100%);
-	color:#4a3000;
-	font-size:clamp(2rem,6vw,4.1rem);
-	font-weight:900;
-	letter-spacing:.12em;
-	text-transform:uppercase;
+.tatami-counter--ippon {
+	background: rgba(8, 24, 44, 0.36);
+	color: #f4f9ff;
 }
 
-.tatami-shido-row {display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:clamp(1rem,2vw,1.45rem);color:#e8f1fc;margin-top:.2rem}
+.tatami-counter--ippon-active {
+	background: linear-gradient(160deg,#fff8dc 0%,#f9d746 58%,#e6a700 100%);
+	border-color: rgba(255, 230, 140, 0.85);
+	color: #4a3000;
+}
+
+.tatami-counter--ippon-active span,
+.tatami-counter--ippon-active strong {
+	color: #4a3000;
+}
+
+.tatami-shido-row {display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:clamp(1.5rem,3vw,2.175rem);color:#e8f1fc;margin-top:.2rem}
 .shido-bubbles--xl {gap:.5rem}
 .shido-bubble--xl {width:1.35rem;height:1.35rem;border-width:2px}
 .next-section--xl {margin-top:.2rem;padding-top:.9rem}
 .next-list--xl {gap:.7rem}
-.next-item--xl {padding:.75rem .9rem;background:rgba(255,255,255,.1);border-color:rgba(206,230,255,.3)}
-.no-fight--xl {font-size:clamp(1.3rem,2.4vw,2rem);padding:1rem 0;color:#e8f2ff}
+.next-item--xl {padding:1.125rem 1.35rem;background:rgba(255,255,255,.1);border-color:rgba(206,230,255,.3)}
+.next-section--xl .next-label {font-size:1.05rem}
+.next-section--xl .next-line {font-size:1.35rem}
+.next-section--xl .next-category {font-size:1.08rem}
+.no-fight--xl {font-size:clamp(1.95rem,3.6vw,3rem);padding:1rem 0;color:#e8f2ff}
 
 @media (max-width:700px) {
 	.display-page {padding: .9rem; border-radius: 10px;}

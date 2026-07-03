@@ -121,12 +121,26 @@ Start the API locally (Windows / PowerShell):
 .\start-local.ps1
 ```
 
+Skip frontend build and start backend only (Windows / PowerShell):
+
+```powershell
+.\start-local.ps1 -SkipFrontendBuild
+```
+
 Start the API locally (Linux/macOS / bash):
 
 ```bash
 chmod +x ./start-local.sh
 ./start-local.sh
 ```
+
+Skip frontend build and start backend only (Linux/macOS / bash):
+
+```bash
+./start-local.sh --skip-frontend-build
+```
+
+By default, both startup scripts build the Angular frontend before launching the API so `wwwroot` stays in sync with current UI sources.
 
 This starts the API on:
 

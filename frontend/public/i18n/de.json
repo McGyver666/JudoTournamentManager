@@ -270,6 +270,8 @@
   "display.allMatches": "Alle Kämpfe",
   "display.noMatches": "Keine Kämpfe vorhanden.",
   "display.copyLink": "Link kopieren",
+  "display.menuOverview": "Turnieransicht",
+  "display.menuTatami": "Tatami: {name}",
   "display.openTatamiScreen": "Matte öffnen",
   "display.tatamiNotFound": "Die angeforderte Matte wurde nicht gefunden.",
 

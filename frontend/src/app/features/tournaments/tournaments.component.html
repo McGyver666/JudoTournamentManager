@@ -1,6 +1,6 @@
 <div class="toolbar">
   <h1>{{ 'tournaments.title' | t }}</h1>
-  <div class="row" style="justify-content: flex-end;">
+  <div class="toolbar-actions toolbar-actions-end">
     @if (isAdmin()) {
       <input #restoreInput type="file" accept="application/json,.json" style="display: none;" (change)="restoreFromFile($event)" />
       <button (click)="openRestoreDialog(restoreInput)" [disabled]="restoring()">{{ 'tournaments.restore' | t }}</button>
@@ -41,7 +41,7 @@
         <input [(ngModel)]="form.organizer" name="organizer" />
       </div>
     </div>
-    <div class="toolbar" style="margin-top: 1rem; justify-content: flex-end;">
+    <div class="form-actions">
       <button (click)="cancel()">{{ 'common.cancel' | t }}</button>
       <button class="primary" (click)="save()">{{ 'common.save' | t }}</button>
     </div>

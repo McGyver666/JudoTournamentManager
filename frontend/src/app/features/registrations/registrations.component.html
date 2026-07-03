@@ -3,7 +3,7 @@
 } @else {
   <div class="toolbar">
     <h1>{{ 'registrations.title' | t }}</h1>
-    <div style="display:flex;gap:0.5rem;">
+    <div class="toolbar-actions">
       <button (click)="exportCsv()" [disabled]="registrations().length === 0">{{ 'registrations.export' | t }}</button>
       <button class="primary" (click)="startCreate()"
         [disabled]="!canOperate() || athletes().length === 0">{{ 'registrations.new' | t }}</button>
@@ -41,13 +41,13 @@
       </div>
       <div class="row">
         <div>
-          <label style="display:flex;align-items:center;gap:0.5rem;">
+          <label class="checkbox-inline">
             <input type="checkbox" [(ngModel)]="form.licenseConfirmed" name="rlc" />
             {{ 'registrations.licenseConfirmed' | t }}
           </label>
         </div>
       </div>
-      <div class="toolbar" style="justify-content:flex-end;margin-top:1rem;">
+      <div class="form-actions">
         <button (click)="showForm.set(false)">{{ 'common.cancel' | t }}</button>
         <button class="primary" (click)="save()" [disabled]="!isFormValid()">{{ 'common.save' | t }}</button>
       </div>

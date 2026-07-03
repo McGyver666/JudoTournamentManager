@@ -3,19 +3,6 @@
   gap: 1rem;
 }
 
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card {
-  border: 1px solid #dfe3eb;
-  border-radius: 10px;
-  padding: 1rem;
-  background: #fff;
-}
-
 .create-form .row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -23,42 +10,9 @@
   margin-bottom: 0.75rem;
 }
 
-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-input,
-select {
-  width: 100%;
-  border: 1px solid #c8cfdb;
-  border-radius: 8px;
-  padding: 0.5rem 0.6rem;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border: 1px solid #dfe3eb;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-th,
-td {
-  text-align: left;
-  padding: 0.6rem;
-  border-bottom: 1px solid #eef1f6;
-}
-
-.error {
-  color: #a61b29;
-}
-
 .info {
-  color: #0f5f2f;
+  color: var(--c-success);
+  margin: 0.5rem 0;
 }
 
 .reset-overlay {
@@ -79,7 +33,7 @@ td {
 
 .hint {
   margin: 0;
-  color: #5b687e;
+  color: var(--c-muted);
   font-size: 0.9rem;
 }
 
