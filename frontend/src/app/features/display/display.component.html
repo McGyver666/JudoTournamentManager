@@ -24,8 +24,15 @@
             }
           </div>
           @if (d.current && isOsaeKomiRunning(d.current)) {
-            <div class="hold-timer hold-timer--xl" [class.hold-timer--blue]="osaeKomiSideLabel(d.current) === 'blue'">
-              OSAE-KOMI {{ osaeKomiSideLabel(d.current) | uppercase }} · {{ osaeKomiTimerLabel(d.current) }}
+            <div
+              class="hold-timer hold-timer--xl"
+              [class.hold-timer--blue]="osaeKomiSideLabel(d.current) === 'blue'"
+              [class.hold-timer--white]="osaeKomiSideLabel(d.current) === 'white'">
+              <div class="hold-timer-label">Osae-Komi</div>
+              <div class="hold-timer-value-row">
+                <span class="hold-timer-value">{{ osaeKomiSecondsLabel(d.current) }}</span>
+                <span class="hold-timer-target">/ {{ osaeKomiCapSecondsLabel(d.current) }}</span>
+              </div>
             </div>
           } @else {
             <div class="hold-timer-spacer" aria-hidden="true"></div>
@@ -112,9 +119,9 @@
                 <div class="next-item next-item--xl">
                   <div class="next-category">{{ categoryName(fight.categoryId) }}</div>
                   <div class="next-line">
-                    <span class="blue-name">{{ athleteName(fight.blueAthleteId) }}</span>
+                    <span class="blue-name next-name--blue">{{ athleteName(fight.blueAthleteId) }}</span>
                     <span class="next-vs">vs</span>
-                    <span class="white-name">{{ athleteName(fight.whiteAthleteId) }}</span>
+                    <span class="white-name next-name--white">{{ athleteName(fight.whiteAthleteId) }}</span>
                   </div>
                 </div>
               }
