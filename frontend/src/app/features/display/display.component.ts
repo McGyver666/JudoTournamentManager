@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { UpperCasePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { catchError, combineLatest, forkJoin, of, Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
@@ -39,7 +40,7 @@ interface ConnectorPath {
 @Component({
   selector: 'app-display',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [UpperCasePipe, TranslatePipe],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
 })
@@ -625,6 +626,38 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return this.scoreCount(fight, side, 'ippon') > 0;
   }
 
+  protected isOsaeKomiRunning(fight: Fight): boolean {
+    return fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
+  }
+
+  protected osaeKomiSideLabel(fight: Fight): FightSide | null {
+    if (!fight.osaeKomiSide) {
+      return null;
+    }
+
+    return fight.osaeKomiSide === 'White' ? 'white' : 'blue';
+  }
+
+  protected osaeKomiTimerLabel(fight: Fight): string {
+    if (!fight.osaeKomiSide || !fight.osaeKomiStartedAtUtc) {
+      return '--s';
+    }
+
+    const side = this.osaeKomiSideLabel(fight);
+    if (!side) {
+      return '--s';
+    }
+
+    const capSeconds = this.hasWazaAri(fight, side) ? 20 : 25;
+    const elapsedSeconds = Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000);
+    const runningSeconds = Math.min(capSeconds, Math.max(0, elapsedSeconds));
+    return `${runningSeconds}s / ${capSeconds}s`;
+  }
+
+  private hasWazaAri(fight: Fight, side: FightSide): boolean {
+    return side === 'white' ? fight.whiteWazaAriCount > 0 : fight.blueWazaAriCount > 0;
+  }
+
   protected tatamiDisplayLink(tatamiId: string): string {
     const tid = this.tournamentId();
     if (!tid) {
@@ -708,9 +741,4 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return a ? `${a.lastName}, ${a.firstName}` : id.substring(0, 8);
   }
 
-  protected copyShareLink(): void {
-    try {
-      void navigator.clipboard.writeText(window.location.href);
-    } catch { /* ignore in offline mode */ }
-  }
 }

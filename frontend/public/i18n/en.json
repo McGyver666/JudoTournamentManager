@@ -270,6 +270,8 @@
   "display.allMatches": "All fights",
   "display.noMatches": "No fights available.",
   "display.copyLink": "Copy link",
+  "display.menuOverview": "Tournament view",
+  "display.menuTatami": "Tatami: {name}",
   "display.openTatamiScreen": "Open tatami",
   "display.tatamiNotFound": "The requested tatami was not found.",
 

@@ -156,6 +156,35 @@ tr:last-child td {
   flex-wrap: wrap;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-actions-end {
+  justify-content: flex-end;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-inline input[type="checkbox"] {
+  width: auto;
+}
+
 .muted {
   color: var(--c-muted);
 }

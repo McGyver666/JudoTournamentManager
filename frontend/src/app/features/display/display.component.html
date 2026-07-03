@@ -1,15 +1,14 @@
-<div class="display-page">
-  <header class="display-header">
-    <h1 class="tournament-title">{{ tournamentName() }}</h1>
-    <div class="display-meta">
-      @if (!hubConnected()) {
-        <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
-      }
-      <button class="btn-share" (click)="copyShareLink()" title="{{ 'display.copyLink' | t }}">
-        🔗 {{ 'display.copyLink' | t }}
-      </button>
-    </div>
-  </header>
+<div class="display-page" [class.display-page--tatami]="isTatamiMode()">
+  @if (!isTatamiMode()) {
+    <header class="display-header">
+      <h1 class="tournament-title">{{ tournamentName() }}</h1>
+      <div class="display-meta">
+        @if (!hubConnected()) {
+          <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
+        }
+      </div>
+    </header>
+  }
 
   @if (!tournamentId()) {
     <p class="info-hint">{{ 'display.noTournamentParam' | t }}</p>
@@ -24,6 +23,13 @@
               <div class="tatami-fullscreen-category">{{ categoryName(d.current.categoryId) }}</div>
             }
           </div>
+          @if (d.current && isOsaeKomiRunning(d.current)) {
+            <div class="hold-timer hold-timer--xl" [class.hold-timer--blue]="osaeKomiSideLabel(d.current) === 'blue'">
+              OSAE-KOMI {{ osaeKomiSideLabel(d.current) | uppercase }} · {{ osaeKomiTimerLabel(d.current) }}
+            </div>
+          } @else {
+            <div class="hold-timer-spacer" aria-hidden="true"></div>
+          }
           @if (d.current) {
             <div
               class="fight-timer fight-timer--xl"
@@ -39,20 +45,20 @@
               <div class="tatami-athlete-name">{{ athleteName(d.current.blueAthleteId) }}</div>
               <div class="tatami-athlete-club">{{ athleteClub(d.current.blueAthleteId) }}</div>
 
-              @if (hasIppon(d.current, 'blue')) {
-                <div class="ippon-banner">{{ 'match.ippon' | t }}</div>
-              } @else {
-                <div class="tatami-counters">
-                  <div class="tatami-counter">
-                    <span>{{ 'match.wazaari' | t }}</span>
-                    <strong>{{ scoreCount(d.current, 'blue', 'wazaAri') }}</strong>
-                  </div>
-                  <div class="tatami-counter">
-                    <span>{{ 'match.yuko' | t }}</span>
-                    <strong>{{ scoreCount(d.current, 'blue', 'yuko') }}</strong>
-                  </div>
+              <div class="tatami-counters tatami-counters--triple">
+                <div class="tatami-counter tatami-counter--ippon" [class.tatami-counter--ippon-active]="hasIppon(d.current, 'blue')">
+                  <span>{{ 'match.ippon' | t }}</span>
+                  <strong>{{ scoreCount(d.current, 'blue', 'ippon') }}</strong>
                 </div>
-              }
+                <div class="tatami-counter">
+                  <span>{{ 'match.wazaari' | t }}</span>
+                  <strong>{{ scoreCount(d.current, 'blue', 'wazaAri') }}</strong>
+                </div>
+                <div class="tatami-counter">
+                  <span>{{ 'match.yuko' | t }}</span>
+                  <strong>{{ scoreCount(d.current, 'blue', 'yuko') }}</strong>
+                </div>
+              </div>
 
               <div class="tatami-shido-row">
                 <span>{{ 'match.shido' | t }}</span>
@@ -69,20 +75,20 @@
               <div class="tatami-athlete-name">{{ athleteName(d.current.whiteAthleteId) }}</div>
               <div class="tatami-athlete-club">{{ athleteClub(d.current.whiteAthleteId) }}</div>
 
-              @if (hasIppon(d.current, 'white')) {
-                <div class="ippon-banner">{{ 'match.ippon' | t }}</div>
-              } @else {
-                <div class="tatami-counters">
-                  <div class="tatami-counter">
-                    <span>{{ 'match.wazaari' | t }}</span>
-                    <strong>{{ scoreCount(d.current, 'white', 'wazaAri') }}</strong>
-                  </div>
-                  <div class="tatami-counter">
-                    <span>{{ 'match.yuko' | t }}</span>
-                    <strong>{{ scoreCount(d.current, 'white', 'yuko') }}</strong>
-                  </div>
+              <div class="tatami-counters tatami-counters--triple">
+                <div class="tatami-counter tatami-counter--ippon" [class.tatami-counter--ippon-active]="hasIppon(d.current, 'white')">
+                  <span>{{ 'match.ippon' | t }}</span>
+                  <strong>{{ scoreCount(d.current, 'white', 'ippon') }}</strong>
                 </div>
-              }
+                <div class="tatami-counter">
+                  <span>{{ 'match.wazaari' | t }}</span>
+                  <strong>{{ scoreCount(d.current, 'white', 'wazaAri') }}</strong>
+                </div>
+                <div class="tatami-counter">
+                  <span>{{ 'match.yuko' | t }}</span>
+                  <strong>{{ scoreCount(d.current, 'white', 'yuko') }}</strong>
+                </div>
+              </div>
 
               <div class="tatami-shido-row">
                 <span>{{ 'match.shido' | t }}</span>
@@ -102,7 +108,7 @@
           <div class="next-section next-section--xl">
             <div class="next-label">{{ 'display.nextFights' | t }}</div>
             <div class="next-list next-list--xl">
-              @for (fight of d.nextFights; track fight.id) {
+              @if (d.nextFights[0]; as fight) {
                 <div class="next-item next-item--xl">
                   <div class="next-category">{{ categoryName(fight.categoryId) }}</div>
                   <div class="next-line">
