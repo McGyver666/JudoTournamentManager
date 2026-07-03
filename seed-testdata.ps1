@@ -190,16 +190,14 @@ for ($i = 0; $i -lt 40; $i++) {
     $athleteBody = @{
         clubId = $club.id
         firstName = $firstName
-        lastName = "{0}-{1:D2}" -f $lastName, ($i + 1)
+        lastName = $lastName
         birthYear = $birthYear
         gender = "Male"
         licenseId = $licenseId
     }
 
-    if ($i -lt 20) {
-        $weightTenth = Get-Random -Minimum 200 -Maximum 411
-        $athleteBody.weightKg = [math]::Round($weightTenth / 10.0, 1)
-    }
+    $weightTenth = Get-Random -Minimum 200 -Maximum 411
+    $athleteBody.weightKg = [math]::Round($weightTenth / 10.0, 1)
 
     $athlete = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/athletes" -Body $athleteBody
     $weightDisplay = if ($null -ne $athlete.weightKg) { "$($athlete.weightKg) kg" } else { "no weight" }
