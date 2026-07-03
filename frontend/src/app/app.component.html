@@ -9,10 +9,23 @@
         <a routerLink="/tournaments" routerLinkActive="active">{{ 'nav.tournaments' | t }}</a>
         @if (canOperate()) {
           <a routerLink="/config" routerLinkActive="active">{{ 'nav.config' | t }}</a>
-          <a routerLink="/registrations" routerLinkActive="active">{{ 'nav.registrations' | t }}</a>
-          <a routerLink="/category-assignment" routerLinkActive="active">{{ 'nav.categoryAssignment' | t }}</a>
-          <a routerLink="/draw" routerLinkActive="active">{{ 'nav.draw' | t }}</a>
-          <a routerLink="/tatami-assignment" routerLinkActive="active">{{ 'nav.tatamiAssignment' | t }}</a>
+          <div class="nav-dropdown" [class.open]="tournamentleitungMenuOpen()">
+            <button
+              type="button"
+              class="nav-dropdown-toggle"
+              (click)="toggleTournamentleitungMenu()"
+              [attr.aria-expanded]="tournamentleitungMenuOpen()"
+              aria-haspopup="menu">
+              <span>{{ 'nav.management' | t }}</span>
+              <span class="nav-dropdown-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="nav-dropdown-menu" role="menu">
+              <a routerLink="/registrations" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.registrations' | t }}</a>
+              <a routerLink="/category-assignment" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.categoryAssignment' | t }}</a>
+              <a routerLink="/draw" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.draw' | t }}</a>
+              <a routerLink="/tatami-assignment" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.tatamiAssignment' | t }}</a>
+            </div>
+          </div>
           <a routerLink="/match" routerLinkActive="active">{{ 'nav.match' | t }}</a>
         }
         @if (context.tournamentId(); as tid) {

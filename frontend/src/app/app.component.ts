@@ -35,6 +35,7 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly currentUser = this.auth.user;
   protected readonly displayTatamis = signal<Tatami[]>([]);
   protected readonly displayMenuOpen = signal(false);
+  protected readonly tournamentleitungMenuOpen = signal(false);
   protected readonly showShell = signal(true);
 
   private shellRouteSub?: Subscription;
@@ -77,11 +78,27 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   protected toggleDisplayMenu(): void {
+    const willOpen = !this.displayMenuOpen();
     this.displayMenuOpen.update((open) => !open);
+    if (willOpen) {
+      this.tournamentleitungMenuOpen.set(false);
+    }
   }
 
   protected closeDisplayMenu(): void {
     this.displayMenuOpen.set(false);
+  }
+
+  protected toggleTournamentleitungMenu(): void {
+    const willOpen = !this.tournamentleitungMenuOpen();
+    this.tournamentleitungMenuOpen.update((open) => !open);
+    if (willOpen) {
+      this.displayMenuOpen.set(false);
+    }
+  }
+
+  protected closeTournamentleitungMenu(): void {
+    this.tournamentleitungMenuOpen.set(false);
   }
 
   protected displayOverviewUrl(tournamentId: string): string {
@@ -94,24 +111,27 @@ export class AppComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   protected onDocumentClick(event: MouseEvent): void {
-    if (!this.displayMenuOpen()) {
+    if (!this.displayMenuOpen() && !this.tournamentleitungMenuOpen()) {
       return;
     }
 
     const target = event.target;
     if (!(target instanceof Node)) {
       this.closeDisplayMenu();
+      this.closeTournamentleitungMenu();
       return;
     }
 
     if (!this.hostElement.nativeElement.contains(target)) {
       this.closeDisplayMenu();
+      this.closeTournamentleitungMenu();
       return;
     }
 
     const targetElement = target as Element;
     if (!targetElement.closest('.nav-dropdown')) {
       this.closeDisplayMenu();
+      this.closeTournamentleitungMenu();
     }
   }
 
@@ -120,6 +140,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.showShell.set(!hideShell);
     if (hideShell) {
       this.closeDisplayMenu();
+      this.closeTournamentleitungMenu();
     }
   }
 
