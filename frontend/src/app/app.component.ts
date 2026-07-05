@@ -36,7 +36,9 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly displayTatamis = signal<Tatami[]>([]);
   protected readonly displayMenuOpen = signal(false);
   protected readonly tournamentleitungMenuOpen = signal(false);
+  protected readonly mattenrichterMenuOpen = signal(false);
   protected readonly showShell = signal(true);
+  protected readonly routeTatamiId = signal<string | null>(null);
 
   private shellRouteSub?: Subscription;
 
@@ -82,6 +84,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.displayMenuOpen.update((open) => !open);
     if (willOpen) {
       this.tournamentleitungMenuOpen.set(false);
+      this.mattenrichterMenuOpen.set(false);
     }
   }
 
@@ -94,11 +97,25 @@ export class AppComponent implements OnInit, OnDestroy {
     this.tournamentleitungMenuOpen.update((open) => !open);
     if (willOpen) {
       this.displayMenuOpen.set(false);
+      this.mattenrichterMenuOpen.set(false);
     }
   }
 
   protected closeTournamentleitungMenu(): void {
     this.tournamentleitungMenuOpen.set(false);
+  }
+
+  protected toggleMattenrichterMenu(): void {
+    const willOpen = !this.mattenrichterMenuOpen();
+    this.mattenrichterMenuOpen.update((open) => !open);
+    if (willOpen) {
+      this.displayMenuOpen.set(false);
+      this.tournamentleitungMenuOpen.set(false);
+    }
+  }
+
+  protected closeMattenrichterMenu(): void {
+    this.mattenrichterMenuOpen.set(false);
   }
 
   protected displayOverviewUrl(tournamentId: string): string {
@@ -109,9 +126,13 @@ export class AppComponent implements OnInit, OnDestroy {
     return `/display/tatami/${encodeURIComponent(tatamiId)}?tournamentId=${encodeURIComponent(tournamentId)}`;
   }
 
+  protected matchTatamiQueryParams(tournamentId: string, tatamiId: string): { tournamentId: string; tatamiId: string } {
+    return { tournamentId, tatamiId };
+  }
+
   @HostListener('document:click', ['$event'])
   protected onDocumentClick(event: MouseEvent): void {
-    if (!this.displayMenuOpen() && !this.tournamentleitungMenuOpen()) {
+    if (!this.displayMenuOpen() && !this.tournamentleitungMenuOpen() && !this.mattenrichterMenuOpen()) {
       return;
     }
 
@@ -119,12 +140,14 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!(target instanceof Node)) {
       this.closeDisplayMenu();
       this.closeTournamentleitungMenu();
+      this.closeMattenrichterMenu();
       return;
     }
 
     if (!this.hostElement.nativeElement.contains(target)) {
       this.closeDisplayMenu();
       this.closeTournamentleitungMenu();
+      this.closeMattenrichterMenu();
       return;
     }
 
@@ -132,15 +155,21 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!targetElement.closest('.nav-dropdown')) {
       this.closeDisplayMenu();
       this.closeTournamentleitungMenu();
+      this.closeMattenrichterMenu();
     }
   }
 
   private updateShellVisibility(url: string): void {
     const hideShell = url.startsWith('/display');
+    const params = this.router.parseUrl(url).queryParams;
+    const tatamiId = typeof params['tatamiId'] === 'string' ? params['tatamiId'] : null;
+    this.routeTatamiId.set(tatamiId);
+
     this.showShell.set(!hideShell);
     if (hideShell) {
       this.closeDisplayMenu();
       this.closeTournamentleitungMenu();
+      this.closeMattenrichterMenu();
     }
   }
 

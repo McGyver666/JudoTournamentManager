@@ -1,62 +1,18 @@
-.match-subtitle {
-  margin: 0.25rem 0 0;
-  color: #5f6368;
-  font-size: 0.95rem;
-}
-
-.match-toolbar {
-  display: grid;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.operator-row {
+.page-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.tatami-selector {
+.page-header h1 {
+  margin: 0;
+}
+
+.page-header__status {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tatami-display-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tatami-display-link {
-  font-size: 0.8rem;
-  text-decoration: none;
-  color: #0f4c81;
-  border: 1px solid #bfd2e8;
-  background: #f1f7ff;
-  border-radius: 999px;
-  padding: 0.25rem 0.7rem;
-}
-
-.tatami-display-link:hover {
-  background: #e4f0ff;
-}
-
-.tatami-btn {
-  padding: 0.45rem 1rem;
-  border: 1px solid #cfd4da;
-  border-radius: 999px;
-  background: #fff;
-  color: #202124;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.tatami-btn.selected {
-  border-color: var(--color-primary, #1565c0);
-  background: #e8f1ff;
-  color: #0f3c6e;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .queue-panel {
