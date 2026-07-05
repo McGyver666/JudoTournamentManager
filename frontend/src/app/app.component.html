@@ -26,7 +26,32 @@
               <a routerLink="/tatami-assignment" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.tatamiAssignment' | t }}</a>
             </div>
           </div>
-          <a routerLink="/match" routerLinkActive="active">{{ 'nav.match' | t }}</a>
+          <div class="nav-dropdown" [class.open]="mattenrichterMenuOpen()">
+            <button
+              type="button"
+              class="nav-dropdown-toggle"
+              (click)="toggleMattenrichterMenu()"
+              [attr.aria-expanded]="mattenrichterMenuOpen()"
+              aria-haspopup="menu">
+              <span>{{ 'nav.match' | t }}</span>
+              <span class="nav-dropdown-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="nav-dropdown-menu" role="menu">
+              @if (context.tournamentId(); as tid) {
+                @for (tatami of displayTatamis(); track tatami.id) {
+                  <a
+                    class="nav-dropdown-action"
+                    [class.active]="routeTatamiId() === tatami.id"
+                    routerLink="/match"
+                    [queryParams]="matchTatamiQueryParams(tid, tatami.id)"
+                    role="menuitem"
+                    (click)="closeMattenrichterMenu()">
+                    {{ tatami.name }}
+                  </a>
+                }
+              }
+            </div>
+          </div>
         }
         @if (context.tournamentId(); as tid) {
           <div class="nav-dropdown" [class.open]="displayMenuOpen()">

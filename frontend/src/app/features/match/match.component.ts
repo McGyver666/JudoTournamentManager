@@ -3,10 +3,11 @@ import {
   OnDestroy,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
@@ -31,7 +32,7 @@ const OPERATOR_NAME_KEY = 'judo.operatorName';
 @Component({
   selector: 'app-match',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [TranslatePipe],
   templateUrl: './match.component.html',
   styleUrl: './match.component.css',
 })
@@ -41,6 +42,8 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly sideTheme = inject(SideThemeService);
   protected readonly context = inject(TournamentContextService);
   private readonly hub = inject(TournamentHubService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly canOperate = this.auth.canOperate;
 
   protected readonly tatamis = signal<Tatami[]>([]);
@@ -72,16 +75,64 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly currentFight = computed(() => this.queue()?.current ?? null);
 
   private fightSub?: Subscription;
+  private querySub?: Subscription;
+
+  private readonly selectedTatamiEffect = effect(() => {
+    const tournamentId = this.context.tournamentId();
+    const tatamiId = this.selectedTatamiId();
+
+    if (!tournamentId || !tatamiId) {
+      this.queue.set(null);
+      this.stopTimer();
+      this.previousFight = null;
+      this.frozenOsaeKomiDisplay = null;
+      return;
+    }
+
+    this.refreshQueue();
+  });
 
   ngOnInit(): void {
     const tid = this.context.tournamentId();
     if (!tid) return;
 
+    this.querySub = this.route.queryParamMap.subscribe((params) => {
+      const tatamiId = params.get('tatamiId');
+      this.selectedTatamiId.set(tatamiId);
+    });
+
     this.api.getTournament(tid).subscribe((tournament) => {
       this.context.refreshIfActive(tournament);
     });
 
-    this.api.getTatamis(tid).subscribe(t => this.tatamis.set(t));
+    this.api.getTatamis(tid).subscribe((tatamis) => {
+      const sortedTatamis = [...tatamis].sort(
+        (a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name),
+      );
+      this.tatamis.set(sortedTatamis);
+
+      if (sortedTatamis.length === 0) {
+        this.selectedTatamiId.set(null);
+        return;
+      }
+
+      const selectedTatamiId = this.selectedTatamiId();
+      const selectedTatamiExists = selectedTatamiId
+        ? sortedTatamis.some((tatami) => tatami.id === selectedTatamiId)
+        : false;
+
+      if (!selectedTatamiExists) {
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {
+            tournamentId: tid,
+            tatamiId: sortedTatamis[0].id,
+          },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    });
     this.api.getCategories(tid).subscribe(cats => this.categories.set(cats));
     this.api.getAthletes(tid).subscribe(athletes => {
       const map = new Map(athletes.map(a => [a.id, a]));
@@ -99,13 +150,9 @@ export class MatchComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.querySub?.unsubscribe();
     this.fightSub?.unsubscribe();
     this.stopTimer();
-  }
-
-  protected selectTatami(tatamiId: string): void {
-    this.selectedTatamiId.set(tatamiId);
-    this.refreshQueue();
   }
 
   protected refreshQueue(): void {
@@ -376,11 +423,6 @@ export class MatchComponent implements OnInit, OnDestroy {
       next: () => { this.queue.set(null); this.refreshQueue(); },
       error: () => this.errorMessage.set('Ergebnis konnte nicht bestätigt werden.'),
     });
-  }
-
-  protected saveOperatorName(name: string): void {
-    this.operatorName.set(name);
-    try { localStorage.setItem(OPERATOR_NAME_KEY, name); } catch { /* ignore */ }
   }
 
   protected clearError(): void {

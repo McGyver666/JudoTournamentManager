@@ -1,52 +1,15 @@
 <section class="page-header">
-  <div>
-    <h1>{{ 'match.title' | t }}</h1>
-    <p class="match-subtitle">{{ 'match.subtitle' | t }}</p>
+  <h1>{{ 'match.title' | t }}</h1>
+  <div class="page-header__status">
+    @if (!hubConnected()) {
+      <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
+    }
   </div>
-  @if (!hubConnected()) {
-    <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
-  }
 </section>
 
 @if (!context.tournamentId()) {
   <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
 } @else {
-  <div class="match-toolbar">
-    <div class="operator-row">
-      <label class="field-label" for="opName">{{ 'match.operatorName' | t }}</label>
-      <input
-        id="opName"
-        type="text"
-        class="field-input"
-        [ngModel]="operatorName()"
-        (ngModelChange)="saveOperatorName($event)"
-        maxlength="60"
-      />
-    </div>
-
-    <div class="tatami-selector">
-      @for (t of tatamis(); track t.id) {
-        <button
-          class="tatami-btn"
-          [class.selected]="selectedTatamiId() === t.id"
-          (click)="selectTatami(t.id)"
-        >{{ t.name }}</button>
-      }
-    </div>
-
-    <div class="tatami-display-links">
-      @for (t of tatamis(); track t.id) {
-        <a
-          class="tatami-display-link"
-          [href]="'/display/tatami/' + t.id + '?tournamentId=' + context.tournamentId()"
-          target="_blank"
-          rel="noopener">
-          {{ 'match.openTatamiDisplay' | t }}: {{ t.name }}
-        </a>
-      }
-    </div>
-  </div>
-
   @if (errorMessage(); as err) {
     <div class="error-banner" role="alert">
       {{ err }}
@@ -217,8 +180,8 @@
           </div>
         }
       </div>
-
-      <button class="btn btn--secondary" (click)="refreshQueue()">{{ 'common.reload' | t }}</button>
     </div>
+  } @else {
+    <p class="info-hint">{{ 'common.select' | t }}: {{ 'tatamiAssignment.tatami' | t }}</p>
   }
 }

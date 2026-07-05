@@ -182,7 +182,7 @@
   "categoryAssignment.changeCategory": "Kategorie ändern",
   "categoryAssignment.athletes": "Athleten",
 
-  "nav.match": "Kampfführung",
+  "nav.match": "Mattenrichter",
   "nav.results": "Ergebnisse",
   "nav.users": "Benutzer",
   "nav.display": "Anzeigetafel",
@@ -212,8 +212,7 @@
   "categories.goldenScoreEnabled": "Golden Score aktivieren",
   "categories.goldenScoreDurationSeconds": "Golden-Score-Dauer (Sek.)",
 
-  "match.title": "Mattenführung",
-  "match.subtitle": "Leichtes Arbeitsfenster für die Mattenleitung",
+  "match.title": "Mattenleitung",
   "match.offline": "Offline (kein Live-Update)",
   "match.operatorName": "Kampfrichter",
   "match.noCurrentFight": "Kein aktiver Kampf.",

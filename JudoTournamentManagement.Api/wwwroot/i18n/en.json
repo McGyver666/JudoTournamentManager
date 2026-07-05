@@ -182,7 +182,7 @@
   "categoryAssignment.changeCategory": "Change category",
   "categoryAssignment.athletes": "athletes",
 
-  "nav.match": "Match Control",
+  "nav.match": "Tatami Referee",
   "nav.results": "Results",
   "nav.users": "Users",
   "nav.display": "Scoreboard",
@@ -212,8 +212,7 @@
   "categories.goldenScoreEnabled": "Enable golden score",
   "categories.goldenScoreDurationSeconds": "Golden score duration (sec.)",
 
-  "match.title": "Match Control",
-  "match.subtitle": "Light console for tatami operations",
+  "match.title": "Tatami Control",
   "match.offline": "Offline (no live updates)",
   "match.operatorName": "Operator",
   "match.noCurrentFight": "No active fight.",
