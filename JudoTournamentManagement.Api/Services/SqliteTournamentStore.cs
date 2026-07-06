@@ -12,16 +12,22 @@ public sealed class SqliteTournamentStore : ITournamentStore
 {
     private readonly AppDbContext _dbContext;
     private readonly ILogger<SqliteTournamentStore> _logger;
+    private readonly ICategoryPresetsStore _categoryPresetsStore;
 
     /// <summary>
     /// Initializes a new store instance.
     /// </summary>
-    public SqliteTournamentStore(AppDbContext dbContext, ILogger<SqliteTournamentStore> logger)
+    public SqliteTournamentStore(
+        AppDbContext dbContext,
+        ILogger<SqliteTournamentStore> logger,
+        ICategoryPresetsStore categoryPresetsStore)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(categoryPresetsStore);
         _dbContext = dbContext;
         _logger = logger;
+        _categoryPresetsStore = categoryPresetsStore;
     }
 
     /// <inheritdoc />
@@ -84,6 +90,8 @@ public sealed class SqliteTournamentStore : ITournamentStore
 
         _dbContext.Tournaments.Add(record);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _categoryPresetsStore.SeedDefaultsAsync(record.Id, date.Year, cancellationToken);
 
         _logger.LogInformation("Tournament {TournamentId} created.", record.Id);
         return MapToModel(record);

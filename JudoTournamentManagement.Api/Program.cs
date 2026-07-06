@@ -85,6 +85,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITournamentStore, SqliteTournamentStore>();
 builder.Services.AddScoped<ITatamisStore, SqliteTatamisStore>();
 builder.Services.AddScoped<ICategoriesStore, SqliteCategoriesStore>();
+builder.Services.AddScoped<ICategoryPresetsStore, SqliteCategoryPresetsStore>();
 builder.Services.AddScoped<IClubsStore, SqliteClubsStore>();
 builder.Services.AddScoped<IAthletesStore, SqliteAthletesStore>();
 builder.Services.AddScoped<IRegistrationsStore, SqliteRegistrationsStore>();
@@ -163,6 +164,7 @@ static async Task InitializeDatabaseAsync(WebApplication application)
     await EnsureLegacyFightTatamiColumnAsync(dbContext, logger);
     await EnsureLegacyFightWhiteSideColumnsAsync(dbContext, logger);
     await EnsureLegacyTournamentAccentSideColorColumnAsync(dbContext, logger);
+    await EnsureCategoryPresetsTableAsync(dbContext, logger);
 }
 
 static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, ILogger logger)
@@ -225,10 +227,19 @@ static async Task<IReadOnlyList<string>> ResolveBaselineMigrationsAsync(
     var hasUserAccounts = await TableExistsAsync(dbContext, "UserAccounts");
     var hasGoldenScore = await ColumnExistsAsync(dbContext, "Categories", "GoldenScoreEnabled");
     var hasLicenseConfirmed = await ColumnExistsAsync(dbContext, "Registrations", "LicenseConfirmed");
+    var hasCategoryPresets = await TableExistsAsync(dbContext, "CategoryPresets");
+
+    if (hasUserAccounts && hasGoldenScore && hasLicenseConfirmed && hasCategoryPresets)
+    {
+        return availableMigrations;
+    }
 
     if (hasUserAccounts && hasGoldenScore && hasLicenseConfirmed)
     {
-        return availableMigrations;
+        // Baseline all migrations except those that create tables not yet present in the legacy schema.
+        return availableMigrations
+            .Where(m => !m.Contains("AddCategoryPresets"))
+            .ToArray();
     }
 
     return new[] { availableMigrations[0] };
@@ -417,6 +428,36 @@ static async Task EnsureLegacyTournamentAccentSideColorColumnAsync(AppDbContext 
 
     await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE Tournaments ADD COLUMN AccentSideColor TEXT NOT NULL DEFAULT 'Blue';");
     logger.LogWarning("Schema patch applied: added missing Tournaments.AccentSideColor column.");
+}
+
+static async Task EnsureCategoryPresetsTableAsync(AppDbContext dbContext, ILogger logger)
+{
+    if (await TableExistsAsync(dbContext, "CategoryPresets"))
+    {
+        logger.LogInformation("Schema check: CategoryPresets table already exists.");
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync(
+        """
+        CREATE TABLE IF NOT EXISTS "CategoryPresets" (
+            "Id" TEXT NOT NULL CONSTRAINT "PK_CategoryPresets" PRIMARY KEY,
+            "TournamentId" TEXT NOT NULL,
+            "AgeGroup" TEXT NOT NULL,
+            "Gender" TEXT NOT NULL,
+            "MaxAgeYears" INTEGER NULL,
+            "MinAgeYears" INTEGER NULL,
+            "DefaultMatchDurationSeconds" INTEGER NOT NULL DEFAULT 240,
+            "WeightClassLimitsJson" TEXT NOT NULL,
+            "SortOrder" INTEGER NOT NULL,
+            CONSTRAINT "FK_CategoryPresets_Tournaments_TournamentId" FOREIGN KEY ("TournamentId") REFERENCES "Tournaments" ("Id") ON DELETE CASCADE
+        );
+        """);
+
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_CategoryPresets_TournamentId\" ON \"CategoryPresets\" (\"TournamentId\");");
+
+    logger.LogWarning("Schema patch applied: created missing CategoryPresets table.");
 }
 
 /// <summary>

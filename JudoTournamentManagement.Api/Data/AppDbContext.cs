@@ -65,6 +65,11 @@ public sealed class AppDbContext : DbContext
     /// </summary>
     public DbSet<AuthSessionRecord> AuthSessions => Set<AuthSessionRecord>();
 
+    /// <summary>
+    /// Tournament category preset rows for the standard-class generation assistant.
+    /// </summary>
+    public DbSet<CategoryPresetRecord> CategoryPresets => Set<CategoryPresetRecord>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -196,5 +201,18 @@ public sealed class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
         authSession.HasIndex(x => x.TokenHash).IsUnique();
         authSession.HasIndex(x => new { x.UserAccountId, x.ExpiresAtUtc });
+
+        var categoryPreset = modelBuilder.Entity<CategoryPresetRecord>();
+        categoryPreset.ToTable("CategoryPresets");
+        categoryPreset.HasKey(x => x.Id);
+        categoryPreset.Property(x => x.AgeGroup).IsRequired().HasMaxLength(40);
+        categoryPreset.Property(x => x.Gender).IsRequired().HasMaxLength(20);
+        categoryPreset.Property(x => x.WeightClassLimitsJson).IsRequired().HasMaxLength(1000);
+        categoryPreset.Property(x => x.DefaultMatchDurationSeconds).HasDefaultValue(240);
+        categoryPreset.HasOne(x => x.Tournament)
+                      .WithMany()
+                      .HasForeignKey(x => x.TournamentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+        categoryPreset.HasIndex(x => x.TournamentId);
     }
 }

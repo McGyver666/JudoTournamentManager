@@ -11,40 +11,25 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
 {
     private const string GeneratedMarker = "[AUTO_GENERATED_2026]";
 
-    private static readonly IReadOnlyList<StandardPresetRow> StandardPresets =
-    [
-        // Female
-        new("U11", Gender.Female, 2016, 2018, 120, [22m, 24m, 26m, 28m, 30m, 33m, 36m, 40m, 44m, 48m, null]),
-        new("U13", Gender.Female, 2014, 2016, 180, [27m, 30m, 33m, 36m, 40m, 44m, 48m, 52m, 57m, null]),
-        new("U15", Gender.Female, 2012, 2014, 180, [33m, 36m, 40m, 44m, 48m, 52m, 57m, 63m, null]),
-        new("U18", Gender.Female, 2009, 2011, 240, [40m, 44m, 48m, 52m, 57m, 63m, 70m, 78m, null]),
-        new("U21", Gender.Female, 2006, 2009, 240, [48m, 52m, 57m, 63m, 70m, 78m, null]),
-        new("Frauen", Gender.Female, 2009, null, 240, [48m, 52m, 57m, 63m, 70m, 78m, null]),
-
-        // Male
-        new("U11", Gender.Male, 2016, 2018, 120, [23m, 25m, 27m, 29m, 31m, 34m, 37m, 40m, 43m, 46m, null]),
-        new("U13", Gender.Male, 2014, 2016, 180, [28m, 31m, 34m, 37m, 40m, 43m, 46m, 50m, 55m, null]),
-        new("U15", Gender.Male, 2012, 2014, 180, [34m, 37m, 40m, 43m, 46m, 50m, 55m, 60m, 66m, null]),
-        new("U18", Gender.Male, 2009, 2011, 240, [46m, 50m, 55m, 60m, 66m, 73m, 81m, 90m, null]),
-        new("U21", Gender.Male, 2006, 2009, 240, [60m, 66m, 73m, 81m, 90m, 100m, null]),
-        new("Männer", Gender.Male, 2009, null, 240, [60m, 66m, 73m, 81m, 90m, 100m, null]),
-    ];
-
     private readonly ICategoriesStore _categoriesStore;
     private readonly IRegistrationsStore _registrationsStore;
+    private readonly ICategoryPresetsStore _categoryPresetsStore;
     private readonly ILogger<CategoryGenerationService> _logger;
 
     public CategoryGenerationService(
         ICategoriesStore categoriesStore,
         IRegistrationsStore registrationsStore,
+        ICategoryPresetsStore categoryPresetsStore,
         ILogger<CategoryGenerationService> logger)
     {
         ArgumentNullException.ThrowIfNull(categoriesStore);
         ArgumentNullException.ThrowIfNull(registrationsStore);
+        ArgumentNullException.ThrowIfNull(categoryPresetsStore);
         ArgumentNullException.ThrowIfNull(logger);
 
         _categoriesStore = categoriesStore;
         _registrationsStore = registrationsStore;
+        _categoryPresetsStore = categoryPresetsStore;
         _logger = logger;
     }
 
@@ -130,10 +115,12 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
         var warnings = new List<string>();
         var registrations = await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken);
 
+        var storedPresets = await _categoryPresetsStore.GetAllAsync(tournamentId, cancellationToken);
+
         var categories = request.WeightMode switch
         {
-            CategoryGenerationWeightMode.StandardClasses => BuildStandardProposals(request, registrations, warnings),
-            CategoryGenerationWeightMode.AthletesByTargetSize => BuildAthleteDrivenProposals(request, registrations, warnings),
+            CategoryGenerationWeightMode.StandardClasses => await BuildStandardProposalsAsync(storedPresets, request, registrations, warnings, cancellationToken),
+            CategoryGenerationWeightMode.AthletesByTargetSize => BuildAthleteDrivenProposals(request, registrations, warnings, storedPresets),
             _ => throw new InvalidOperationException("Unbekannte Gewichtsklassen-Strategie.")
         };
 
@@ -168,20 +155,37 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
         }
     }
 
-    private List<GeneratedCategoryProposal> BuildStandardProposals(
+    private static async Task<List<GeneratedCategoryProposal>> BuildStandardProposalsAsync(
+        IReadOnlyList<TournamentCategoryPreset> storedPresets,
         GenerateCategoriesRequest request,
         IReadOnlyList<RegistrationDetail> registrations,
-        List<string> warnings)
+        List<string> warnings,
+        CancellationToken cancellationToken)
     {
+        await Task.CompletedTask; // preserve async signature for future use
         var mode = request.GenderMode!.Value;
+        var rows = storedPresets
+            .Where(p => mode switch
+            {
+                CategoryGenerationGenderMode.Male => p.Gender == Gender.Male,
+                CategoryGenerationGenderMode.Female => p.Gender == Gender.Female,
+                CategoryGenerationGenderMode.Mixed => true,
+                _ => false
+            })
+            .Select(p => new StandardPresetRow(
+                p.AgeGroup,
+                mode == CategoryGenerationGenderMode.Mixed ? Gender.Mixed : p.Gender,
+                p.MinBirthYear,
+                p.MaxBirthYear,
+                p.DefaultMatchDurationSeconds,
+                p.WeightClassLimitsKg))
+            .ToList();
 
-        var rows = mode switch
+        // For Mixed mode merge male and female rows by normalized age group
+        if (mode == CategoryGenerationGenderMode.Mixed)
         {
-            CategoryGenerationGenderMode.Male => StandardPresets.Where(x => x.Gender == Gender.Male).ToList(),
-            CategoryGenerationGenderMode.Female => StandardPresets.Where(x => x.Gender == Gender.Female).ToList(),
-            CategoryGenerationGenderMode.Mixed => BuildMixedPresetRows(),
-            _ => throw new InvalidOperationException("Unbekannter Geschlechtsmodus.")
-        };
+            rows = MergeToBeMixedRows(rows);
+        }
 
         rows = rows
             .Where(x => IsPresetRelevantForRequestedYears(
@@ -236,10 +240,11 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
         return proposals;
     }
 
-    private List<GeneratedCategoryProposal> BuildAthleteDrivenProposals(
+    private static List<GeneratedCategoryProposal> BuildAthleteDrivenProposals(
         GenerateCategoriesRequest request,
         IReadOnlyList<RegistrationDetail> registrations,
-        List<string> warnings)
+        List<string> warnings,
+        IReadOnlyList<TournamentCategoryPreset> presets)
     {
         var mode = request.GenderMode!.Value;
 
@@ -266,7 +271,7 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
             .Select(r => new
             {
                 Registration = r,
-                AgeGroup = ResolveAgeGroup(r.AthleteBirthYear, r.AthleteGender, mode)
+                AgeGroup = ResolveAgeGroup(r.AthleteBirthYear, r.AthleteGender, mode, presets)
             })
             .Where(x => x.AgeGroup is not null)
             .GroupBy(
@@ -307,7 +312,7 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
                 .OrderBy(x => x)
                 .ToList();
 
-            var (minBirthYear, maxBirthYear) = ResolveGroupBounds(group.Key.AgeGroup, request.MinBirthYear, request.MaxBirthYear);
+            var (minBirthYear, maxBirthYear) = ResolveGroupBounds(group, request.MinBirthYear, request.MaxBirthYear);
 
             int index = 0;
             decimal? previousLimit = null;
@@ -362,9 +367,9 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
         return proposals;
     }
 
-    private static List<StandardPresetRow> BuildMixedPresetRows()
+    private static List<StandardPresetRow> MergeToBeMixedRows(IEnumerable<StandardPresetRow> rows)
     {
-        var grouped = StandardPresets
+        var grouped = rows
             .GroupBy(x => NormalizeMixedAgeGroupLabel(x.AgeGroup))
             .Select(g =>
             {
@@ -519,14 +524,14 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
             && (!weightLimit.HasValue || r.AthleteWeightKg.Value <= weightLimit.Value));
     }
 
-    private static string? ResolveAgeGroup(int birthYear, Gender athleteGender, CategoryGenerationGenderMode mode)
+    private static string? ResolveAgeGroup(int birthYear, Gender athleteGender, CategoryGenerationGenderMode mode, IReadOnlyList<TournamentCategoryPreset> presets)
     {
         var rows = mode switch
         {
-            CategoryGenerationGenderMode.Male => StandardPresets.Where(x => x.Gender == Gender.Male),
-            CategoryGenerationGenderMode.Female => StandardPresets.Where(x => x.Gender == Gender.Female),
-            CategoryGenerationGenderMode.Mixed => StandardPresets.Where(x => x.Gender == athleteGender),
-            _ => []
+            CategoryGenerationGenderMode.Male => presets.Where(x => x.Gender == Gender.Male),
+            CategoryGenerationGenderMode.Female => presets.Where(x => x.Gender == Gender.Female),
+            CategoryGenerationGenderMode.Mixed => presets.Where(x => x.Gender == athleteGender),
+            _ => Enumerable.Empty<TournamentCategoryPreset>()
         };
 
         var match = rows.FirstOrDefault(x =>
@@ -544,34 +549,18 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
     }
 
     private static (int? MinBirthYear, int? MaxBirthYear) ResolveGroupBounds(
-        string ageGroup,
+        IEnumerable<RegistrationDetail> registrations,
         int? requestMinBirthYear,
         int? requestMaxBirthYear)
     {
-        var matches = StandardPresets
-            .Where(x => NormalizeMixedAgeGroupLabel(x.AgeGroup).Equals(ageGroup, StringComparison.OrdinalIgnoreCase)
-                     || x.AgeGroup.Equals(ageGroup, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (matches.Count == 0)
+        var years = registrations.Select(r => r.AthleteBirthYear).ToList();
+        if (years.Count == 0)
         {
             return (requestMinBirthYear, requestMaxBirthYear);
         }
 
-        int? min = matches
-            .Where(x => x.MinBirthYear.HasValue)
-            .Select(x => x.MinBirthYear!.Value)
-            .DefaultIfEmpty()
-            .Min();
-
-        if (min == 0)
-        {
-            min = null;
-        }
-
-        int? max = matches.Any(x => x.MaxBirthYear is null)
-            ? null
-            : matches.Max(x => x.MaxBirthYear!.Value);
+        int? min = years.Min();
+        int? max = years.Max();
 
         return ClampRange(min, max, requestMinBirthYear, requestMaxBirthYear);
     }

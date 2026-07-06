@@ -157,6 +157,75 @@ public sealed class RankingServiceTests
     }
 
     [Fact]
+    public async Task GetCategoryRankings_RoundRobinWithByesAndNoCompletedRealFights_ReturnsEmpty()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        var (tid, cid, _, athletes) = await SeedAsync(ctx, 3);
+        var (a1, a2, a3) = (athletes[0], athletes[1], athletes[2]);
+
+        var now = DateTimeOffset.UtcNow;
+
+        // Round-robin schedule for 3 athletes contains one bye fight per round.
+        // All real fights are still pending, so no ranking should be produced.
+        ctx.Fights.AddRange(
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid,
+                BracketType = FightBracketType.Main.ToString(), Round = 1, FightNumber = 1,
+                IsBye = true, Status = FightStatus.Completed.ToString(),
+                WhiteAthleteId = a1, BlueAthleteId = null, WinnerId = a1,
+                CreatedAtUtc = now, UpdatedAtUtc = now,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid,
+                BracketType = FightBracketType.Main.ToString(), Round = 1, FightNumber = 2,
+                IsBye = false, Status = FightStatus.Pending.ToString(),
+                WhiteAthleteId = a2, BlueAthleteId = a3, WinnerId = null,
+                CreatedAtUtc = now, UpdatedAtUtc = now,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid,
+                BracketType = FightBracketType.Main.ToString(), Round = 2, FightNumber = 1,
+                IsBye = false, Status = FightStatus.Pending.ToString(),
+                WhiteAthleteId = a1, BlueAthleteId = a3, WinnerId = null,
+                CreatedAtUtc = now, UpdatedAtUtc = now,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid,
+                BracketType = FightBracketType.Main.ToString(), Round = 2, FightNumber = 2,
+                IsBye = true, Status = FightStatus.Completed.ToString(),
+                WhiteAthleteId = null, BlueAthleteId = a2, WinnerId = a2,
+                CreatedAtUtc = now, UpdatedAtUtc = now,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid,
+                BracketType = FightBracketType.Main.ToString(), Round = 3, FightNumber = 1,
+                IsBye = false, Status = FightStatus.Pending.ToString(),
+                WhiteAthleteId = a1, BlueAthleteId = a2, WinnerId = null,
+                CreatedAtUtc = now, UpdatedAtUtc = now,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid,
+                BracketType = FightBracketType.Main.ToString(), Round = 3, FightNumber = 2,
+                IsBye = true, Status = FightStatus.Completed.ToString(),
+                WhiteAthleteId = a3, BlueAthleteId = null, WinnerId = a3,
+                CreatedAtUtc = now, UpdatedAtUtc = now,
+            });
+
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetCategoryRankingsAsync(tid, cid, CancellationToken.None);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
     public async Task GetCategoryRankings_RepechageBronze_AddsThirdPlace()
     {
         await using var ctx = CreateDbContext();

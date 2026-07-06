@@ -112,6 +112,16 @@
   margin-left: 0.35rem;
 }
 
+.preset-birthyear {
+  white-space: nowrap;
+  color: var(--c-muted);
+  font-size: 0.875rem;
+}
+
+.preset-weights-input {
+  min-width: 14rem;
+}
+
 .empty {
   border: 1px dashed var(--c-border);
   border-radius: var(--radius);

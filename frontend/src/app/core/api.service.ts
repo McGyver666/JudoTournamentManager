@@ -9,6 +9,8 @@ import {
   AssignTatamiRequest,
   AutoAssignResult,
   Category,
+  CategoryPreset,
+  CategoryPresetItemRequest,
   Club,
   ConfirmResultRequest,
   CategoryGenerationApplyResponse,
@@ -170,6 +172,26 @@ export class ApiService {
       `api/tournaments/${tournamentId}/categories/generate/apply`,
       body,
     );
+  }
+
+  // Category Presets -------------------------------------------------------
+  getCategoryPresets(tournamentId: string): Observable<CategoryPreset[]> {
+    return this.http.get<CategoryPreset[]>(
+      `api/tournaments/${tournamentId}/category-presets`);
+  }
+
+  updateCategoryPresets(
+    tournamentId: string,
+    presets: CategoryPresetItemRequest[],
+  ): Observable<CategoryPreset[]> {
+    return this.http.put<CategoryPreset[]>(
+      `api/tournaments/${tournamentId}/category-presets`,
+      { presets });
+  }
+
+  resetCategoryPresetsToDefaults(tournamentId: string): Observable<CategoryPreset[]> {
+    return this.http.post<CategoryPreset[]>(
+      `api/tournaments/${tournamentId}/category-presets/reset-defaults`, {});
   }
 
   // Tatamis ----------------------------------------------------------------

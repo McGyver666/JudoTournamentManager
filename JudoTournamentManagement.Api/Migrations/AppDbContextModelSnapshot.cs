@@ -17,6 +17,50 @@ namespace JudoTournamentManagement.Api.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.8");
 
+            modelBuilder.Entity("JudoTournamentManagement.Api.Data.CategoryPresetRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AgeGroup")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DefaultMatchDurationSeconds")
+                        .HasDefaultValue(240)
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaxAgeYears")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MinAgeYears")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WeightClassLimitsJson")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentId");
+
+                    b.ToTable("CategoryPresets", (string)null);
+                });
+
             modelBuilder.Entity("JudoTournamentManagement.Api.Data.AthleteRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -516,6 +560,17 @@ namespace JudoTournamentManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("UserAccounts", (string)null);
+                });
+
+            modelBuilder.Entity("JudoTournamentManagement.Api.Data.CategoryPresetRecord", b =>
+                {
+                    b.HasOne("JudoTournamentManagement.Api.Data.TournamentRecord", "Tournament")
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tournament");
                 });
 
             modelBuilder.Entity("JudoTournamentManagement.Api.Data.AthleteRecord", b =>
