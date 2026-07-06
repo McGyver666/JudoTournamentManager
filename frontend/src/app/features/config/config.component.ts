@@ -75,6 +75,7 @@ export class ConfigComponent implements OnInit {
 
   protected readonly tab = signal<Tab>('tatamis');
   protected readonly error = signal<string | null>(null);
+  protected readonly athleteImportInfo = signal<string | null>(null);
 
   protected readonly tatamis = signal<Tatami[]>([]);
   protected readonly categories = signal<Category[]>([]);
@@ -160,6 +161,10 @@ export class ConfigComponent implements OnInit {
   protected setTab(tab: Tab): void {
     this.tab.set(tab);
     this.error.set(null);
+
+    if (tab !== 'athletes') {
+      this.athleteImportInfo.set(null);
+    }
   }
 
   protected genderLabel(g: Gender): string {
@@ -622,6 +627,67 @@ export class ConfigComponent implements OnInit {
     this.api.deleteAthlete(id, a.id).subscribe({
       next: () => this.athletes.update((list) => list.filter((x) => x.id !== a.id)),
       error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.delete'))),
+    });
+  }
+
+  protected openAthleteImportDialog(input: HTMLInputElement): void {
+    if (!this.canOperate()) {
+      return;
+    }
+
+    input.click();
+  }
+
+  protected importAthletesFromDm4(event: Event, allowDuplicate = false): void {
+    if (!this.canOperate()) {
+      return;
+    }
+
+    const id = this.tournamentId;
+    if (!id) {
+      return;
+    }
+
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.dm4')) {
+      this.error.set(this.i18n.translate('athletes.importInvalidExtension'));
+      this.athleteImportInfo.set(null);
+      input.value = '';
+      return;
+    }
+
+    this.error.set(null);
+    this.athleteImportInfo.set(null);
+
+    this.api.importAthletesFromDm4(id, file, allowDuplicate).subscribe({
+      next: (created) => {
+        this.athleteImportInfo.set(
+          this.i18n.translate('athletes.importSuccess', { count: created.length }),
+        );
+        input.value = '';
+        this.api.getAthletes(id).subscribe({ next: (x) => this.athletes.set(x) });
+        this.api.getClubs(id).subscribe({ next: (x) => this.clubs.set(x) });
+      },
+      error: (err: unknown) => {
+        if (this.isConflict(err)) {
+          if (confirm(this.i18n.translate('athletes.importDuplicateConfirm'))) {
+            this.importAthletesFromDm4(event, true);
+            return;
+          }
+
+          this.error.set(null);
+          input.value = '';
+          return;
+        }
+
+        input.value = '';
+        this.onSaveError(err);
+      },
     });
   }
 

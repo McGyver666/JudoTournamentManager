@@ -354,12 +354,17 @@ public sealed class ControllerUnitTests
         var tournamentId = Guid.NewGuid();
         var mockAthletesStore = new Mock<IAthletesStore>();
         var mockClubsStore = new Mock<IClubsStore>();
+        var mockDm4Parser = new Mock<IDm4AthleteImportParser>();
         var mockTournamentStore = new Mock<ITournamentStore>();
         mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
         mockAthletesStore.Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Athlete>());
-        var controller = new AthletesController(mockAthletesStore.Object, mockClubsStore.Object, mockTournamentStore.Object);
+        var controller = new AthletesController(
+            mockAthletesStore.Object,
+            mockClubsStore.Object,
+            mockDm4Parser.Object,
+            mockTournamentStore.Object);
 
         var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
 
@@ -376,6 +381,7 @@ public sealed class ControllerUnitTests
 
         var mockAthletesStore = new Mock<IAthletesStore>();
         var mockClubsStore = new Mock<IClubsStore>();
+        var mockDm4Parser = new Mock<IDm4AthleteImportParser>();
         var mockTournamentStore = new Mock<ITournamentStore>();
 
         mockTournamentStore
@@ -396,7 +402,11 @@ public sealed class ControllerUnitTests
                 new Athlete(Guid.NewGuid(), tournamentId, clubId, "Max", "Muster", 2010, Gender.Male, "L1", 30.5m, 3, now, now)
             ]);
 
-        var controller = new AthletesController(mockAthletesStore.Object, mockClubsStore.Object, mockTournamentStore.Object);
+        var controller = new AthletesController(
+            mockAthletesStore.Object,
+            mockClubsStore.Object,
+            mockDm4Parser.Object,
+            mockTournamentStore.Object);
         var request = new ImportAthletesRequest
         {
             Athletes = [
@@ -423,6 +433,107 @@ public sealed class ControllerUnitTests
             It.Is<IReadOnlyList<AthleteImportItem>>(items => items.Count == 1 && items[0].Grade == 3),
             false,
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AthletesController_ImportFromDm4Async_WithValidData_ReturnsOkAndCreatesMissingClub()
+    {
+        var tournamentId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+
+        var mockAthletesStore = new Mock<IAthletesStore>();
+        var mockClubsStore = new Mock<IClubsStore>();
+        var mockDm4Parser = new Mock<IDm4AthleteImportParser>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+
+        mockTournamentStore
+            .Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", now, now));
+
+        mockClubsStore
+            .Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        mockClubsStore
+            .Setup(s => s.CreateAsync(tournamentId, "DJK D\u00fclmen", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Club(clubId, tournamentId, "DJK D\u00fclmen", now, now));
+
+        mockDm4Parser
+            .Setup(x => x.Parse(It.IsAny<ReadOnlyMemory<byte>>()))
+            .Returns(new Dm4AthleteImportData(
+                "DJK D\u00fclmen",
+                Gender.Male,
+                [new Dm4AthleteImportRow("Muster", "Max", 3, 30.5m, 2010)]));
+
+        mockAthletesStore
+            .Setup(s => s.CreateBulkAsync(
+                tournamentId,
+                It.IsAny<IReadOnlyList<AthleteImportItem>>(),
+                false,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new Athlete(Guid.NewGuid(), tournamentId, clubId, "Max", "Muster", 2010, Gender.Male, null, 30.5m, 3, now, now)
+            ]);
+
+        var controller = new AthletesController(
+            mockAthletesStore.Object,
+            mockClubsStore.Object,
+            mockDm4Parser.Object,
+            mockTournamentStore.Object);
+
+        var file = new FormFile(new MemoryStream([1, 2, 3]), 0, 3, "file", "athletes.dm4");
+
+        var result = await controller.ImportFromDm4Async(tournamentId, file, false, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+
+        mockClubsStore.Verify(s => s.CreateAsync(tournamentId, "DJK D\u00fclmen", It.IsAny<CancellationToken>()), Times.Once);
+        mockAthletesStore.Verify(s => s.CreateBulkAsync(
+            tournamentId,
+            It.Is<IReadOnlyList<AthleteImportItem>>(items =>
+                items.Count == 1
+                && items[0].FirstName == "Max"
+                && items[0].LastName == "Muster"
+                && items[0].ClubId == clubId
+                && items[0].Gender == Gender.Male),
+            false,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AthletesController_ImportFromDm4Async_WithParserError_ReturnsValidationProblem()
+    {
+        var tournamentId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+
+        var mockAthletesStore = new Mock<IAthletesStore>();
+        var mockClubsStore = new Mock<IClubsStore>();
+        var mockDm4Parser = new Mock<IDm4AthleteImportParser>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+
+        mockTournamentStore
+            .Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", now, now));
+
+        mockDm4Parser
+            .Setup(x => x.Parse(It.IsAny<ReadOnlyMemory<byte>>()))
+            .Throws(new Dm4ImportParseException("Formatfehler"));
+
+        var controller = new AthletesController(
+            mockAthletesStore.Object,
+            mockClubsStore.Object,
+            mockDm4Parser.Object,
+            mockTournamentStore.Object);
+
+        var file = new FormFile(new MemoryStream([1, 2, 3]), 0, 3, "file", "athletes.dm4");
+
+        var result = await controller.ImportFromDm4Async(tournamentId, file, false, CancellationToken.None);
+
+        Assert.IsType<ObjectResult>(result.Result);
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Contains("Formatfehler", controller.ModelState[nameof(file)]!.Errors.Select(x => x.ErrorMessage));
     }
 
     #endregion
