@@ -253,6 +253,35 @@ The smoke script validates this sequence end-to-end against a running local API:
 - first real fight start locks the category
 - reassignment after lock is rejected with HTTP 409
 
+## Paket Fuer Anderes System
+
+Create a minimal transfer bundle (published API + start scripts + README):
+
+```powershell
+.\package-transfer.ps1
+```
+
+By default the script builds the Angular frontend first so the package is directly runnable.
+For API-only packaging, skip this step:
+
+```powershell
+.\package-transfer.ps1 -SkipFrontendBuild
+```
+
+Create a self-contained package for a specific runtime (larger, no dotnet runtime required on target):
+
+```powershell
+.\package-transfer.ps1 -Runtime win-x64 -SelfContained
+```
+
+Include the local SQLite data (`App_Data`) in the package:
+
+```powershell
+.\package-transfer.ps1 -IncludeDatabase
+```
+
+Output is written to `artifacts/transfer/` as a timestamped folder plus zip archive.
+
 ## Frontend (Angular)
 
 The Angular 19 app lives in `frontend/` and is compiled into the API's `wwwroot/`,

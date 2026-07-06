@@ -67,3 +67,4 @@ lan-validation-report-*.json
 Thumbs.db
 Desktop.ini
 *.dm4
+artifacts/*
