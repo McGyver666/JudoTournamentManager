@@ -149,6 +149,10 @@
   "athletes.empty": "No athletes yet.",
   "athletes.noClubs": "Please create a club first.",
   "athletes.duplicateConfirm": "A similar athlete already exists. Create anyway?",
+  "athletes.importDm4": "Import DM4",
+  "athletes.importSuccess": "Imported {count} athletes from DM4.",
+  "athletes.importInvalidExtension": "Please select a file with the .dm4 extension.",
+  "athletes.importDuplicateConfirm": "At least one athlete may already exist. Continue import anyway?",
 
   "registrations.title": "Registrations",
   "registrations.new": "Register athlete",

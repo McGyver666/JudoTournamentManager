@@ -149,6 +149,10 @@
     "athletes.gradeUnknown": "Unbekannter Gürtelgrad",
   "athletes.noClubs": "Bitte zuerst einen Verein anlegen.",
   "athletes.duplicateConfirm": "Ein ähnlicher Athlet existiert bereits. Trotzdem anlegen?",
+  "athletes.importDm4": "DM4 importieren",
+  "athletes.importSuccess": "{count} Athleten aus DM4 importiert.",
+  "athletes.importInvalidExtension": "Bitte eine Datei mit der Endung .dm4 auswählen.",
+  "athletes.importDuplicateConfirm": "Mindestens ein Athlet existiert möglicherweise bereits. Import trotzdem durchführen?",
 
   "registrations.title": "Meldungen",
   "registrations.new": "Athlet anmelden",

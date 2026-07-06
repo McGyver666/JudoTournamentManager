@@ -121,6 +121,17 @@ export class ApiService {
     return this.http.post<Athlete>(`api/tournaments/${tournamentId}/athletes${suffix}`, body);
   }
 
+  importAthletesFromDm4(
+    tournamentId: string,
+    file: File,
+    allowDuplicate = false,
+  ): Observable<Athlete[]> {
+    const suffix = allowDuplicate ? '?allowDuplicate=true' : '';
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<Athlete[]>(`api/tournaments/${tournamentId}/athletes/import/dm4${suffix}`, formData);
+  }
+
   updateAthlete(
     tournamentId: string,
     athleteId: string,

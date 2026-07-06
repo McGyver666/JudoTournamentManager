@@ -397,8 +397,20 @@
   @if (tab() === 'athletes') {
     <div class="toolbar">
       <h2>{{ 'athletes.title' | t }}</h2>
-      <button class="primary" (click)="newAthlete()" [disabled]="!canOperate() || clubs().length === 0">{{ 'athletes.new' | t }}</button>
+      <div class="toolbar-actions">
+        <input
+          #dm4Input
+          type="file"
+          accept=".dm4"
+          style="display: none;"
+          (change)="importAthletesFromDm4($event)" />
+        <button (click)="openAthleteImportDialog(dm4Input)" [disabled]="!canOperate()">{{ 'athletes.importDm4' | t }}</button>
+        <button class="primary" (click)="newAthlete()" [disabled]="!canOperate() || clubs().length === 0">{{ 'athletes.new' | t }}</button>
+      </div>
     </div>
+    @if (athleteImportInfo()) {
+      <p class="muted">{{ athleteImportInfo() }}</p>
+    }
     @if (clubs().length === 0) {
       <p class="muted">{{ 'athletes.noClubs' | t }}</p>
     }
