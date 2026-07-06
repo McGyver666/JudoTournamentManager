@@ -31,8 +31,7 @@ Already available:
 - unit test project (192 passing tests, Category=UnitTest)
 
 Current focus:
-- LAN propagation target hardening (latest evidence run reached 2166 ms max vs. 2000 ms target)
-- remaining security hardening backlog: TLS mode
+- TLS/LAN operational stabilization and repeated field validation runs
 
 ## Produktziel
 
@@ -130,6 +129,12 @@ Skip frontend build and start backend only (Windows / PowerShell):
 .\start-local.ps1 -SkipFrontendBuild
 ```
 
+Start with optional HTTPS binding for LAN mode (Windows / PowerShell):
+
+```powershell
+.\start-local.ps1 -EnableTls
+```
+
 Start the API locally (Linux/macOS / bash):
 
 ```bash
@@ -143,12 +148,25 @@ Skip frontend build and start backend only (Linux/macOS / bash):
 ./start-local.sh --skip-frontend-build
 ```
 
+Start with optional HTTPS binding for LAN mode (Linux/macOS / bash):
+
+```bash
+./start-local.sh --enable-tls --https-port 7080
+```
+
 By default, both startup scripts build the Angular frontend before launching the API so `wwwroot` stays in sync with current UI sources.
 
 This starts the API on:
 
 ```text
 http://0.0.0.0:5080
+```
+
+With TLS enabled, startup scripts bind both HTTP and HTTPS, for example:
+
+```text
+http://0.0.0.0:5080
+https://0.0.0.0:7080
 ```
 
 Useful endpoints:
@@ -216,9 +234,18 @@ $env:JUDO_TEST_PASSWORD="<existing-admin-password>"
 ./test-lan-validation.ps1
 ```
 
+Run against self-signed HTTPS endpoint (local cert) and skip certificate validation in script requests:
+
+```powershell
+./test-lan-validation.ps1 -BaseUrl https://localhost:7080 -SkipCertificateCheck
+```
+
 The script creates operator/display test users, executes cross-client read/write checks,
 measures propagation latency, and writes a JSON evidence report:
 `lan-validation-report-<timestamp>.json`.
+
+Latest measured evidence:
+- `lan-validation-report-20260706131837.json` -> max propagation 109 ms (target <= 2000 ms)
 
 The smoke script validates this sequence end-to-end against a running local API:
 - draw generation keeps category unlocked
@@ -376,5 +403,5 @@ When continuing implementation with Copilot:
 ## Naechste sinnvolle Umsetzungsschritte
 
 Recommended next implementation steps:
-1. improve LAN propagation performance and rerun `./test-lan-validation.ps1` until max latency is <= 2000 ms
-2. prepare optional TLS LAN mode and operational documentation
+1. run repeated LAN validation in a real multi-laptop setup and archive evidence reports
+2. add startup mode checks (HTTP + TLS) to automated regression routines

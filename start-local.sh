@@ -1,6 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ENABLE_TLS="0"
+HTTPS_PORT="7080"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --enable-tls)
+      ENABLE_TLS="1"
+      shift
+      ;;
+    --https-port)
+      HTTPS_PORT="$2"
+      shift 2
+      ;;
+    --skip-frontend-build)
+      # Linux script currently starts backend directly; keep flag for CLI compatibility.
+      shift
+      ;;
+    *)
+      echo "Unbekannter Parameter: $1" >&2
+      echo "Verwendung: ./start-local.sh [--skip-frontend-build] [--enable-tls] [--https-port 7080]" >&2
+      exit 1
+      ;;
+  esac
+done
+
 SKIP_FRONTEND_BUILD=false
 for arg in "$@"; do
   case "$arg" in
@@ -43,7 +68,28 @@ else
 fi
 
 echo "Starte JudoTournamentManagement API lokal..."
-echo "LAN Zugriff ueber Host-IP auf Port 5080 moeglich."
+URLS="http://0.0.0.0:5080"
+
+if [[ "$ENABLE_TLS" == "1" ]]; then
+  CERT_DIR="$PROJECT_ROOT/JudoTournamentManagement.Api/App_Data/certs"
+  CERT_PATH="$CERT_DIR/dev-lan-cert.pfx"
+  mkdir -p "$CERT_DIR"
+
+  if [[ -z "${JUDO_DEV_TLS_CERT_PASSWORD:-}" ]]; then
+    JUDO_DEV_TLS_CERT_PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48)"
+    export JUDO_DEV_TLS_CERT_PASSWORD
+    echo "JUDO_DEV_TLS_CERT_PASSWORD wurde fuer diese Sitzung zufaellig erzeugt."
+  fi
+
+  "$DOTNET_CMD" dev-certs https -ep "$CERT_PATH" -p "$JUDO_DEV_TLS_CERT_PASSWORD" >/dev/null
+
+  export ASPNETCORE_Kestrel__Certificates__Default__Path="$CERT_PATH"
+  export ASPNETCORE_Kestrel__Certificates__Default__Password="$JUDO_DEV_TLS_CERT_PASSWORD"
+  URLS="http://0.0.0.0:5080;https://0.0.0.0:${HTTPS_PORT}"
+  echo "TLS aktiviert. HTTPS URL: https://localhost:${HTTPS_PORT}"
+fi
+
+echo "LAN Zugriff ueber Host-IP moeglich. URLs: ${URLS}"
 
 if [[ -z "${Security__AuthTokenHmacSecret:-}" ]]; then
   Security__AuthTokenHmacSecret="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48)"
@@ -51,4 +97,4 @@ if [[ -z "${Security__AuthTokenHmacSecret:-}" ]]; then
   echo "Security__AuthTokenHmacSecret wurde fuer diese Sitzung zufaellig erzeugt."
 fi
 
-"$DOTNET_CMD" run --project "$PROJECT_ROOT/JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj" --urls "http://0.0.0.0:5080"
+"$DOTNET_CMD" run --project "$PROJECT_ROOT/JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj" --urls "$URLS"
