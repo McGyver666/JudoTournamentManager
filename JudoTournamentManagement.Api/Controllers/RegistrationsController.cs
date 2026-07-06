@@ -116,7 +116,13 @@ public sealed class RegistrationsController : ControllerBase
         {
             var categoryLabel = r.CategoryName ?? "(keine)";
             var ageGroupLabel = r.CategoryAgeGroup ?? "-";
-            var genderLabel = r.CategoryGender == Gender.Male ? "Männlich" : (r.CategoryGender == Gender.Female ? "Weiblich" : "-");
+            var genderLabel = r.CategoryGender switch
+            {
+                Gender.Male => "Männlich",
+                Gender.Female => "Weiblich",
+                Gender.Mixed => "Gemischt",
+                _ => "-"
+            };
             var weightLabel = r.CategoryWeightClassKg.HasValue
                 ? $"-{r.CategoryWeightClassKg:0.##} kg"
                 : "Open";

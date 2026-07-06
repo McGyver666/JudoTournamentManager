@@ -313,18 +313,31 @@ public sealed class BracketServiceTests
 
     // ─── Minimum athletes guard ───────────────────────────────────────────────
 
-    [Fact]
+    [Theory]
     [Trait("Category", "UnitTest")]
-    public async Task Generate_WithOneAthlete_ThrowsInvalidOperationException()
+    [InlineData(BracketFormat.SingleElimination)]
+    [InlineData(BracketFormat.SingleEliminationWithRepechage)]
+    [InlineData(BracketFormat.RoundRobin)]
+    [InlineData(BracketFormat.RoundRobinWithKnockout)]
+    public async Task Generate_WithOneAthlete_CreatesSingleCompletedByeFight(BracketFormat format)
     {
         var db = CreateDatabasePath();
         await using var ctx = CreateDbContext(db);
         await ctx.Database.EnsureCreatedAsync();
-        var (tid, cid, _) = await SeedAsync(ctx, 1);
+        var (tid, cid, athleteIds) = await SeedAsync(ctx, 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            CreateService(ctx).GenerateAsync(
-                tid, cid, BracketFormat.SingleElimination, CancellationToken.None));
+        var fights = await CreateService(ctx).GenerateAsync(
+            tid, cid, format, CancellationToken.None);
+
+        var fight = Assert.Single(fights);
+        Assert.Equal(FightBracketType.Main, fight.BracketType);
+        Assert.Equal(1, fight.Round);
+        Assert.Equal(1, fight.FightNumber);
+        Assert.True(fight.IsBye);
+        Assert.Equal(FightStatus.Completed, fight.Status);
+        Assert.Equal(athleteIds[0], fight.WhiteAthleteId);
+        Assert.Null(fight.BlueAthleteId);
+        Assert.Equal(athleteIds[0], fight.WinnerId);
     }
 
     // ─── Swap tests ───────────────────────────────────────────────────────────

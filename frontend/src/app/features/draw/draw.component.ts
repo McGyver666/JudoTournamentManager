@@ -556,7 +556,12 @@ export class DrawComponent implements OnInit {
   }
 
   private shouldHideByeFightsForCategory(categoryId: string): boolean {
-    return this.isCategoryRoundRobin(categoryId);
+    if (!this.isCategoryRoundRobin(categoryId)) {
+      return false;
+    }
+
+    const fights = this.fightsForCategory(categoryId);
+    return fights.some((fight) => !fight.isBye);
   }
 
   private groupRoundsFromFights(fights: Fight[]): RoundGroup[] {

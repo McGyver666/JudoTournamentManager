@@ -194,11 +194,15 @@ public sealed class ControllerUnitTests
         var tournamentId = Guid.NewGuid();
         var mockCategoriesStore = new Mock<ICategoriesStore>();
         var mockTournamentStore = new Mock<ITournamentStore>();
+        var mockCategoryGenerationService = new Mock<ICategoryGenerationService>();
         mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
         mockCategoriesStore.Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Category>());
-        var controller = new CategoriesController(mockCategoriesStore.Object, mockTournamentStore.Object);
+        var controller = new CategoriesController(
+            mockCategoriesStore.Object,
+            mockTournamentStore.Object,
+            mockCategoryGenerationService.Object);
 
         var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
 
@@ -213,17 +217,89 @@ public sealed class ControllerUnitTests
         var categoryId = Guid.NewGuid();
         var mockCategoriesStore = new Mock<ICategoriesStore>();
         var mockTournamentStore = new Mock<ITournamentStore>();
+        var mockCategoryGenerationService = new Mock<ICategoryGenerationService>();
         mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
         mockCategoriesStore.Setup(s => s.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Gender>(), null, null, null, null, It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Category(categoryId, tournamentId, "U12", "U12", Gender.Male, null, null, null, null, 300, false, 180, null, false, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
-        var controller = new CategoriesController(mockCategoriesStore.Object, mockTournamentStore.Object);
+        var controller = new CategoriesController(
+            mockCategoriesStore.Object,
+            mockTournamentStore.Object,
+            mockCategoryGenerationService.Object);
         var request = new CreateCategoryRequest { Name = "U12", AgeGroup = "U12", Gender = Gender.Male };
 
         var result = await controller.CreateAsync(tournamentId, request, CancellationToken.None);
 
         var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
         Assert.Equal(StatusCodes.Status201Created, createdResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task CategoriesController_PreviewGenerationAsync_WithValidData_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockCategoriesStore = new Mock<ICategoriesStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        var mockCategoryGenerationService = new Mock<ICategoryGenerationService>();
+
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+
+        mockCategoryGenerationService.Setup(s => s.PreviewAsync(
+                tournamentId,
+                It.IsAny<GenerateCategoriesRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CategoryGenerationPreviewResponse(0, [], []));
+
+        var controller = new CategoriesController(
+            mockCategoriesStore.Object,
+            mockTournamentStore.Object,
+            mockCategoryGenerationService.Object);
+
+        var request = new GenerateCategoriesRequest
+        {
+            GenderMode = CategoryGenerationGenderMode.Male,
+            WeightMode = CategoryGenerationWeightMode.StandardClasses
+        };
+
+        var result = await controller.PreviewGenerationAsync(tournamentId, request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task CategoriesController_ApplyGenerationAsync_WithValidData_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var mockCategoriesStore = new Mock<ICategoriesStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+        var mockCategoryGenerationService = new Mock<ICategoryGenerationService>();
+
+        mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+
+        mockCategoryGenerationService.Setup(s => s.ApplyAsync(
+                tournamentId,
+                It.IsAny<GenerateCategoriesRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CategoryGenerationApplyResponse(0, 0, 0, 0, [], []));
+
+        var controller = new CategoriesController(
+            mockCategoriesStore.Object,
+            mockTournamentStore.Object,
+            mockCategoryGenerationService.Object);
+
+        var request = new GenerateCategoriesRequest
+        {
+            GenderMode = CategoryGenerationGenderMode.Male,
+            WeightMode = CategoryGenerationWeightMode.StandardClasses
+        };
+
+        var result = await controller.ApplyGenerationAsync(tournamentId, request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
     }
 
     #endregion

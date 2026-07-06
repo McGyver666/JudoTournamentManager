@@ -187,12 +187,14 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             // Find candidate categories matching gender, birth year bounds, and weight.
             var candidates = categories
                 .Where(c =>
-                    c.Gender == athleteGender
+                    (c.Gender == athleteGender || c.Gender == Gender.Mixed.ToString())
                     && (c.MinBirthYear == null || birthYear >= c.MinBirthYear)
                     && (c.MaxBirthYear == null || birthYear <= c.MaxBirthYear)
                     && (c.WeightClassKg == null || (weightKg != null && weightKg <= c.WeightClassKg)))
+                // Prefer exact gender classes over mixed, then smallest fitting weight.
+                .OrderBy(c => c.Gender == athleteGender ? 0 : 1)
                 // Best fit: lowest weight class first; open weight (null) last.
-                .OrderBy(c => c.WeightClassKg == null ? decimal.MaxValue : c.WeightClassKg)
+                .ThenBy(c => c.WeightClassKg == null ? decimal.MaxValue : c.WeightClassKg)
                 .ToList();
 
             if (candidates.Count == 0)

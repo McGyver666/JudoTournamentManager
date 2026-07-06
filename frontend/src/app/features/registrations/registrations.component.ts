@@ -45,7 +45,15 @@ export class RegistrationsComponent implements OnInit {
   }
 
   protected genderLabel(g: Gender): string {
-    return this.i18n.translate(g === 'Male' ? 'gender.male' : 'gender.female');
+    if (g === 'Male') {
+      return this.i18n.translate('gender.male');
+    }
+
+    if (g === 'Female') {
+      return this.i18n.translate('gender.female');
+    }
+
+    return this.i18n.translate('gender.mixed');
   }
 
   protected categoryLabel(c: Category): string {

@@ -50,9 +50,9 @@ public sealed class BracketService : IBracketService
             .ThenBy(r => r.AthleteId)
             .ToListAsync(cancellationToken);
 
-        if (registrations.Count < 2)
+        if (registrations.Count < 1)
             throw new InvalidOperationException(
-                "Mindestens 2 Athleten sind für die Auslosung erforderlich.");
+            "Mindestens 1 Athlet ist für die Auslosung erforderlich.");
 
         // Deterministic shuffle: seed derived from category ID so same input → same bracket
         var athletes = registrations.Select(r => r.AthleteId).ToList();
@@ -63,7 +63,29 @@ public sealed class BracketService : IBracketService
         List<FightRecord> fights;
         var utcNow = DateTimeOffset.UtcNow;
 
-        if (format == BracketFormat.RoundRobin)
+        if (shuffled.Count == 1)
+        {
+            fights = new List<FightRecord>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    TournamentId = tournamentId,
+                    CategoryId = categoryId,
+                    BracketType = FightBracketType.Main.ToString(),
+                    Round = 1,
+                    FightNumber = 1,
+                    WhiteAthleteId = shuffled[0],
+                    BlueAthleteId = null,
+                    WinnerId = shuffled[0],
+                    IsBye = true,
+                    Status = FightStatus.Completed.ToString(),
+                    CreatedAtUtc = utcNow,
+                    UpdatedAtUtc = utcNow
+                }
+            };
+        }
+        else if (format == BracketFormat.RoundRobin)
         {
             fights = GenerateRoundRobinFights(
                 tournamentId, categoryId, shuffled,

@@ -12,6 +12,9 @@ Already available:
 - health endpoint
 - tournament, tatami, category, club, athlete, registration, draw and fight APIs
 - category assignment workflow (auto + manual)
+- assisted category generation workflow (preview + apply) with two strategies:
+  - standard 2026 classes (source: `altersklassen_2026.md`)
+  - athlete-driven classes by target athletes per class and max weight deviation
 - tatami assignment workflow (auto + manual)
 - public display view with realtime updates (SignalR)
 - results and medal table views
@@ -25,7 +28,7 @@ Already available:
 - Angular 19 frontend (admin + operations + display/results UIs) served from the API
 - hardened local scripts for test/seed usage (`JUDO_TEST_PASSWORD`, production guard)
 - admin backup/restore UI flow in tournaments view (download backup + restore upload)
-- unit test project (185 passing tests, Category=UnitTest)
+- unit test project (192 passing tests, Category=UnitTest)
 
 Current focus:
 - LAN propagation target hardening (latest evidence run reached 2166 ms max vs. 2000 ms target)
@@ -274,6 +277,8 @@ are served at `/i18n/{lang}.json`.
 
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/tatamis`
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/categories`
+- `POST /api/tournaments/{tournamentId}/categories/generate/preview`
+- `POST /api/tournaments/{tournamentId}/categories/generate/apply`
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/clubs`
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/athletes`
 

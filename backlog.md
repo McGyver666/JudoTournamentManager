@@ -136,6 +136,16 @@ Story points are rough relative estimates.
 - Duplicate prevention for same category definition.
 - Category can be locked once draw is generated.
 
+### C-04 Assisted category generation (P1, 8 SP) — ✅ Done
+**Story:** Als Admin möchte ich Kategorien per Assistent generieren, damit Standardklassen und meldungsbasierte Klassen schnell erstellt werden können.  
+**Acceptance Criteria:**
+- In der Kategorie-Konfiguration gibt es einen "Kategorien generieren"-Button.
+- Assistent erfasst Jahrgangsbereich, Geschlecht, Kampfzeit, Golden-Score-Einstellungen.
+- Zwei Strategien: Standardklassen 2026 und meldungsbasierte Zielgröße mit maximaler Gewichtsabweichung.
+- Vor dem Anlegen wird eine Vorschau angezeigt und erst nach Bestätigung gespeichert.
+- Beim Anwenden werden zuvor generierte, ungesperrte Kategorien ersetzt; gesperrte Kategorien bleiben erhalten.
+- Gemischte Kategorien werden als eigene Gender-Ausprägung unterstützt (Mixed).
+
 ---
 
 ## Epic D - Clubs, Athletes, Registration

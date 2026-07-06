@@ -80,8 +80,168 @@
   @if (tab() === 'categories') {
     <div class="toolbar">
       <h2>{{ 'categories.title' | t }}</h2>
-      <button class="primary" (click)="newCategory()" [disabled]="!canOperate()">{{ 'categories.new' | t }}</button>
+      <div class="toolbar-actions">
+        <button class="primary" (click)="newCategory()" [disabled]="!canOperate()">{{ 'categories.new' | t }}</button>
+        <button (click)="openCategoryGenerator()" [disabled]="!canOperate()">{{ 'categories.generate' | t }}</button>
+      </div>
     </div>
+    @if (categoryGeneratorApplyResult(); as applyResult) {
+      <p class="muted">
+        {{ 'categories.generatorApplySummary' | t }}
+        {{ applyResult.createdCount }} / {{ applyResult.skippedDuplicateCount }}
+      </p>
+    }
+    @if (showCategoryGenerator() && canOperate()) {
+      <div class="card generator-card">
+        <h3>{{ 'categories.generatorTitle' | t }}</h3>
+
+        @if (categoryGeneratorStep() === 'base') {
+          <div class="row">
+            <div>
+              <label>{{ 'categories.minBirthYear' | t }}</label>
+              <input type="number" min="1900" max="2100" [(ngModel)]="categoryGeneratorForm.minBirthYear" name="gminby"
+                placeholder="{{ 'common.optional' | t }}" />
+            </div>
+            <div>
+              <label>{{ 'categories.maxBirthYear' | t }}</label>
+              <input type="number" min="1900" max="2100" [(ngModel)]="categoryGeneratorForm.maxBirthYear" name="gmaxby"
+                placeholder="{{ 'common.optional' | t }}" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>{{ 'categories.generatorGenderMode' | t }}</label>
+              <select [(ngModel)]="categoryGeneratorForm.genderMode" name="ggender">
+                <option value="Male">{{ 'gender.male' | t }}</option>
+                <option value="Female">{{ 'gender.female' | t }}</option>
+                <option value="Mixed">{{ 'gender.mixed' | t }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>{{ 'categories.matchDurationSeconds' | t }}</label>
+              <input type="number" min="60" max="3600" step="30"
+                [(ngModel)]="categoryGeneratorForm.matchDurationSeconds" name="gduration" />
+            </div>
+            <div class="checkbox-field">
+              <label>{{ 'categories.goldenScoreEnabled' | t }}</label>
+              <input class="checkbox-input" type="checkbox" [(ngModel)]="categoryGeneratorForm.goldenScoreEnabled" name="ggsenabled" />
+            </div>
+          </div>
+          @if (categoryGeneratorForm.goldenScoreEnabled) {
+            <div>
+              <label>{{ 'categories.goldenScoreDurationSeconds' | t }}</label>
+              <input type="number" min="30" max="3600" step="30"
+                [(ngModel)]="categoryGeneratorForm.goldenScoreDurationSeconds" name="ggsduration" />
+            </div>
+          }
+        }
+
+        @if (categoryGeneratorStep() === 'strategy') {
+          <div>
+            <label>{{ 'categories.generatorWeightMode' | t }}</label>
+            <select [(ngModel)]="categoryGeneratorForm.weightMode" name="gweightmode"
+              (ngModelChange)="syncCategoryGeneratorGroupSettings()">
+              <option value="StandardClasses">{{ 'categories.generatorWeightModeStandard' | t }}</option>
+              <option value="AthletesByTargetSize">{{ 'categories.generatorWeightModeAthletes' | t }}</option>
+            </select>
+          </div>
+          @if (categoryGeneratorForm.weightMode === 'AthletesByTargetSize') {
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{{ 'categories.ageGroup' | t }}</th>
+                    <th>{{ 'categories.gender' | t }}</th>
+                    <th>{{ 'categories.generatorTargetAthletes' | t }}</th>
+                    <th>{{ 'categories.generatorMaxDeviation' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (setting of categoryGeneratorForm.groupSettings; track setting.ageGroup + setting.genderMode) {
+                    <tr>
+                      <td>{{ setting.ageGroup }}</td>
+                      <td>{{ generatorGenderLabel(setting.genderMode) }}</td>
+                      <td>
+                        <input type="number" min="2" max="64" step="1"
+                          [(ngModel)]="setting.targetAthletesPerCategory"
+                          [name]="'target_' + setting.ageGroup + '_' + setting.genderMode" />
+                      </td>
+                      <td>
+                        <input type="number" min="0.1" max="50" step="0.1"
+                          [(ngModel)]="setting.maxWeightDeviationKg"
+                          [name]="'deviation_' + setting.ageGroup + '_' + setting.genderMode" />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        @if (categoryGeneratorStep() === 'preview' && categoryGeneratorPreview(); as preview) {
+          <p class="muted">{{ preview.proposedCount }} {{ 'categories.generatorPreviewCount' | t }}</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ 'categories.name' | t }}</th>
+                  <th>{{ 'categories.ageGroup' | t }}</th>
+                  <th>{{ 'categories.gender' | t }}</th>
+                  <th>{{ 'categories.weight' | t }}</th>
+                  <th>{{ 'categories.generatorEstimatedAthletes' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (proposal of preview.categories; track proposal.name + proposal.ageGroup + proposal.gender + proposal.weightClassKg) {
+                  <tr>
+                    <td>{{ proposal.name }}</td>
+                    <td>{{ proposal.ageGroup }}</td>
+                    <td>{{ genderLabel(proposal.gender) }}</td>
+                    <td>{{ generatedWeightLabel(proposal) }}</td>
+                    <td>{{ proposal.estimatedAthleteCount }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (categoryGeneratorWarnings().length > 0) {
+            <div class="generator-warnings">
+              @for (warning of categoryGeneratorWarnings(); track warning) {
+                <p>{{ warning }}</p>
+              }
+            </div>
+          }
+        }
+
+        <div class="form-actions">
+          <button (click)="closeCategoryGenerator()" [disabled]="categoryGeneratorBusy()">{{ 'common.cancel' | t }}</button>
+          @if (categoryGeneratorStep() !== 'base') {
+            <button (click)="previousCategoryGeneratorStep()" [disabled]="categoryGeneratorBusy()">{{ 'common.back' | t }}</button>
+          }
+          @if (categoryGeneratorStep() !== 'preview') {
+            <button class="primary" (click)="nextCategoryGeneratorStep()" [disabled]="categoryGeneratorBusy()">
+              @if (categoryGeneratorBusy()) {
+                {{ 'common.loading' | t }}
+              } @else {
+                {{ 'categories.generatorPreview' | t }}
+              }
+            </button>
+          } @else {
+            <button class="primary" (click)="applyGeneratedCategories()" [disabled]="categoryGeneratorBusy()">
+              @if (categoryGeneratorBusy()) {
+                {{ 'common.loading' | t }}
+              } @else {
+                {{ 'categories.generatorApply' | t }}
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
     @if (showCategoryForm() && canOperate()) {
       <div class="card">
         <div class="row">
@@ -100,6 +260,7 @@
             <select [(ngModel)]="categoryForm.gender" name="cgender">
               <option value="Male">{{ 'gender.male' | t }}</option>
               <option value="Female">{{ 'gender.female' | t }}</option>
+              <option value="Mixed">{{ 'gender.mixed' | t }}</option>
             </select>
           </div>
           <div>
@@ -157,6 +318,7 @@
             <th>{{ 'categories.ageGroup' | t }}</th>
             <th>{{ 'categories.gender' | t }}</th>
             <th>{{ 'categories.weight' | t }}</th>
+            <th>{{ 'categories.assignedAthletes' | t }}</th>
             <th>{{ 'common.actions' | t }}</th>
           </tr>
         </thead>
@@ -172,6 +334,7 @@
               <td>{{ c.ageGroup }}</td>
               <td>{{ genderLabel(c.gender) }}</td>
               <td>{{ c.weightClassKg !== null ? ('-' + c.weightClassKg + ' kg') : ('categories.weightOpen' | t) }}</td>
+              <td>{{ assignedAthleteCountByCategory()(c.id) }}</td>
               <td>
                 <button (click)="editCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.edit' | t }}</button>
                 <button class="danger" (click)="deleteCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.delete' | t }}</button>

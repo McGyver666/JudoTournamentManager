@@ -71,7 +71,7 @@ public sealed class FightsController : ControllerBase
 
     /// <summary>
     /// Generates the draw for a category. Replaces any existing bracket.
-    /// Requires at least 2 registered athletes.
+    /// Requires at least 1 registered athlete.
     /// Category remains editable until the first real fight is started.
     /// </summary>
     [Authorize(Roles = "Admin,Operator")]
