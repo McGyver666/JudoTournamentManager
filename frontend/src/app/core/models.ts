@@ -105,6 +105,7 @@ export interface Athlete {
   gender: Gender;
   licenseId: string | null;
   weightKg: number | null;
+  grade: number;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -117,6 +118,7 @@ export interface CreateAthleteRequest {
   gender: Gender;
   licenseId: string | null;
   weightKg: number | null;
+  grade: number;
 }
 
 export type UpdateAthleteRequest = CreateAthleteRequest;

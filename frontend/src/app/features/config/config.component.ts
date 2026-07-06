@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { ATHLETE_GRADE_OPTIONS, athleteGradeLabelKey } from '../../core/athlete-grade';
 import { AuthStateService } from '../../core/auth-state.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
@@ -51,6 +52,12 @@ export class ConfigComponent implements OnInit {
     const map = new Map(this.clubs().map((c) => [c.id, c.name]));
     return (id: string) => map.get(id) ?? '';
   });
+
+  protected readonly gradeOptions = ATHLETE_GRADE_OPTIONS;
+
+  protected gradeLabel(grade: number): string {
+    return this.i18n.translate(athleteGradeLabelKey(grade));
+  }
 
   // Form models per entity.
   protected tatamiForm = { id: null as string | null, name: '', displayOrder: null as number | null, isActive: true };
@@ -311,6 +318,7 @@ export class ConfigComponent implements OnInit {
       gender: a.gender,
       licenseId: a.licenseId,
       weightKg: a.weightKg,
+      grade: a.grade,
     };
     this.showAthleteForm.set(true);
   }
@@ -333,6 +341,7 @@ export class ConfigComponent implements OnInit {
       gender: f.gender,
       licenseId: f.licenseId || null,
       weightKg: f.weightKg === null || (f.weightKg as unknown) === '' ? null : Number(f.weightKg),
+      grade: Number(f.grade),
     };
     const req: Observable<unknown> = f.id
       ? this.api.updateAthlete(id, f.id, body)
@@ -401,6 +410,7 @@ export class ConfigComponent implements OnInit {
       gender: 'Male',
       licenseId: null,
       weightKg: null,
+      grade: 1,
     };
   }
 }

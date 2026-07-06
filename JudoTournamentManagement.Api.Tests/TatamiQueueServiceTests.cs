@@ -54,7 +54,7 @@ public sealed class TatamiQueueServiceTests
         for (int i = 0; i < athleteCount; i++)
         {
             await athleteStore.CreateAsync(
-                t.Id, club!.Id, $"A{i:D2}", "Tester", 2000 + i, Gender.Male, null, null, true, CancellationToken.None);
+                t.Id, club!.Id, $"A{i:D2}", "Tester", 2000 + i, Gender.Male, null, null, 1, true, CancellationToken.None);
         }
 
         var cat = await new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance)

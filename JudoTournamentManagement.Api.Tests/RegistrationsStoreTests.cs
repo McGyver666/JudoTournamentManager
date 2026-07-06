@@ -32,7 +32,7 @@ public sealed class RegistrationsStoreTests
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         var athlete = await athleteStore.CreateAsync(
-            t.Id, club!.Id, "Max", "Mustermann", 2005, Gender.Male, null, null, false, CancellationToken.None);
+            t.Id, club!.Id, "Max", "Mustermann", 2005, Gender.Male, null, null, 1, false, CancellationToken.None);
 
         var catStore = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
         var category = await catStore.CreateAsync(

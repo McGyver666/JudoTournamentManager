@@ -44,7 +44,7 @@ public sealed class AthletesStoreTests
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
 
         var created = await store.CreateAsync(
-            tid, cid, "Anna", "Schmidt", 2005, Gender.Female, "LIC-001", null, false, CancellationToken.None);
+            tid, cid, "Anna", "Schmidt", 2005, Gender.Female, "LIC-001", null, 3, false, CancellationToken.None);
 
         Assert.NotNull(created);
         Assert.Equal(tid, created.TournamentId);
@@ -54,6 +54,7 @@ public sealed class AthletesStoreTests
         Assert.Equal(2005, created.BirthYear);
         Assert.Equal(Gender.Female, created.Gender);
         Assert.Equal("LIC-001", created.LicenseId);
+        Assert.Equal(3, created.Grade);
     }
 
     [Fact]
@@ -66,8 +67,8 @@ public sealed class AthletesStoreTests
         var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
 
-        await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, false, CancellationToken.None);
-        var duplicate = await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, false, CancellationToken.None);
+        await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, 1, false, CancellationToken.None);
+        var duplicate = await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, 1, false, CancellationToken.None);
 
         Assert.Null(duplicate);
     }
@@ -82,8 +83,8 @@ public sealed class AthletesStoreTests
         var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
 
-        await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, false, CancellationToken.None);
-        var forced = await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, true, CancellationToken.None);
+        await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, 1, false, CancellationToken.None);
+        var forced = await store.CreateAsync(tid, cid, "Tom", "Müller", 2003, Gender.Male, null, null, 1, true, CancellationToken.None);
 
         Assert.NotNull(forced);
         Assert.Equal(2, (await store.GetAllAsync(tid, CancellationToken.None)).Count);
@@ -106,9 +107,9 @@ public sealed class AthletesStoreTests
         var club2 = await cStore.CreateAsync(t2.Id, "JC 2", CancellationToken.None);
 
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
-        await store.CreateAsync(t1.Id, club1!.Id, "A", "A", 2000, Gender.Male, null, null, true, CancellationToken.None);
-        await store.CreateAsync(t1.Id, club1.Id, "B", "B", 2000, Gender.Male, null, null, true, CancellationToken.None);
-        await store.CreateAsync(t2.Id, club2!.Id, "C", "C", 2000, Gender.Male, null, null, true, CancellationToken.None);
+        await store.CreateAsync(t1.Id, club1!.Id, "A", "A", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);
+        await store.CreateAsync(t1.Id, club1.Id, "B", "B", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);
+        await store.CreateAsync(t2.Id, club2!.Id, "C", "C", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);
 
         var result = await store.GetAllAsync(t1.Id, CancellationToken.None);
 
@@ -128,7 +129,7 @@ public sealed class AthletesStoreTests
             await setup.Database.EnsureCreatedAsync();
             var (tid, cid) = await SeedTournamentAndClubAsync(setup);
             var store = new SqliteAthletesStore(setup, NullLogger<SqliteAthletesStore>.Instance);
-            var created = await store.CreateAsync(tid, cid, "Eva", "Braun", 2006, Gender.Female, null, null, false, CancellationToken.None);
+            var created = await store.CreateAsync(tid, cid, "Eva", "Braun", 2006, Gender.Female, null, null, 1, false, CancellationToken.None);
             athleteId = created!.Id;
         }
 
@@ -149,10 +150,10 @@ public sealed class AthletesStoreTests
         await ctx.Database.EnsureCreatedAsync();
         var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
-        var created = await store.CreateAsync(tid, cid, "Old", "Name", 2000, Gender.Male, null, null, false, CancellationToken.None);
+        var created = await store.CreateAsync(tid, cid, "Old", "Name", 2000, Gender.Male, null, null, 1, false, CancellationToken.None);
 
         var updated = await store.UpdateAsync(
-            created!.Id, cid, "New", "Name", 2001, Gender.Female, "X99", null, CancellationToken.None);
+            created!.Id, cid, "New", "Name", 2001, Gender.Female, "X99", null, 2, CancellationToken.None);
 
         Assert.True(updated);
         var loaded = await store.GetByIdAsync(created.Id, CancellationToken.None);
@@ -161,6 +162,7 @@ public sealed class AthletesStoreTests
         Assert.Equal(2001, loaded.BirthYear);
         Assert.Equal(Gender.Female, loaded.Gender);
         Assert.Equal("X99", loaded.LicenseId);
+        Assert.Equal(2, loaded.Grade);
     }
 
     [Fact]
@@ -172,7 +174,7 @@ public sealed class AthletesStoreTests
         await ctx.Database.EnsureCreatedAsync();
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
 
-        var updated = await store.UpdateAsync(Guid.NewGuid(), Guid.NewGuid(), "X", "Y", 2000, Gender.Male, null, null, CancellationToken.None);
+        var updated = await store.UpdateAsync(Guid.NewGuid(), Guid.NewGuid(), "X", "Y", 2000, Gender.Male, null, null, 1, CancellationToken.None);
 
         Assert.False(updated);
     }
@@ -186,7 +188,7 @@ public sealed class AthletesStoreTests
         await ctx.Database.EnsureCreatedAsync();
         var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
-        var created = await store.CreateAsync(tid, cid, "Del", "Me", 2000, Gender.Male, null, null, false, CancellationToken.None);
+        var created = await store.CreateAsync(tid, cid, "Del", "Me", 2000, Gender.Male, null, null, 1, false, CancellationToken.None);
 
         var deleted = await store.DeleteAsync(created!.Id, CancellationToken.None);
 

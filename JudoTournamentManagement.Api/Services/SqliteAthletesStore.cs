@@ -56,6 +56,7 @@ public sealed class SqliteAthletesStore : IAthletesStore
         Gender gender,
         string? licenseId,
         decimal? weightKg,
+        int grade,
         bool allowDuplicate,
         CancellationToken cancellationToken)
     {
@@ -96,6 +97,7 @@ public sealed class SqliteAthletesStore : IAthletesStore
             Gender = gender.ToString(),
             LicenseId = licenseId?.Trim(),
             WeightKg = weightKg,
+            Grade = grade,
             CreatedAtUtc = utcNow,
             UpdatedAtUtc = utcNow
         };
@@ -116,6 +118,7 @@ public sealed class SqliteAthletesStore : IAthletesStore
         Gender gender,
         string? licenseId,
         decimal? weightKg,
+        int grade,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(firstName);
@@ -137,6 +140,7 @@ public sealed class SqliteAthletesStore : IAthletesStore
         record.Gender = gender.ToString();
         record.LicenseId = licenseId?.Trim();
         record.WeightKg = weightKg;
+        record.Grade = grade;
         record.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -172,6 +176,7 @@ public sealed class SqliteAthletesStore : IAthletesStore
             Enum.Parse<Gender>(record.Gender),
             record.LicenseId,
             record.WeightKg,
+            record.Grade,
             record.CreatedAtUtc,
             record.UpdatedAtUtc);
 }

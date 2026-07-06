@@ -280,6 +280,14 @@
             <label>{{ 'athletes.weight' | t }}</label>
             <input type="number" min="1" max="300" step="0.1" [(ngModel)]="athleteForm.weightKg" name="aweight" />
           </div>
+          <div>
+            <label>{{ 'athletes.grade' | t }}</label>
+            <select [(ngModel)]="athleteForm.grade" name="agrade">
+              @for (g of gradeOptions; track g.value) {
+                <option [ngValue]="g.value">{{ g.labelKey | t }}</option>
+              }
+            </select>
+          </div>
         </div>
         <div class="form-actions">
           <button (click)="showAthleteForm.set(false)">{{ 'common.cancel' | t }}</button>
@@ -301,6 +309,7 @@
             <th>{{ 'athletes.club' | t }}</th>
             <th>{{ 'athletes.license' | t }}</th>
             <th>{{ 'athletes.weight' | t }}</th>
+            <th>{{ 'athletes.grade' | t }}</th>
             <th>{{ 'common.actions' | t }}</th>
           </tr>
         </thead>
@@ -314,6 +323,7 @@
               <td>{{ clubName()(a.clubId) }}</td>
               <td>{{ a.licenseId }}</td>
               <td>{{ a.weightKg }}</td>
+              <td>{{ gradeLabel(a.grade) }}</td>
               <td>
                 <button (click)="editAthlete(a)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
                 <button class="danger" (click)="deleteAthlete(a)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>

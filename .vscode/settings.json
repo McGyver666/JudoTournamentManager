@@ -1,2 +1,7 @@
 {
+    "chat.tools.terminal.autoApprove": {
+        ".\\.dotnet\\dotnet.exe": true,
+        "npx --prefix ./frontend": true,
+        "npm --prefix ./frontend": true
+    }
 }

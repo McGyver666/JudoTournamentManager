@@ -43,7 +43,7 @@ public sealed class RankingServiceTests
         for (int i = 0; i < athleteCount; i++)
         {
             var a = await athleteStore.CreateAsync(
-                t.Id, club!.Id, $"R{i:D2}", "Ranker", 2000, Gender.Male, null, null, true, CancellationToken.None);
+                t.Id, club!.Id, $"R{i:D2}", "Ranker", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);
             ids.Add(a!.Id);
         }
 
@@ -202,8 +202,8 @@ public sealed class RankingServiceTests
         var club2 = await clubStore.CreateAsync(tid, "Club Beta", CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
-        var a1 = await athleteStore.CreateAsync(tid, club1!.Id, "Gold", "Alpha", 2000, Gender.Male, null, null, true, CancellationToken.None);
-        var a2 = await athleteStore.CreateAsync(tid, club2!.Id, "Silver", "Beta", 2000, Gender.Male, null, null, true, CancellationToken.None);
+        var a1 = await athleteStore.CreateAsync(tid, club1!.Id, "Gold", "Alpha", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);
+        var a2 = await athleteStore.CreateAsync(tid, club2!.Id, "Silver", "Beta", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);
 
         var catStore = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
         var cat = await catStore.CreateAsync(tid, "Cat A", "U18", Gender.Male, null, null, null, null, 300, false, 180, CancellationToken.None);

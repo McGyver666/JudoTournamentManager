@@ -185,6 +185,7 @@ for ($i = 0; $i -lt 40; $i++) {
     $firstName = Get-RandomItem -Items $firstNames
     $lastName = Get-RandomItem -Items $lastNames
     $birthYear = Get-Random -Minimum 2014 -Maximum 2018
+    $grade = Get-Random -Minimum 3 -Maximum 8
     # Generate unique license ID with timestamp and counter to avoid conflicts across runs
     $licenseId = "LIZ-{0}-{1:D3}" -f (Get-Date -Format "yyyyMMddHHmm"), ($i + 1)
 
@@ -195,6 +196,7 @@ for ($i = 0; $i -lt 40; $i++) {
         birthYear = $birthYear
         gender = "Male"
         licenseId = $licenseId
+        grade = $grade
     }
 
     $weightTenth = Get-Random -Minimum 200 -Maximum 411
@@ -202,7 +204,7 @@ for ($i = 0; $i -lt 40; $i++) {
 
     $athlete = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/athletes" -Body $athleteBody
     $weightDisplay = if ($null -ne $athlete.weightKg) { "$($athlete.weightKg) kg" } else { "no weight" }
-    Write-Host "Created athlete '$($athlete.firstName) $($athlete.lastName)' for '$($club.name)' ($weightDisplay)" -ForegroundColor Green
+    Write-Host "Created athlete '$($athlete.firstName) $($athlete.lastName)' for '$($club.name)' ($weightDisplay, grade $grade)" -ForegroundColor Green
 }
 
 Write-Host "`nSeed complete." -ForegroundColor Cyan

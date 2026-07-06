@@ -177,7 +177,7 @@ public sealed class SqliteTournamentStoreTests
         var cat = await catStore.CreateAsync(tournament.Id, "U18 M -73", "U18", Models.Gender.Male, 73m, null, null, null, 300, false, 180, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
-        var athlete = await athleteStore.CreateAsync(tournament.Id, club!.Id, "Max", "Tester", 2005, Models.Gender.Male, null, 25.0m, false, CancellationToken.None);
+        var athlete = await athleteStore.CreateAsync(tournament.Id, club!.Id, "Max", "Tester", 2005, Models.Gender.Male, null, 25.0m, 1, false, CancellationToken.None);
 
         var regStore = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
         var reg = await regStore.CreateAsync(tournament.Id, athlete!.Id, 25.0m, null, false, CancellationToken.None);

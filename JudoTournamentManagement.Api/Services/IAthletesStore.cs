@@ -33,6 +33,7 @@ public interface IAthletesStore
         Gender gender,
         string? licenseId,
         decimal? weightKg,
+        int grade,
         bool allowDuplicate,
         CancellationToken cancellationToken);
 
@@ -48,6 +49,7 @@ public interface IAthletesStore
         Gender gender,
         string? licenseId,
         decimal? weightKg,
+        int grade,
         CancellationToken cancellationToken);
 
     /// <summary>

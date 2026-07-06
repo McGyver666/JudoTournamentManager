@@ -58,7 +58,7 @@ public sealed class MatchServiceTests
         for (int i = 0; i < athleteCount; i++)
         {
             var a = await athleteStore.CreateAsync(
-                t.Id, club!.Id, $"A{i:D2}", "Tester", 2000 + i, Gender.Male, null, null, true, CancellationToken.None);
+                t.Id, club!.Id, $"A{i:D2}", "Tester", 2000 + i, Gender.Male, null, null, 1, true, CancellationToken.None);
             athleteIds.Add(a!.Id);
         }
 

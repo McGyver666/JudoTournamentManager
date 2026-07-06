@@ -107,6 +107,12 @@ public sealed class AthletesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
+        if (request.Grade is null)
+        {
+            ModelState.AddModelError(nameof(request.Grade), "Der Gürtelgrad ist erforderlich.");
+            return ValidationProblem(ModelState);
+        }
+
         if (!await TournamentExistsAsync(tournamentId, cancellationToken))
         {
             return NotFound();
@@ -128,6 +134,7 @@ public sealed class AthletesController : ControllerBase
             request.Gender.Value,
             request.LicenseId,
             request.WeightKg,
+            request.Grade.Value,
             allowDuplicate,
             cancellationToken);
 
@@ -170,6 +177,12 @@ public sealed class AthletesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
+        if (request.Grade is null)
+        {
+            ModelState.AddModelError(nameof(request.Grade), "Der Gürtelgrad ist erforderlich.");
+            return ValidationProblem(ModelState);
+        }
+
         if (!await TournamentExistsAsync(tournamentId, cancellationToken))
         {
             return NotFound();
@@ -197,6 +210,7 @@ public sealed class AthletesController : ControllerBase
             request.Gender.Value,
             request.LicenseId,
             request.WeightKg,
+            request.Grade.Value,
             cancellationToken);
 
         return NoContent();
