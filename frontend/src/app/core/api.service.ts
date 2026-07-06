@@ -11,6 +11,8 @@ import {
   Category,
   Club,
   ConfirmResultRequest,
+  CategoryGenerationApplyResponse,
+  CategoryGenerationPreviewResponse,
   CreateUserRequest,
   CreateAthleteRequest,
   CreateCategoryRequest,
@@ -19,6 +21,7 @@ import {
   CreateTatamiRequest,
   CreateTournamentRequest,
   Fight,
+  GenerateCategoriesRequest,
   GenerateDrawRequest,
   LocalUserAccount,
   LoginRequest,
@@ -147,6 +150,26 @@ export class ApiService {
 
   deleteCategory(tournamentId: string, categoryId: string): Observable<void> {
     return this.http.delete<void>(`api/tournaments/${tournamentId}/categories/${categoryId}`);
+  }
+
+  previewGeneratedCategories(
+    tournamentId: string,
+    body: GenerateCategoriesRequest,
+  ): Observable<CategoryGenerationPreviewResponse> {
+    return this.http.post<CategoryGenerationPreviewResponse>(
+      `api/tournaments/${tournamentId}/categories/generate/preview`,
+      body,
+    );
+  }
+
+  applyGeneratedCategories(
+    tournamentId: string,
+    body: GenerateCategoriesRequest,
+  ): Observable<CategoryGenerationApplyResponse> {
+    return this.http.post<CategoryGenerationApplyResponse>(
+      `api/tournaments/${tournamentId}/categories/generate/apply`,
+      body,
+    );
   }
 
   // Tatamis ----------------------------------------------------------------

@@ -9,5 +9,8 @@ public enum Gender
     Male,
 
     /// <summary>Weiblich / Female.</summary>
-    Female
+    Female,
+
+    /// <summary>Gemischt / Mixed.</summary>
+    Mixed
 }

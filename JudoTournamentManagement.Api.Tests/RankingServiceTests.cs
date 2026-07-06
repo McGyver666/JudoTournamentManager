@@ -120,6 +120,43 @@ public sealed class RankingServiceTests
     }
 
     [Fact]
+    public async Task GetCategoryRankings_SingleAthleteByeFight_ReturnsGoldOnly()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        var (tid, cid, _, athletes) = await SeedAsync(ctx, 1);
+        var athlete = athletes[0];
+
+        ctx.Fights.Add(new FightRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tid,
+            CategoryId = cid,
+            Round = 1,
+            BracketType = FightBracketType.Main.ToString(),
+            Status = FightStatus.Completed.ToString(),
+            IsBye = true,
+            WhiteAthleteId = athlete,
+            BlueAthleteId = null,
+            WinnerId = athlete,
+            WhiteScore = 0,
+            BlueScore = 0,
+            WhitePenalties = 0,
+            BluePenalties = 0,
+            TatamiId = null,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetCategoryRankingsAsync(tid, cid, CancellationToken.None);
+
+        var entry = Assert.Single(result);
+        Assert.Equal(1, entry.Place);
+        Assert.Equal(athlete, entry.AthleteId);
+    }
+
+    [Fact]
     public async Task GetCategoryRankings_RepechageBronze_AddsThirdPlace()
     {
         await using var ctx = CreateDbContext();

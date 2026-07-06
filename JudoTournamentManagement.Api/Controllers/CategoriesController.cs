@@ -15,16 +15,22 @@ public sealed class CategoriesController : ControllerBase
 {
     private readonly ICategoriesStore _categoriesStore;
     private readonly ITournamentStore _tournamentStore;
+    private readonly ICategoryGenerationService _categoryGenerationService;
 
     /// <summary>
     /// Initializes a new controller instance.
     /// </summary>
-    public CategoriesController(ICategoriesStore categoriesStore, ITournamentStore tournamentStore)
+    public CategoriesController(
+        ICategoriesStore categoriesStore,
+        ITournamentStore tournamentStore,
+        ICategoryGenerationService categoryGenerationService)
     {
         ArgumentNullException.ThrowIfNull(categoriesStore);
         ArgumentNullException.ThrowIfNull(tournamentStore);
+        ArgumentNullException.ThrowIfNull(categoryGenerationService);
         _categoriesStore = categoriesStore;
         _tournamentStore = tournamentStore;
+        _categoryGenerationService = categoryGenerationService;
     }
 
     /// <summary>
@@ -226,6 +232,66 @@ public sealed class CategoriesController : ControllerBase
 
         await _categoriesStore.DeleteAsync(categoryId, cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Generates category proposals without persisting changes.
+    /// </summary>
+    [Authorize(Roles = "Admin,Operator")]
+    [HttpPost("generate/preview")]
+    [ProducesResponseType(typeof(CategoryGenerationPreviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CategoryGenerationPreviewResponse>> PreviewGenerationAsync(
+        Guid tournamentId,
+        [FromBody] GenerateCategoriesRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!await TournamentExistsAsync(tournamentId, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            var preview = await _categoryGenerationService.PreviewAsync(tournamentId, request, cancellationToken);
+            return Ok(preview);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(nameof(request), ex.Message);
+            return ValidationProblem(ModelState);
+        }
+    }
+
+    /// <summary>
+    /// Applies category generation and persists created categories.
+    /// </summary>
+    [Authorize(Roles = "Admin,Operator")]
+    [HttpPost("generate/apply")]
+    [ProducesResponseType(typeof(CategoryGenerationApplyResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CategoryGenerationApplyResponse>> ApplyGenerationAsync(
+        Guid tournamentId,
+        [FromBody] GenerateCategoriesRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!await TournamentExistsAsync(tournamentId, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            var result = await _categoryGenerationService.ApplyAsync(tournamentId, request, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(nameof(request), ex.Message);
+            return ValidationProblem(ModelState);
+        }
     }
 
     private async Task<bool> TournamentExistsAsync(Guid tournamentId, CancellationToken cancellationToken)

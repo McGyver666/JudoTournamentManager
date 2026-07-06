@@ -32,7 +32,7 @@ public sealed class RankingService : IRankingService
     {
         var fights = await _dbContext.Fights
             .AsNoTracking()
-            .Where(f => f.TournamentId == tournamentId && f.CategoryId == categoryId && !f.IsBye)
+            .Where(f => f.TournamentId == tournamentId && f.CategoryId == categoryId)
             .ToListAsync(cancellationToken);
 
         if (fights.Count == 0)

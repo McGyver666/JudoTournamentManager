@@ -88,6 +88,7 @@ builder.Services.AddScoped<ICategoriesStore, SqliteCategoriesStore>();
 builder.Services.AddScoped<IClubsStore, SqliteClubsStore>();
 builder.Services.AddScoped<IAthletesStore, SqliteAthletesStore>();
 builder.Services.AddScoped<IRegistrationsStore, SqliteRegistrationsStore>();
+builder.Services.AddScoped<ICategoryGenerationService, CategoryGenerationService>();
 builder.Services.AddScoped<IFightsStore, SqliteFightsStore>();
 builder.Services.AddScoped<IBracketService, BracketService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();

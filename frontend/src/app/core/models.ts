@@ -1,7 +1,13 @@
 /** Domain models and DTOs mirroring the backend API contracts. */
 
 /** Athlete / category gender. Serialized as string enum names by the API. */
-export type Gender = 'Male' | 'Female';
+export type Gender = 'Male' | 'Female' | 'Mixed';
+
+/** Gender scope used by assisted category generation. */
+export type CategoryGenerationGenderMode = 'Male' | 'Female' | 'Mixed';
+
+/** Weight strategy used by assisted category generation. */
+export type CategoryGenerationWeightMode = 'StandardClasses' | 'AthletesByTargetSize';
 
 /** Bracket generation format. */
 export type BracketFormat =
@@ -80,6 +86,53 @@ export interface CreateCategoryRequest {
 }
 
 export type UpdateCategoryRequest = CreateCategoryRequest;
+
+export interface CategoryGenerationGroupSetting {
+  ageGroup: string;
+  genderMode: CategoryGenerationGenderMode;
+  targetAthletesPerCategory: number;
+  maxWeightDeviationKg: number;
+}
+
+export interface GenerateCategoriesRequest {
+  minBirthYear: number | null;
+  maxBirthYear: number | null;
+  genderMode: CategoryGenerationGenderMode;
+  matchDurationSeconds: number;
+  goldenScoreEnabled: boolean;
+  goldenScoreDurationSeconds: number;
+  weightMode: CategoryGenerationWeightMode;
+  groupSettings: CategoryGenerationGroupSetting[];
+}
+
+export interface GeneratedCategoryProposal {
+  name: string;
+  ageGroup: string;
+  gender: Gender;
+  weightClassKg: number | null;
+  minBirthYear: number | null;
+  maxBirthYear: number | null;
+  matchDurationSeconds: number;
+  goldenScoreEnabled: boolean;
+  goldenScoreDurationSeconds: number;
+  estimatedAthleteCount: number;
+  source: string;
+}
+
+export interface CategoryGenerationPreviewResponse {
+  proposedCount: number;
+  categories: GeneratedCategoryProposal[];
+  warnings: string[];
+}
+
+export interface CategoryGenerationApplyResponse {
+  createdCount: number;
+  deletedCount: number;
+  skippedDuplicateCount: number;
+  skippedLockedCount: number;
+  createdCategories: Category[];
+  warnings: string[];
+}
 
 export interface Club {
   id: string;
