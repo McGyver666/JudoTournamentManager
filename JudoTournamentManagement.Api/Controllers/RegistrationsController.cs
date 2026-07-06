@@ -146,7 +146,7 @@ public sealed class RegistrationsController : ControllerBase
         }
 
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        return File(bytes, "text/csv", "meldungen.csv");
+        return File(bytes, "text/csv", "waage.csv");
     }
 
     /// <summary>

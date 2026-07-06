@@ -32,7 +32,7 @@ export class RegistrationsComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly showForm = signal(false);
 
-  protected form = { athleteId: '', weightKg: 0 as number, licenseId: '', licenseConfirmed: false };
+  protected form = { athleteId: '', weightKg: 0 as number, licenseId: '', licenseConfirmed: true };
 
   ngOnInit(): void {
     if (this.context.tournamentId()) {
@@ -105,7 +105,7 @@ export class RegistrationsComponent implements OnInit {
       athleteId: firstAthlete?.id ?? '',
       weightKg: firstAthlete?.weightKg ?? 0,
       licenseId: firstAthlete?.licenseId ?? '',
-      licenseConfirmed: false,
+      licenseConfirmed: true,
     };
     this.showForm.set(true);
   }
@@ -128,10 +128,6 @@ export class RegistrationsComponent implements OnInit {
     }
     if (!this.form.weightKg) {
       this.error.set(this.i18n.translate('errors.weightRequired'));
-      return;
-    }
-    if (!this.form.licenseId || !this.form.licenseId.trim()) {
-      this.error.set(this.i18n.translate('errors.licenseRequired'));
       return;
     }
     if (!this.form.licenseConfirmed) {
@@ -204,6 +200,6 @@ export class RegistrationsComponent implements OnInit {
    * Checks if the registration form is valid for submission.
    */
   protected isFormValid(): boolean {
-    return !!this.form.weightKg && !!this.form.licenseId?.trim() && this.form.licenseConfirmed;
+    return !!this.form.weightKg && this.form.licenseConfirmed;
   }
 }
