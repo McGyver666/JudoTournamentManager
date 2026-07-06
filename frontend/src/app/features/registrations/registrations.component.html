@@ -31,11 +31,11 @@
           </select>
         </div>
         <div>
-          <label>{{ 'athletes.weight' | t }} *</label>
+          <label>{{ 'registrations.weight' | t }} *</label>
           <input type="number" [(ngModel)]="form.weightKg" name="rw" step="0.1" min="1" max="300" required />
         </div>
         <div>
-          <label>{{ 'athletes.license' | t }}</label>
+          <label>{{ 'registrations.licenseOptional' | t }}</label>
           <input type="text" [(ngModel)]="form.licenseId" name="rl" maxlength="40" />
         </div>
       </div>
@@ -66,8 +66,8 @@
           <th>{{ 'athletes.lastName' | t }}</th>
           <th>{{ 'athletes.firstName' | t }}</th>
           <th>{{ 'registrations.birthYear' | t }}</th>
-          <th>{{ 'athletes.weight' | t }}</th>
-          <th>{{ 'athletes.license' | t }}</th>
+          <th>{{ 'registrations.weight' | t }}</th>
+          <th>{{ 'registrations.license' | t }}</th>
           <th>{{ 'registrations.licenseConfirmed' | t }}</th>
           <th>{{ 'common.actions' | t }}</th>
         </tr>
