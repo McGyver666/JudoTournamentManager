@@ -152,6 +152,106 @@ public sealed class AthletesController : ControllerBase
     }
 
     /// <summary>
+    /// Imports multiple athletes within a tournament in a single operation.
+    /// Use <c>?allowDuplicate=true</c> to bypass duplicate name/birth year/club checks.
+    /// Returns 409 Conflict when a probable duplicate exists and <c>allowDuplicate</c> is not set.
+    /// </summary>
+    [Authorize(Roles = "Admin,Operator")]
+    [HttpPost("import")]
+    [ProducesResponseType(typeof(IReadOnlyList<Athlete>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<IReadOnlyList<Athlete>>> ImportAsync(
+        Guid tournamentId,
+        [FromBody] ImportAthletesRequest request,
+        [FromQuery] bool allowDuplicate = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await TournamentExistsAsync(tournamentId, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        if (request.Athletes.Count == 0)
+        {
+            ModelState.AddModelError(nameof(request.Athletes), "Es muss mindestens ein Athlet importiert werden.");
+            return ValidationProblem(ModelState);
+        }
+
+        for (var i = 0; i < request.Athletes.Count; i++)
+        {
+            var athlete = request.Athletes[i];
+
+            if (athlete.BirthYear is null)
+            {
+                ModelState.AddModelError($"Athletes[{i}].BirthYear", "Das Geburtsjahr ist erforderlich.");
+            }
+
+            if (athlete.Gender is null)
+            {
+                ModelState.AddModelError($"Athletes[{i}].Gender", "Das Geschlecht ist erforderlich.");
+            }
+
+            if (athlete.Grade is null)
+            {
+                ModelState.AddModelError($"Athletes[{i}].Grade", "Der Gürtelgrad ist erforderlich.");
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var clubs = await _clubsStore.GetAllAsync(tournamentId, cancellationToken);
+        var clubIds = clubs.Select(x => x.Id).ToHashSet();
+
+        for (var i = 0; i < request.Athletes.Count; i++)
+        {
+            if (!clubIds.Contains(request.Athletes[i].ClubId))
+            {
+                ModelState.AddModelError($"Athletes[{i}].ClubId", "Der angegebene Verein wurde nicht gefunden.");
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var importItems = request.Athletes
+            .Select(x => new AthleteImportItem(
+                x.ClubId,
+                x.FirstName,
+                x.LastName,
+                x.BirthYear!.Value,
+                x.Gender!.Value,
+                x.LicenseId,
+                x.WeightKg,
+                x.Grade!.Value))
+            .ToArray();
+
+        var created = await _athletesStore.CreateBulkAsync(
+            tournamentId,
+            importItems,
+            allowDuplicate,
+            cancellationToken);
+
+        if (created is null)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Mögliches Duplikat gefunden.",
+                Detail = "Mindestens ein Athlet aus dem Import existiert mit Name, Jahrgang und Verein möglicherweise bereits. Verwenden Sie ?allowDuplicate=true, um den Import trotzdem auszuführen.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        return Ok(created);
+    }
+
+    /// <summary>
     /// Updates an athlete.
     /// </summary>
     [Authorize(Roles = "Admin,Operator")]

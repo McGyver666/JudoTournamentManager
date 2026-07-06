@@ -122,41 +122,7 @@ foreach ($tatamiData in $tatamis) {
     Write-Host "Created tatami '$($tatami.name)'" -ForegroundColor Green
 }
 
-Write-Host "`n[3/6] Creating U13 male categories..." -ForegroundColor Yellow
-$categories = @(
-    @{ Label = "-23"; WeightClassKg = 23 }
-    @{ Label = "-25"; WeightClassKg = 25 }
-    @{ Label = "-27"; WeightClassKg = 27 }
-    @{ Label = "-29"; WeightClassKg = 29 }
-    @{ Label = "-31"; WeightClassKg = 31 }
-    @{ Label = "-34"; WeightClassKg = 34 }
-    @{ Label = "-37"; WeightClassKg = 37 }
-    @{ Label = "-40"; WeightClassKg = 40 }
-    @{ Label = "-43"; WeightClassKg = 43 }
-    @{ Label = "-46"; WeightClassKg = 46 }
-    @{ Label = "+46"; WeightClassKg = $null }
-)
-
-foreach ($categoryData in $categories) {
-    $body = @{
-        name = "U13 Männlich $($categoryData.Label) kg"
-        ageGroup = "U13"
-        gender = "Male"
-        matchDurationSeconds = 120
-        goldenScoreEnabled = $true
-        goldenScoreDurationSeconds = 30
-        rulesetNotes = $null
-    }
-
-    if ($null -ne $categoryData.WeightClassKg) {
-        $body.weightClassKg = $categoryData.WeightClassKg
-    }
-
-    $category = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/categories" -Body $body
-    Write-Host "Created category '$($category.name)'" -ForegroundColor Green
-}
-
-Write-Host "`n[4/6] Creating clubs..." -ForegroundColor Yellow
+Write-Host "`n[3/5] Creating clubs..." -ForegroundColor Yellow
 $clubs = @(
     "JC Musterhausen",
     "Judo-Team Beispielstadt",
@@ -170,7 +136,7 @@ foreach ($clubName in $clubs) {
     Write-Host "Created club '$($club.name)'" -ForegroundColor Green
 }
 
-Write-Host "`n[5/6] Creating athletes..." -ForegroundColor Yellow
+Write-Host "`n[4/5] Creating athletes..." -ForegroundColor Yellow
 $firstNames = @(
     "Ben", "Elias", "Finn", "Jonas", "Leon", "Luca", "Mats", "Noah", "Nico", "Paul",
     "Anton", "David", "Emil", "Felix", "Jan", "Karl", "Luis", "Milan", "Oskar", "Timo"
@@ -179,6 +145,8 @@ $lastNames = @(
     "Becker", "Bergmann", "Fischer", "Franke", "Hoffmann", "Kaiser", "Klein", "Koch", "Krause", "Krueger",
     "Lehmann", "Mayer", "Neumann", "Richter", "Schmidt", "Schneider", "Scholz", "Schubert", "Vogel", "Wagner"
 )
+
+$athleteBodies = @()
 
 for ($i = 0; $i -lt 40; $i++) {
     $club = $createdClubs[$i % $createdClubs.Count]
@@ -202,10 +170,14 @@ for ($i = 0; $i -lt 40; $i++) {
     $weightTenth = Get-Random -Minimum 200 -Maximum 411
     $athleteBody.weightKg = [math]::Round($weightTenth / 10.0, 1)
 
-    $athlete = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/athletes" -Body $athleteBody
-    $weightDisplay = if ($null -ne $athlete.weightKg) { "$($athlete.weightKg) kg" } else { "no weight" }
-    Write-Host "Created athlete '$($athlete.firstName) $($athlete.lastName)' for '$($club.name)' ($weightDisplay, grade $grade)" -ForegroundColor Green
+    $athleteBodies += $athleteBody
 }
+
+$importedAthletes = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/athletes/import?allowDuplicate=true" -Body @{
+    athletes = $athleteBodies
+}
+
+Write-Host "Imported $($importedAthletes.Count) athletes in one batch." -ForegroundColor Green
 
 Write-Host "`nSeed complete." -ForegroundColor Cyan
 Write-Host "Tournament ID: $tournamentId" -ForegroundColor DarkGray

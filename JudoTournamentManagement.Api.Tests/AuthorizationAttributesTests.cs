@@ -21,6 +21,7 @@ public sealed class AuthorizationAttributesTests
     [InlineData(typeof(ClubsController), nameof(ClubsController.UpdateAsync), "Admin,Operator")]
     [InlineData(typeof(ClubsController), nameof(ClubsController.DeleteAsync), "Admin,Operator")]
     [InlineData(typeof(AthletesController), nameof(AthletesController.CreateAsync), "Admin,Operator")]
+    [InlineData(typeof(AthletesController), nameof(AthletesController.ImportAsync), "Admin,Operator")]
     [InlineData(typeof(AthletesController), nameof(AthletesController.UpdateAsync), "Admin,Operator")]
     [InlineData(typeof(AthletesController), nameof(AthletesController.DeleteAsync), "Admin,Operator")]
     [InlineData(typeof(RegistrationsController), nameof(RegistrationsController.CreateAsync), "Admin,Operator")]

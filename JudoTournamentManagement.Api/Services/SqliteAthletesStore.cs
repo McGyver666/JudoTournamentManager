@@ -109,6 +109,99 @@ public sealed class SqliteAthletesStore : IAthletesStore
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Athlete>?> CreateBulkAsync(
+        Guid tournamentId,
+        IReadOnlyList<AthleteImportItem> athletes,
+        bool allowDuplicate,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(athletes);
+
+        if (athletes.Count == 0)
+        {
+            return [];
+        }
+
+        var normalized = athletes
+            .Select(a => new AthleteImportItem(
+                a.ClubId,
+                a.FirstName.Trim(),
+                a.LastName.Trim(),
+                a.BirthYear,
+                a.Gender,
+                a.LicenseId?.Trim(),
+                a.WeightKg,
+                a.Grade))
+            .ToArray();
+
+        if (!allowDuplicate)
+        {
+            var incomingKeys = new HashSet<(Guid ClubId, string FirstName, string LastName, int BirthYear)>();
+
+            foreach (var athlete in normalized)
+            {
+                if (!incomingKeys.Add((athlete.ClubId, athlete.FirstName, athlete.LastName, athlete.BirthYear)))
+                {
+                    _logger.LogWarning(
+                        "Duplicate athlete detected inside bulk import for tournament {TournamentId}: '{LastName}, {FirstName}' ({BirthYear}) club {ClubId}.",
+                        tournamentId,
+                        athlete.LastName,
+                        athlete.FirstName,
+                        athlete.BirthYear,
+                        athlete.ClubId);
+                    return null;
+                }
+            }
+
+            var clubIds = normalized.Select(x => x.ClubId).Distinct().ToArray();
+            var existingKeys = await _dbContext.Athletes
+                .AsNoTracking()
+                .Where(x => x.TournamentId == tournamentId && clubIds.Contains(x.ClubId))
+                .Select(x => new { x.ClubId, x.FirstName, x.LastName, x.BirthYear })
+                .ToListAsync(cancellationToken);
+
+            var existingSet = existingKeys
+                .Select(x => (x.ClubId, x.FirstName, x.LastName, x.BirthYear))
+                .ToHashSet();
+
+            if (normalized.Any(a => existingSet.Contains((a.ClubId, a.FirstName, a.LastName, a.BirthYear))))
+            {
+                _logger.LogWarning(
+                    "Possible duplicate athlete detected during bulk import for tournament {TournamentId}.",
+                    tournamentId);
+                return null;
+            }
+        }
+
+        var utcNow = DateTimeOffset.UtcNow;
+        var records = normalized.Select(athlete => new AthleteRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tournamentId,
+            ClubId = athlete.ClubId,
+            FirstName = athlete.FirstName,
+            LastName = athlete.LastName,
+            BirthYear = athlete.BirthYear,
+            Gender = athlete.Gender.ToString(),
+            LicenseId = athlete.LicenseId,
+            WeightKg = athlete.WeightKg,
+            Grade = athlete.Grade,
+            CreatedAtUtc = utcNow,
+            UpdatedAtUtc = utcNow
+        }).ToArray();
+
+        _dbContext.Athletes.AddRange(records);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Imported {AthleteCount} athletes for tournament {TournamentId} in one batch.",
+            records.Length,
+            tournamentId);
+
+        return records.Select(MapToModel).ToArray();
+    }
+
+    /// <inheritdoc />
     public async Task<bool> UpdateAsync(
         Guid athleteId,
         Guid clubId,

@@ -38,6 +38,17 @@ public interface IAthletesStore
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Creates multiple athletes within one persistence operation.
+    /// Returns <c>null</c> when a probable duplicate exists and <paramref name="allowDuplicate"/>
+    /// is <c>false</c>.
+    /// </summary>
+    Task<IReadOnlyList<Athlete>?> CreateBulkAsync(
+        Guid tournamentId,
+        IReadOnlyList<AthleteImportItem> athletes,
+        bool allowDuplicate,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Updates an existing athlete. Returns <c>false</c> if the athlete was not found.
     /// </summary>
     Task<bool> UpdateAsync(

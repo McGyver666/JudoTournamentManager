@@ -92,6 +92,53 @@ public sealed class AthletesStoreTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task CreateBulkAsync_WhenValidInput_PersistsAllAthletesInOneCall()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
+        var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
+
+        var created = await store.CreateBulkAsync(
+            tid,
+            [
+                new AthleteImportItem(cid, "Anna", "A", 2005, Gender.Female, "L1", 31.1m, 3),
+                new AthleteImportItem(cid, "Berta", "B", 2006, Gender.Female, "L2", 33.4m, 4)
+            ],
+            allowDuplicate: false,
+            CancellationToken.None);
+
+        Assert.NotNull(created);
+        Assert.Equal(2, created.Count);
+        Assert.Equal(2, (await store.GetAllAsync(tid, CancellationToken.None)).Count);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task CreateBulkAsync_WhenBatchContainsDuplicateAndAllowDuplicateFalse_ReturnsNull()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
+        var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
+
+        var created = await store.CreateBulkAsync(
+            tid,
+            [
+                new AthleteImportItem(cid, "Tom", "Müller", 2003, Gender.Male, null, null, 1),
+                new AthleteImportItem(cid, "Tom", "Müller", 2003, Gender.Male, null, null, 1)
+            ],
+            allowDuplicate: false,
+            CancellationToken.None);
+
+        Assert.Null(created);
+        Assert.Empty(await store.GetAllAsync(tid, CancellationToken.None));
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task GetAllAsync_ReturnsOnlyAthletesForTournament()
     {
         var db = CreateDatabasePath();
