@@ -91,7 +91,8 @@ public sealed class TournamentFlowSmokeTests : IClassFixture<TournamentFlowSmoke
                 LastName = "Mustermann",
                 BirthYear = 2010,
                 Gender = Gender.Male,
-                ClubId = club.Id
+                ClubId = club.Id,
+                Grade = 1
             });
         var athleteB = await PostAndRead<Athlete>(client, $"/api/tournaments/{tournament.Id}/athletes",
             new CreateAthleteRequest
@@ -100,7 +101,8 @@ public sealed class TournamentFlowSmokeTests : IClassFixture<TournamentFlowSmoke
                 LastName = "Muster",
                 BirthYear = 2011,
                 Gender = Gender.Male,
-                ClubId = club.Id
+                ClubId = club.Id,
+                Grade = 1
             });
 
         // Step 6: Register athletes and assign to category.

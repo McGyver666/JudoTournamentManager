@@ -203,7 +203,7 @@ public sealed class ClubsStoreTests
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         await athleteStore.CreateAsync(
-            tid, club!.Id, "Max", "Mustermann", 2005, Models.Gender.Male, null, null, true, CancellationToken.None);
+            tid, club!.Id, "Max", "Mustermann", 2005, Models.Gender.Male, null, null, 1, true, CancellationToken.None);
 
         Assert.True(await clubStore.HasAthletesAsync(club.Id, CancellationToken.None));
     }

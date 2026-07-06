@@ -147,6 +147,7 @@ export class RegistrationsComponent implements OnInit {
             gender: selected!.gender,
             licenseId: this.form.licenseId,
             weightKg: this.form.weightKg,
+            grade: selected!.grade,
           };
           this.api.updateAthlete(id, selected!.id, updateRequest).subscribe({
             next: () => {

@@ -34,6 +34,9 @@ public sealed class AthleteRecord
     /// <summary>Optional athlete body weight in kilograms.</summary>
     public decimal? WeightKg { get; set; }
 
+    /// <summary>Belt grade as numeric scale (1=9. Kyu ... 9=1. Kyu, 10=1. Dan ... 14=5. Dan).</summary>
+    public int Grade { get; set; }
+
     /// <summary>Creation timestamp in UTC.</summary>
     public DateTimeOffset CreatedAtUtc { get; set; }
 

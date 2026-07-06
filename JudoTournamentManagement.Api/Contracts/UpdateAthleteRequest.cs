@@ -52,4 +52,11 @@ public sealed record UpdateAthleteRequest
     /// </summary>
     [Range(1.0, 300.0, ErrorMessage = "Das Gewicht muss zwischen 1 und 300 kg liegen.")]
     public decimal? WeightKg { get; init; }
+
+    /// <summary>
+    /// Belt grade as numeric scale (1=9. Kyu ... 9=1. Kyu, 10=1. Dan ... 14=5. Dan).
+    /// </summary>
+    [Required(ErrorMessage = "Der Gürtelgrad ist erforderlich.")]
+    [Range(1, 14, ErrorMessage = "Der Gürtelgrad muss zwischen 1 und 14 liegen.")]
+    public int? Grade { get; init; }
 }
