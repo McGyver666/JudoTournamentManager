@@ -291,6 +291,64 @@ public sealed class ControllerUnitTests
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
     }
 
+    [Fact]
+    public async Task AthletesController_ImportAsync_WithValidData_ReturnsOk()
+    {
+        var tournamentId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+
+        var mockAthletesStore = new Mock<IAthletesStore>();
+        var mockClubsStore = new Mock<IClubsStore>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+
+        mockTournamentStore
+            .Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", now, now));
+
+        mockClubsStore
+            .Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Club(clubId, tournamentId, "Test Club", now, now)]);
+
+        mockAthletesStore
+            .Setup(s => s.CreateBulkAsync(
+                tournamentId,
+                It.IsAny<IReadOnlyList<AthleteImportItem>>(),
+                false,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new Athlete(Guid.NewGuid(), tournamentId, clubId, "Max", "Muster", 2010, Gender.Male, "L1", 30.5m, 3, now, now)
+            ]);
+
+        var controller = new AthletesController(mockAthletesStore.Object, mockClubsStore.Object, mockTournamentStore.Object);
+        var request = new ImportAthletesRequest
+        {
+            Athletes = [
+                new CreateAthleteRequest
+                {
+                    ClubId = clubId,
+                    FirstName = "Max",
+                    LastName = "Muster",
+                    BirthYear = 2010,
+                    Gender = Gender.Male,
+                    LicenseId = "L1",
+                    WeightKg = 30.5m,
+                    Grade = 3
+                }
+            ]
+        };
+
+        var result = await controller.ImportAsync(tournamentId, request, false, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+        mockAthletesStore.Verify(s => s.CreateBulkAsync(
+            tournamentId,
+            It.Is<IReadOnlyList<AthleteImportItem>>(items => items.Count == 1 && items[0].Grade == 3),
+            false,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     #endregion
 
     #region Registration Controller Tests
