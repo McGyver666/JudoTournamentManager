@@ -4,6 +4,7 @@ param(
     [string]$BaseUrl = "http://localhost:5080",
     [string]$AdminUser = "admin",
     [SecureString]$AdminPassword,
+    [switch]$SkipCertificateCheck,
     [int]$LatencyThresholdMs = 2000,
     [int]$PollIntervalMs = 100,
     [int]$TimeoutMs = 10000
@@ -75,6 +76,10 @@ function Invoke-Api {
         Uri = $Url
         Headers = if ($Headers) { $Headers } else { $script:defaultHeaders }
         ErrorAction = "Stop"
+    }
+
+    if ($SkipCertificateCheck) {
+        $request.SkipCertificateCheck = $true
     }
 
     if ($PSBoundParameters.ContainsKey("Body")) {
@@ -282,6 +287,7 @@ $athleteA = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/
     lastName = "Alpha-$stamp"
     birthYear = 2014
     gender = "Male"
+    grade = 5
     weightKg = 30.2
 }
 $athleteB = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/athletes" -Headers $adminHeaders -Body @{
@@ -290,6 +296,7 @@ $athleteB = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/
     lastName = "Bravo-$stamp"
     birthYear = 2014
     gender = "Male"
+    grade = 5
     weightKg = 31.3
 }
 

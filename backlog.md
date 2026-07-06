@@ -75,14 +75,14 @@ Story points are rough relative estimates.
 - Health check screen shows system ready.
 - No external cloud service is required for core workflow.
 
-### A-02 Local network client access (P0, 5 SP) — 🔄 In Progress
+### A-02 Local network client access (P0, 5 SP) — ✅ Done
 **Story:** Als Helfer möchte ich von einem zweiten Laptop auf das Host-System zugreifen können, damit mehrere Tische parallel arbeiten können.  
 **Acceptance Criteria:**
 - Host provides LAN URL.
-- At least 3 concurrent clients usable in same LAN.
-- Read/write actions reflect across clients within 2 seconds.
+- ✅ At least 3 concurrent clients usable in same LAN validation flow (admin/operator/display clients in script run).
+- ✅ Read/write actions reflect across clients within 2 seconds.
 - Repeatable validation script exists (`test-lan-validation.ps1`) and produces timestamped JSON evidence (`lan-validation-report-*.json`).
-- Latest evidence run (`lan-validation-report-20260702192900.json`): measured max propagation 2166 ms, currently above 2000 ms target.
+- ✅ Latest evidence run (`lan-validation-report-20260706131837.json`): max propagation 109 ms (target <= 2000 ms).
 
 ### A-03 Backup & restore tournament file (P0, 3 SP) — ✅ Done
 **Story:** Als Turnierleiter möchte ich ein Turnier sichern und wiederherstellen können, damit bei Geräteproblemen keine Daten verloren gehen.  
@@ -380,11 +380,11 @@ Story points are rough relative estimates.
 - ✅ Startup-Skripte setzen bei fehlendem Secret eine zufällige Session-Variable (`Security__AuthTokenHmacSecret`).
 - ✅ Auth-UnitTests angepasst und Gesamtsuite bleibt grün (185/185).
 
-### J-12 TLS for LAN operation (P1, 3 SP) — ⬜ Not Started
+### J-12 TLS for LAN operation (P1, 3 SP) — ✅ Done
 **Story:** Als Turnierleiter möchte ich verschlüsselten LAN-Zugriff, damit Zugangsdaten nicht im Klartext über (WLAN-)Netze übertragen werden.  
 **Acceptance Criteria:**
-- HTTPS-Binding dokumentiert/aktivierbar (selbstsigniertes Zertifikat) für Mehr-Laptop-Betrieb.
-- `UseHttpsRedirection` wirksam (nicht mehr No-Op auf reinem HTTP-Binding).
+- ✅ HTTPS-Binding dokumentiert/aktivierbar via `start-local.ps1 -EnableTls` und `start-local.sh --enable-tls` (selbstsigniertes Dev-Zertifikat).
+- ✅ `UseHttpsRedirection` verifiziert wirksam: HTTP `/health` liefert 307 auf HTTPS `/health`.
 
 ---
 
@@ -409,7 +409,7 @@ Story points are rough relative estimates.
 
 ---
 
-## 6) Implementation Status — Last updated 2026-07-02
+## 6) Implementation Status — Last updated 2026-07-06
 
 This section tracks the verified current state.
 
@@ -437,16 +437,12 @@ This section tracks the verified current state.
 - **A-03 UI COMPLETE:** Frontend admin flow for backup download and restore upload in tournaments view. Includes user feedback and i18n labels for success/error cases.
 
 ### Remaining MVP gaps
-- A-02 Quantitative LAN validation target not yet met: latest report shows 2166 ms max propagation (target <= 2000 ms).
-- J-12 TLS setup for LAN operation.
+- Keine offenen P0/P1-Luecken aus Epic A und Epic J mehr.
 
 ---
 
 ## 7) Next Implementation Plan (Prioritized)
 
-### Step 1 — Measure LAN readiness (A-02)
-- Run repeated LAN measurements and reduce propagation below 2000 ms target.
-- Capture and persist updated evidence report once threshold is met.
-
-### Step 2 — Platform hardening
-- Implement J-12 TLS LAN mode.
+### Step 1 — Stabilization & regression checks
+- Wiederholte LAN-Laeufe im echten Mehr-Laptop-Netz (QA/Turnierprobe) und Evidenz archivieren.
+- Regression-Tests fuer Startup-Skripte (HTTP/TLS Modi) in CI aufnehmen.

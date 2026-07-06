@@ -1,5 +1,7 @@
 param(
-    [switch]$SkipFrontendBuild
+    [switch]$SkipFrontendBuild,
+    [switch]$EnableTls,
+    [int]$HttpsPort = 7080
 )
 
 Set-StrictMode -Version Latest
@@ -52,7 +54,43 @@ else {
 }
 
 Write-Host "Starte JudoTournamentManagement API lokal..." -ForegroundColor Green
-Write-Host "LAN Zugriff ueber Host-IP auf Port 5080 moeglich." -ForegroundColor Green
+
+$urls = "http://0.0.0.0:5080"
+if ($EnableTls) {
+    $certDirectory = Join-Path $projectRoot "JudoTournamentManagement.Api\App_Data\certs"
+    $certPath = Join-Path $certDirectory "dev-lan-cert.pfx"
+    New-Item -ItemType Directory -Path $certDirectory -Force | Out-Null
+
+    $certPassword = $env:JUDO_DEV_TLS_CERT_PASSWORD
+    if ([string]::IsNullOrWhiteSpace($certPassword)) {
+        $bytes = New-Object byte[] 24
+        $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+        try {
+            $rng.GetBytes($bytes)
+        }
+        finally {
+            $rng.Dispose()
+        }
+
+        $certPassword = [Convert]::ToBase64String($bytes)
+        $env:JUDO_DEV_TLS_CERT_PASSWORD = $certPassword
+        Write-Host "JUDO_DEV_TLS_CERT_PASSWORD wurde fuer diese Sitzung zufaellig erzeugt." -ForegroundColor Yellow
+    }
+
+    & $dotnetExecutable dev-certs https -ep $certPath -p $certPassword | Out-Null
+
+    $env:ASPNETCORE_Kestrel__Certificates__Default__Path = $certPath
+    $env:ASPNETCORE_Kestrel__Certificates__Default__Password = $certPassword
+    $urls = "http://0.0.0.0:5080;https://0.0.0.0:$HttpsPort"
+
+    Write-Host "TLS aktiviert. HTTPS URL: https://localhost:$HttpsPort" -ForegroundColor Green
+}
+else {
+    Remove-Item Env:ASPNETCORE_Kestrel__Certificates__Default__Path -ErrorAction SilentlyContinue
+    Remove-Item Env:ASPNETCORE_Kestrel__Certificates__Default__Password -ErrorAction SilentlyContinue
+}
+
+Write-Host "LAN Zugriff ueber Host-IP moeglich. URLs: $urls" -ForegroundColor Green
 
 if ([string]::IsNullOrWhiteSpace($env:Security__AuthTokenHmacSecret)) {
     $bytes = New-Object byte[] 32
@@ -67,4 +105,4 @@ if ([string]::IsNullOrWhiteSpace($env:Security__AuthTokenHmacSecret)) {
     Write-Host "Security__AuthTokenHmacSecret wurde fuer diese Sitzung zufaellig erzeugt." -ForegroundColor Yellow
 }
 
-& $dotnetExecutable run --project (Join-Path $projectRoot "JudoTournamentManagement.Api\JudoTournamentManagement.Api.csproj") --urls "http://0.0.0.0:5080"
+& $dotnetExecutable run --project (Join-Path $projectRoot "JudoTournamentManagement.Api\JudoTournamentManagement.Api.csproj") --urls $urls
