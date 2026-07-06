@@ -30,10 +30,54 @@ public sealed class RankingService : IRankingService
         Guid categoryId,
         CancellationToken cancellationToken)
     {
-        var fights = await _dbContext.Fights
+        var allFights = await _dbContext.Fights
             .AsNoTracking()
             .Where(f => f.TournamentId == tournamentId && f.CategoryId == categoryId)
             .ToListAsync(cancellationToken);
+
+        var fights = allFights.Where(f => !f.IsBye).ToList();
+
+        // Special case: exactly one athlete in category (represented by a completed bye fight)
+        // should receive immediate 1st place even before any real fight exists.
+        if (fights.Count == 0)
+        {
+            var completedByeAthleteIds = allFights
+                .Where(f => f.IsBye && f.Status == CompletedStatus)
+                .SelectMany(f => new[] { f.WhiteAthleteId, f.BlueAthleteId, f.WinnerId })
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            if (completedByeAthleteIds.Count == 1)
+            {
+                var singleAthleteId = completedByeAthleteIds[0];
+
+                var athlete = await _dbContext.Athletes
+                    .AsNoTracking()
+                    .Where(a => a.Id == singleAthleteId)
+                    .Select(a => new { a.Id, a.FirstName, a.LastName, a.ClubId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (athlete is null)
+                    return Array.Empty<RankingEntry>();
+
+                var clubName = await _dbContext.Clubs
+                    .AsNoTracking()
+                    .Where(c => c.Id == athlete.ClubId)
+                    .Select(c => c.Name)
+                    .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+
+                return new[]
+                {
+                    new RankingEntry(
+                        1,
+                        athlete.Id,
+                        $"{athlete.LastName}, {athlete.FirstName}",
+                        clubName)
+                };
+            }
+        }
 
         if (fights.Count == 0)
             return Array.Empty<RankingEntry>();

@@ -8,9 +8,10 @@
 
     <div class="tabs">
       <button class="tab-btn" [class.active]="tab() === 'tatamis'" (click)="setTab('tatamis')">{{ 'config.tatamis' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
+      <button class="tab-btn" [class.active]="tab() === 'presets'" (click)="setTab('presets')">{{ 'config.presets' | t }}</button>
       <button class="tab-btn" [class.active]="tab() === 'clubs'" (click)="setTab('clubs')">{{ 'config.clubs' | t }}</button>
       <button class="tab-btn" [class.active]="tab() === 'athletes'" (click)="setTab('athletes')">{{ 'config.athletes' | t }}</button>
+      <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
     </div>
 
   @if (error()) {
@@ -495,6 +496,86 @@
           }
         </tbody>
       </table>
+      </div>
+    }
+  }
+
+  <!-- Presets -->
+  @if (tab() === 'presets') {
+    <div class="toolbar">
+      <h2>{{ 'presets.title' | t }}</h2>
+      <div class="toolbar-actions">
+        <button (click)="addPresetRow()" [disabled]="!canOperate()">{{ 'presets.addRow' | t }}</button>
+        <button class="danger" (click)="resetPresets()" [disabled]="!canOperate()">{{ 'presets.resetDefaults' | t }}</button>
+        @if (presetsDirty) {
+          <button class="primary" (click)="savePresets()" [disabled]="!canOperate()">{{ 'common.save' | t }}</button>
+        }
+      </div>
+    </div>
+    <p class="muted">{{ 'presets.hint' | t }}</p>
+    @if (presets().length === 0) {
+      <div class="empty">{{ 'presets.empty' | t }}</div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'presets.ageGroup' | t }}</th>
+              <th>{{ 'presets.gender' | t }}</th>
+              <th>{{ 'presets.maxAgeYears' | t }}</th>
+              <th>{{ 'presets.minAgeYears' | t }}</th>
+              <th>{{ 'presets.birthYearRange' | t }}</th>
+              <th>{{ 'presets.matchDuration' | t }}</th>
+              <th>{{ 'presets.weightLimits' | t }}</th>
+              @if (canOperate()) {
+                <th>{{ 'common.actions' | t }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of presets(); track p.id || $index; let i = $index) {
+              <tr>
+                <td>
+                  <input [(ngModel)]="p.ageGroup" [name]="'pag_' + i" (ngModelChange)="onPresetChange()" [disabled]="!canOperate()" />
+                </td>
+                <td>
+                  <select [(ngModel)]="p.gender" [name]="'pgender_' + i" (ngModelChange)="onPresetChange()" [disabled]="!canOperate()">
+                    <option value="Male">{{ 'gender.male' | t }}</option>
+                    <option value="Female">{{ 'gender.female' | t }}</option>
+                    <option value="Mixed">{{ 'gender.mixed' | t }}</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="number" min="1" max="120" [(ngModel)]="p.maxAgeYears" [name]="'pmaxage_' + i"
+                    (ngModelChange)="onPresetChange()" [disabled]="!canOperate()"
+                    placeholder="{{ 'common.optional' | t }}" />
+                </td>
+                <td>
+                  <input type="number" min="1" max="120" [(ngModel)]="p.minAgeYears" [name]="'pminage_' + i"
+                    (ngModelChange)="onPresetChange()" [disabled]="!canOperate()"
+                    placeholder="{{ 'common.optional' | t }}" />
+                </td>
+                <td class="preset-birthyear">{{ presetBirthYearLabel(p) }}</td>
+                <td>
+                  <input type="number" min="30" max="3600" step="30" [(ngModel)]="p.defaultMatchDurationSeconds"
+                    [name]="'pdur_' + i" (ngModelChange)="onPresetChange()" [disabled]="!canOperate()" />
+                </td>
+                <td>
+                  <input [value]="presetWeightsLabel(p)"
+                    (change)="parseWeightLimitsInput(p, $any($event.target).value)"
+                    [name]="'pwts_' + i" [disabled]="!canOperate()"
+                    class="preset-weights-input"
+                    placeholder="22, 24, 26, +" />
+                </td>
+                @if (canOperate()) {
+                  <td>
+                    <button class="danger" (click)="removePresetRow(i)">{{ 'common.delete' | t }}</button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
     }
   }

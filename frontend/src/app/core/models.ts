@@ -87,6 +87,30 @@ export interface CreateCategoryRequest {
 
 export type UpdateCategoryRequest = CreateCategoryRequest;
 
+/** One row in the tournament's standard category preset configuration. */
+export interface CategoryPreset {
+  id: string;
+  ageGroup: string;
+  gender: Gender;
+  maxAgeYears: number | null;
+  minAgeYears: number | null;
+  minBirthYear: number | null;
+  maxBirthYear: number | null;
+  defaultMatchDurationSeconds: number;
+  weightClassLimitsKg: (number | null)[];
+  sortOrder: number;
+}
+
+/** One preset item used in the PUT request. */
+export interface CategoryPresetItemRequest {
+  ageGroup: string;
+  gender: Gender;
+  maxAgeYears: number | null;
+  minAgeYears: number | null;
+  defaultMatchDurationSeconds: number;
+  weightClassLimitsKg: (number | null)[];
+}
+
 export interface CategoryGenerationGroupSetting {
   ageGroup: string;
   genderMode: CategoryGenerationGenderMode;

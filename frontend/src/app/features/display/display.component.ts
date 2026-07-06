@@ -380,7 +380,12 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
   private shouldHideByeFightsForCategory(categoryId: string): boolean {
     const category = this.categories().get(categoryId);
-    return category ? this.isCategoryRoundRobin(category) : false;
+    if (!category || !this.isCategoryRoundRobin(category)) {
+      return false;
+    }
+
+    const fights = this.fightsForCategory(categoryId);
+    return fights.some((fight) => !fight.isBye);
   }
 
   private groupRoundsFromFights(fights: Fight[]): RoundGroup[] {

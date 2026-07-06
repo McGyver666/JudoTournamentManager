@@ -16,6 +16,8 @@ import {
   CategoryGenerationPreviewResponse,
   CategoryGenerationWeightMode,
   Category,
+  CategoryPreset,
+  CategoryPresetItemRequest,
   Club,
   CreateAthleteRequest,
   CreateCategoryRequest,
@@ -26,7 +28,7 @@ import {
   Tatami,
 } from '../../core/models';
 
-type Tab = 'tatamis' | 'categories' | 'clubs' | 'athletes';
+type Tab = 'tatamis' | 'categories' | 'clubs' | 'athletes' | 'presets';
 type GeneratorStep = 'base' | 'strategy' | 'preview';
 
 interface GenerationAgeGroupRange {
@@ -79,6 +81,8 @@ export class ConfigComponent implements OnInit {
   protected readonly clubs = signal<Club[]>([]);
   protected readonly athletes = signal<Athlete[]>([]);
   protected readonly registrations = signal<RegistrationDetail[]>([]);
+  protected readonly presets = signal<CategoryPreset[]>([]);
+  protected presetsDirty = false;
 
   protected readonly clubName = computed(() => {
     const map = new Map(this.clubs().map((c) => [c.id, c.name]));
@@ -180,6 +184,7 @@ export class ConfigComponent implements OnInit {
     this.api.getClubs(id).subscribe({ next: (x) => this.clubs.set(x), error: this.onLoadError });
     this.api.getAthletes(id).subscribe({ next: (x) => this.athletes.set(x), error: this.onLoadError });
     this.api.getRegistrations(id).subscribe({ next: (x) => this.registrations.set(x), error: this.onLoadError });
+    this.api.getCategoryPresets(id).subscribe({ next: (x) => this.presets.set(x), error: this.onLoadError });
   }
 
   private readonly onLoadError = (err: unknown): void =>
@@ -725,5 +730,134 @@ export class ConfigComponent implements OnInit {
       weightKg: null,
       grade: 1,
     };
+  }
+
+  // --- Presets -----------------------------------------------------------
+  protected presetWeightsLabel(preset: CategoryPreset): string {
+    const limits = preset.weightClassLimitsKg;
+    if (limits.length === 0) {
+      return '-';
+    }
+
+    return limits
+      .map((w) => (w === null ? '+' : String(w)))
+      .join(', ');
+  }
+
+  protected presetBirthYearLabel(preset: CategoryPreset): string {
+    const min = preset.minBirthYear;
+    const max = preset.maxBirthYear;
+    if (min == null && max == null) {
+      return '-';
+    }
+
+    if (min != null && max == null) {
+      return `≥ ${min}`;
+    }
+
+    if (min == null && max != null) {
+      return `≤ ${max}`;
+    }
+
+    return `${min} – ${max}`;
+  }
+
+  protected addPresetRow(): void {
+    if (!this.canOperate()) {
+      return;
+    }
+
+    const current = this.presets();
+    const newPreset: CategoryPreset = {
+      id: '',
+      ageGroup: '',
+      gender: 'Male',
+      maxAgeYears: null,
+      minAgeYears: null,
+      minBirthYear: null,
+      maxBirthYear: null,
+      defaultMatchDurationSeconds: 240,
+      weightClassLimitsKg: [],
+      sortOrder: current.length,
+    };
+    this.presets.set([...current, newPreset]);
+    this.presetsDirty = true;
+  }
+
+  protected removePresetRow(index: number): void {
+    if (!this.canOperate()) {
+      return;
+    }
+
+    this.presets.update((list) => list.filter((_, i) => i !== index));
+    this.presetsDirty = true;
+  }
+
+  protected onPresetChange(): void {
+    this.presetsDirty = true;
+  }
+
+  protected savePresets(): void {
+    if (!this.canOperate()) {
+      return;
+    }
+
+    const id = this.tournamentId;
+    if (!id) {
+      return;
+    }
+
+    this.error.set(null);
+    const items: CategoryPresetItemRequest[] = this.presets().map((p) => ({
+      ageGroup: p.ageGroup,
+      gender: p.gender,
+      maxAgeYears: p.maxAgeYears === null || (p.maxAgeYears as unknown) === '' ? null : Number(p.maxAgeYears),
+      minAgeYears: p.minAgeYears === null || (p.minAgeYears as unknown) === '' ? null : Number(p.minAgeYears),
+      defaultMatchDurationSeconds: Number(p.defaultMatchDurationSeconds),
+      weightClassLimitsKg: p.weightClassLimitsKg,
+    }));
+
+    this.api.updateCategoryPresets(id, items).subscribe({
+      next: (saved) => {
+        this.presets.set(saved);
+        this.presetsDirty = false;
+      },
+      error: this.onSaveError,
+    });
+  }
+
+  protected resetPresets(): void {
+    if (!this.canOperate()) {
+      return;
+    }
+
+    const id = this.tournamentId;
+    if (!id || !confirm(this.i18n.translate('presets.confirmReset'))) {
+      return;
+    }
+
+    this.error.set(null);
+    this.api.resetCategoryPresetsToDefaults(id).subscribe({
+      next: (saved) => {
+        this.presets.set(saved);
+        this.presetsDirty = false;
+      },
+      error: this.onSaveError,
+    });
+  }
+
+  protected parseWeightLimitsInput(preset: CategoryPreset, raw: string): void {
+    const parts = raw.split(',').map((s) => s.trim());
+    const limits: (number | null)[] = parts.map((p) => {
+      if (p === '' || p === 'null' || p === '+') {
+        return null;
+      }
+
+      const n = parseFloat(p);
+      return isNaN(n) ? null : n;
+    });
+
+    preset.weightClassLimitsKg = limits;
+    this.presetsDirty = true;
   }
 }
