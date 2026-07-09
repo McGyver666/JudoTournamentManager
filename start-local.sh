@@ -3,6 +3,7 @@ set -euo pipefail
 
 ENABLE_TLS="0"
 HTTPS_PORT="7080"
+SKIP_FRONTEND_BUILD=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -15,7 +16,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --skip-frontend-build)
-      # Linux script currently starts backend directly; keep flag for CLI compatibility.
+      SKIP_FRONTEND_BUILD=true
       shift
       ;;
     *)
@@ -26,19 +27,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SKIP_FRONTEND_BUILD=false
-for arg in "$@"; do
-  case "$arg" in
-    --skip-frontend-build)
-      SKIP_FRONTEND_BUILD=true
-      ;;
-    *)
-      ;;
-  esac
-done
-
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTNET_LOCAL="$PROJECT_ROOT/.dotnet/dotnet"
+
+generate_random_secret() {
+  local length="${1:-48}"
+  local secret=""
+
+  set +o pipefail
+  secret="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c "$length")"
+  set -o pipefail
+
+  printf '%s' "$secret"
+}
 
 if [[ -x "$DOTNET_LOCAL" ]]; then
   DOTNET_CMD="$DOTNET_LOCAL"
@@ -76,7 +77,7 @@ if [[ "$ENABLE_TLS" == "1" ]]; then
   mkdir -p "$CERT_DIR"
 
   if [[ -z "${JUDO_DEV_TLS_CERT_PASSWORD:-}" ]]; then
-    JUDO_DEV_TLS_CERT_PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48)"
+    JUDO_DEV_TLS_CERT_PASSWORD="$(generate_random_secret 48)"
     export JUDO_DEV_TLS_CERT_PASSWORD
     echo "JUDO_DEV_TLS_CERT_PASSWORD wurde fuer diese Sitzung zufaellig erzeugt."
   fi
@@ -92,7 +93,7 @@ fi
 echo "LAN Zugriff ueber Host-IP moeglich. URLs: ${URLS}"
 
 if [[ -z "${Security__AuthTokenHmacSecret:-}" ]]; then
-  Security__AuthTokenHmacSecret="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48)"
+  Security__AuthTokenHmacSecret="$(generate_random_secret 48)"
   export Security__AuthTokenHmacSecret
   echo "Security__AuthTokenHmacSecret wurde fuer diese Sitzung zufaellig erzeugt."
 fi
