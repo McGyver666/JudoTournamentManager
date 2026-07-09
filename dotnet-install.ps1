@@ -102,7 +102,7 @@
     Installs the .NET SDK version 7.0.401
 .EXAMPLE
     dotnet-install.ps1 -Channel 8.0 -Quality GA
-    Installs the latest GA (general availability) version of the .NET 8.0 SDK
+    Installs the latest GA (general availability) version of the .NET 10.0 SDK
 #>
 [cmdletbinding()]
 param(

@@ -45,7 +45,6 @@ builder.Services.AddControllers(options => options.SuppressAsyncSuffixInActionNa
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
@@ -120,8 +119,8 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Use built-in OpenAPI support (.NET 6+)
+    app.MapOpenApi();
 }
 
 app.UseExceptionHandler();

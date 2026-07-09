@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@angular-devkit/build-angular": "^22.0.6",
+    "@angular/core": "^22.0.6"
+  }
+}
