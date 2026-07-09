@@ -33,7 +33,7 @@ Build a practical, reliable **on-site tournament app** for judo events, comparab
 - No mandatory internet connection.
 
 ## Suggested Simple Stack
-- **Backend:** .NET 8 Web API (modular monolith)
+- **Backend:** .NET 10 Web API (modular monolith)
 - **Frontend:** Angular (or React) SPA
 - **Database:** SQLite (default, file-based, robust for local/offline)
 - **Realtime:** SignalR/WebSockets for fight table/display updates
