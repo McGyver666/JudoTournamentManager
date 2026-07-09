@@ -7,7 +7,7 @@ Offline-first tournament software for on-site judo events with German as the pri
 This project is in active MVP implementation with most core tournament workflows already delivered.
 
 Already available:
-- .NET 8 backend solution with SQLite persistence (EF Core)
+- .NET 10 backend solution with SQLite persistence (EF Core)
 - local startup script
 - health endpoint
 - tournament, tatami, category, club, athlete, registration, draw and fight APIs
@@ -64,7 +64,7 @@ See `backlog.md` for the detailed MVP backlog and current implementation state.
 - **Localizable from the start**
 
 ## Aktueller technischer Stand
-- **Backend:** ASP.NET Core Web API (.NET 8)
+- **Backend:** ASP.NET Core Web API (.NET 10)
 - **Solution style:** modular monolith
 - **Persistence:** SQLite via EF Core (`App_Data/judo-tournament.db`, auto-created on startup)
 - **Schema compatibility:** Startup uses EF Core migrations and migration history; legacy local databases without migration history are adopted safely at startup.
