@@ -8,7 +8,7 @@
 
 ## Architecture
 - Keep the architecture simple: modular monolith first.
-- Backend is ASP.NET Core Web API on .NET 8.
+- Backend is ASP.NET Core Web API on .NET 10.
 - Target persistence is SQLite for offline durability.
 - Prefer local/LAN workflows over cloud-dependent solutions.
 - Do not introduce distributed services unless the backlog explicitly requires them.
