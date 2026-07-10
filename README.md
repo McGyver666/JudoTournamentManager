@@ -1,6 +1,6 @@
 # Judo Tournament Management
 
-Offline-first tournament software for on-site judo events with German as the primary language.
+A tournament management application for on-site judo events, designed to run reliably without internet and with German as the primary user language. It combines offline-capable ASP.NET Core backend services, SQLite persistence, and an Angular frontend to support tournament planning, match operation, registration, and real-time display workflows.
 
 ## Projektstatus
 
@@ -29,30 +29,7 @@ Already available:
 - hardened local scripts for test/seed usage (`JUDO_TEST_PASSWORD`, production guard)
 - admin backup/restore UI flow in tournaments view (download backup + restore upload)
 - unit test project (192 passing tests, Category=UnitTest)
-
-Current focus:
 - TLS/LAN operational stabilization and repeated field validation runs
-
-## Produktziel
-
-Build a practical local tournament management system similar in spirit to TUMAG, optimized for tournaments with unreliable or no internet access.
-
-## MVP Scope
-
-The MVP focuses on:
-- tournament setup
-- tatami setup
-- category setup
-- club management
-- athlete management
-- athlete registration to categories
-- bracket generation
-- tatami fight queues
-- result entry
-- public display
-- final rankings
-
-See `backlog.md` for the detailed MVP backlog and current implementation state.
 
 ## Architektur
 
@@ -428,9 +405,3 @@ When continuing implementation with Copilot:
 2. read `backlog.md`
 3. implement the next smallest backlog slice
 4. update `backlog.md` when scope or implementation status changes materially
-
-## Naechste sinnvolle Umsetzungsschritte
-
-Recommended next implementation steps:
-1. run repeated LAN validation in a real multi-laptop setup and archive evidence reports
-2. add startup mode checks (HTTP + TLS) to automated regression routines
