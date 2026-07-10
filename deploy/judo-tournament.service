@@ -1,0 +1,26 @@
+    [Unit]
+    Description=Judo Tournament Management API
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=judo
+    Group=judo
+    PermissionsStartOnly=true
+    WorkingDirectory=/opt/judo-tournament
+    Environment=ASPNETCORE_ENVIRONMENT=Production
+    Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+    Environment=HOME=/opt/judo-tournament
+    Environment=DOTNET_CLI_HOME=/opt/judo-tournament/.dotnet
+    Environment=DOTNET_ROOT=/usr/share/dotnet
+    Environment=DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+    Environment=DOTNET_NOLOGO=1
+    EnvironmentFile=/etc/default/judo-tournament
+    ExecStartPre=/usr/bin/bash -lc 'set -e; test -d /opt/judo-tournament; chown -R judo:judo /opt/judo-tournament; install -d -o judo -g judo /opt/judo-tournament/.dotnet /opt/judo-tournament/publish'
+    ExecStartPre=/usr/bin/bash -lc 'set -e; cd /opt/judo-tournament; /usr/bin/dotnet publish JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj -c Release -o /opt/judo-tournament/publish'
+    ExecStart=/usr/bin/dotnet /opt/judo-tournament/publish/JudoTournamentManagement.Api.dll
+    Restart=always
+    RestartSec=10
+
+    [Install]
+    WantedBy=multi-user.target
