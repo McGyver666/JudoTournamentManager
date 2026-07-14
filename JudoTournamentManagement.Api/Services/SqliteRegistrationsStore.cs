@@ -113,6 +113,98 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
     }
 
     /// <inheritdoc />
+    public async Task<Registration?> CreateWithLicenseCheckAsync(
+        Guid tournamentId,
+        Guid athleteId,
+        decimal weightKg,
+        string? licenseId,
+        bool licenseConfirmed,
+        string? dokumeQrUrl,
+        string? licenseCheckOverrideReason,
+        IDokumePassParser dokumePassParser,
+        DateOnly tournamentDate,
+        string operatorName,
+        CancellationToken cancellationToken)
+    {
+        var alreadyRegistered = await _dbContext.Registrations
+            .AnyAsync(x => x.AthleteId == athleteId && x.TournamentId == tournamentId, cancellationToken);
+
+        if (alreadyRegistered)
+        {
+            _logger.LogWarning("Athlete {AthleteId} already registered in tournament {TournamentId}.",
+                athleteId, tournamentId);
+            return null;
+        }
+
+        var athlete = await _dbContext.Athletes
+            .FirstOrDefaultAsync(a => a.Id == athleteId && a.TournamentId == tournamentId, cancellationToken);
+
+        if (athlete is null)
+        {
+            _logger.LogWarning("Athlete {AthleteId} not found in tournament {TournamentId}.",
+                athleteId, tournamentId);
+            return null;
+        }
+
+        athlete.WeightKg = weightKg;
+        if (!string.IsNullOrEmpty(licenseId))
+            athlete.LicenseId = licenseId;
+
+        bool licenseCheckPassed = false;
+        DateOnly? passExpiryDate = null;
+        string? licenseNumber = null;
+
+        if (!string.IsNullOrEmpty(dokumeQrUrl))
+        {
+            var pass = dokumePassParser.ParseQrUrl(dokumeQrUrl);
+            if (pass != null)
+            {
+                var validationResult = dokumePassParser.ValidatePass(pass, tournamentDate,
+                    athlete.FirstName, athlete.LastName, athlete.BirthYear);
+
+                if (validationResult.IsValid)
+                {
+                    licenseCheckPassed = true;
+                }
+                else if (string.IsNullOrEmpty(licenseCheckOverrideReason))
+                {
+                    _logger.LogWarning(
+                        "License check failed: {Message}", validationResult.Message);
+                    return null;
+                }
+
+                licenseNumber = pass.PassNumber;
+                passExpiryDate = pass.ExpiryDate;
+            }
+        }
+
+        var record = new RegistrationRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tournamentId,
+            AthleteId = athleteId,
+            CategoryId = null,
+            LicenseConfirmed = licenseConfirmed,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            LicenseNumber = licenseNumber,
+            PassExpiryDate = passExpiryDate,
+            LicenseCheckPassed = licenseCheckPassed,
+            LicenseVerifiedAtUtc = DateTimeOffset.UtcNow,
+            LicenseVerifiedByUser = operatorName,
+            LicenseOverrideReason = licenseCheckOverrideReason
+        };
+
+        _dbContext.Registrations.Add(record);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Athlete {AthleteId} registered: weight={Weight}kg, licenseCheckPassed={Passed}",
+            athleteId, weightKg, licenseCheckPassed);
+
+        return MapToModel(record);
+    }
+
+    /// <inheritdoc />
     public async Task<bool> DeleteAsync(Guid registrationId, CancellationToken cancellationToken)
     {
         var record = await _dbContext.Registrations
@@ -258,5 +350,10 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             r.Athlete!.WeightKg,
 #pragma warning restore CS8602
             r.LicenseConfirmed,
-            r.CreatedAtUtc);
+            r.CreatedAtUtc,
+            r.LicenseNumber,
+            r.PassExpiryDate,
+            r.LicenseCheckPassed,
+            r.LicenseVerifiedAtUtc,
+            r.LicenseVerifiedByUser);
 }
