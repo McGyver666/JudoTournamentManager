@@ -300,6 +300,13 @@ namespace JudoTournamentManagement.Api.Migrations
                     b.Property<Guid?>("BlueAthleteId")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("BlueSourceFightId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BlueSourceOutcome")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("BlueIpponCount")
                         .HasColumnType("INTEGER");
 
@@ -369,6 +376,13 @@ namespace JudoTournamentManagement.Api.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("WhiteAthleteId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("WhiteSourceFightId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WhiteSourceOutcome")
+                        .HasMaxLength(10)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WhiteIpponCount")

@@ -281,13 +281,13 @@
                           <div class="fight">
                             <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
                             <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
-                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                               @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                                 <div class="slot-club">{{ clubName }}</div>
                               }
                             </div>
                             <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
-                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                               @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                                 <div class="slot-club">{{ clubName }}</div>
                               }
@@ -342,13 +342,13 @@
                               <div class="fight">
                                 <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
                                 <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
-                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                                   @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                                     <div class="slot-club">{{ clubName }}</div>
                                   }
                                 </div>
                                 <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
-                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                                   @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                                     <div class="slot-club">{{ clubName }}</div>
                                   }
@@ -388,13 +388,13 @@
                                 [attr.data-bracket-type]="f.bracketType">
                                 <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
                                 <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
-                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                                   @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                                     <div class="slot-club">{{ clubName }}</div>
                                   }
                                 </div>
                                 <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
-                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                                   @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                                     <div class="slot-club">{{ clubName }}</div>
                                   }
@@ -431,13 +431,13 @@
                             [attr.data-bracket-type]="f.bracketType">
                             <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
                             <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
-                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                               @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                                 <div class="slot-club">{{ clubName }}</div>
                               }
                             </div>
                             <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
-                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                               @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                                 <div class="slot-club">{{ clubName }}</div>
                               }
@@ -475,13 +475,13 @@
                                 [attr.data-bracket-type]="f.bracketType">
                                 <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
                                 <div class="slot white" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
-                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye) }}</div>
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                                   @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                                     <div class="slot-club">{{ clubName }}</div>
                                   }
                                 </div>
                                 <div class="slot blue" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
-                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye) }}</div>
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                                   @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                                     <div class="slot-club">{{ clubName }}</div>
                                   }

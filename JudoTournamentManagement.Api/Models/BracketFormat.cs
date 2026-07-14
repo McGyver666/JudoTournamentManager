@@ -9,6 +9,12 @@ public enum BracketFormat
     SingleElimination,
 
     /// <summary>
+    /// NWJV double-elimination bracket for up to 32 athletes. Athletes enter the
+    /// repechage after their first defeat; the winners of two bronze fights share third place.
+    /// </summary>
+    DoubleElimination,
+
+    /// <summary>
     /// Single elimination with a 3rd-place consolation fight between the two semi-final losers.
     /// Common in German local judo tournaments.
     /// </summary>

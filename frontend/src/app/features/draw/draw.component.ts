@@ -7,7 +7,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { I18nService } from '../../core/i18n.service';
 import { extractApiError } from '../../core/http-error';
-import { Athlete, BracketFormat, Category, Club, Fight, RoundRobinStanding } from '../../core/models';
+import { Athlete, BracketFormat, Category, Club, Fight, RegistrationDetail, RoundRobinStanding } from '../../core/models';
 
 /** A group of fights sharing the same bracket type and round, for rendering. */
 interface RoundGroup {
@@ -47,6 +47,7 @@ export class DrawComponent implements OnInit {
   protected readonly categories = signal<Category[]>([]);
   protected readonly athletes = signal<Athlete[]>([]);
   protected readonly clubs = signal<Club[]>([]);
+  private readonly registrations = signal<RegistrationDetail[]>([]);
 
   protected readonly globalFormat = signal<BracketFormat>('SingleElimination');
   protected readonly error = signal<string | null>(null);
@@ -76,6 +77,7 @@ export class DrawComponent implements OnInit {
       this.loadCategories();
       this.loadAthletes();
       this.loadClubs();
+      this.loadRegistrations();
     }
   }
 
@@ -135,6 +137,14 @@ export class DrawComponent implements OnInit {
     this.api.getClubs(id).subscribe({ next: (x) => this.clubs.set(x) });
   }
 
+  private loadRegistrations(): void {
+    const id = this.tournamentId;
+    if (!id) {
+      return;
+    }
+    this.api.getRegistrations(id).subscribe({ next: (x) => this.registrations.set(x) });
+  }
+
   protected categoryFormat(categoryId: string): BracketFormat {
     return this.formatByCategory().get(categoryId) ?? this.globalFormat();
   }
@@ -183,6 +193,11 @@ export class DrawComponent implements OnInit {
 
   protected isCategoryRoundRobinWithKnockout(categoryId: string): boolean {
     return this.categoryFormat(categoryId) === 'RoundRobinWithKnockout';
+  }
+
+  protected isDoubleEliminationLimitExceeded(categoryId: string): boolean {
+    return this.categoryFormat(categoryId) === 'DoubleElimination'
+      && this.registrations().filter((registration) => registration.categoryId === categoryId).length > 32;
   }
 
   protected mainRoundsForCategory(categoryId: string): RoundGroup[] {
@@ -281,6 +296,10 @@ export class DrawComponent implements OnInit {
     }
 
     const bracketRect = bracket.getBoundingClientRect();
+    if (this.categoryFormat(categoryId) === 'DoubleElimination') {
+      return this.sourceConnectorPaths(fights, bracket, bracketRect);
+    }
+
     const byRoundAndFight = new Map<string, Fight>();
     for (const fight of fights) {
       byRoundAndFight.set(this.roundFightKey(fight.round, fight.fightNumber), fight);
@@ -321,6 +340,65 @@ export class DrawComponent implements OnInit {
     }
 
     return paths;
+  }
+
+  private sourceConnectorPaths(
+    fights: Fight[],
+    bracket: HTMLElement,
+    bracketRect: DOMRect,
+  ): ConnectorPath[] {
+    const fightsById = new Map(fights.map((fight) => [fight.id, fight]));
+    const paths: ConnectorPath[] = [];
+
+    for (const target of fights) {
+      const sources = [
+        { id: target.whiteSourceFightId, slot: '.slot.white' },
+        { id: target.blueSourceFightId, slot: '.slot.blue' },
+      ];
+
+      for (const sourceReference of sources) {
+        const source = sourceReference.id ? fightsById.get(sourceReference.id) : undefined;
+        if (!source) {
+          continue;
+        }
+
+        const path = this.connectorPathBetween(bracket, bracketRect, source, target, sourceReference.slot);
+        if (path) {
+          paths.push(path);
+        }
+      }
+    }
+
+    return paths;
+  }
+
+  private connectorPathBetween(
+    bracket: HTMLElement,
+    bracketRect: DOMRect,
+    source: Fight,
+    target: Fight,
+    targetSlot: string,
+  ): ConnectorPath | null {
+    const sourceElement = bracket.querySelector(`.fight[data-fight-id="${source.id}"]`) as HTMLElement | null;
+    const targetElement = bracket.querySelector(`.fight[data-fight-id="${target.id}"]`) as HTMLElement | null;
+    if (!sourceElement || !targetElement) {
+      return null;
+    }
+
+    const sourceRect = sourceElement.getBoundingClientRect();
+    const targetRect = targetElement.getBoundingClientRect();
+    const targetSlotElement = targetElement.querySelector(targetSlot) as HTMLElement | null;
+    const targetAnchorRect = targetSlotElement?.getBoundingClientRect() ?? targetRect;
+    const x1 = sourceRect.right - bracketRect.left + bracket.scrollLeft;
+    const y1 = sourceRect.top + sourceRect.height / 2 - bracketRect.top + bracket.scrollTop;
+    const x2 = targetRect.left - bracketRect.left + bracket.scrollLeft;
+    const y2 = targetAnchorRect.top + targetAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
+    const midX = x1 + Math.max(12, Math.min(46, (x2 - x1) * 0.5));
+
+    return {
+      id: `${source.id}-${target.id}-${targetSlot}`,
+      d: `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`,
+    };
   }
 
   protected loadFightsForCategory(categoryId: string): void {
@@ -372,6 +450,11 @@ export class DrawComponent implements OnInit {
     }
 
     if (category.isLocked) {
+      return;
+    }
+
+    if (this.isDoubleEliminationLimitExceeded(category.id)) {
+      this.setCategoryError(category.id, this.i18n.translate('draw.doubleEliminationMaxAthletes'));
       return;
     }
 
@@ -439,6 +522,11 @@ export class DrawComponent implements OnInit {
       }
 
       const category = targets[index];
+      if (this.isDoubleEliminationLimitExceeded(category.id)) {
+        this.setCategoryError(category.id, this.i18n.translate('draw.doubleEliminationMaxAthletes'));
+        run(index + 1);
+        return;
+      }
       this.setCategoryError(category.id, null);
       this.setCategorySwapSelection(category.id, []);
       this.setCategoryLoading(category.id, true);
@@ -519,15 +607,81 @@ export class DrawComponent implements OnInit {
       });
   }
 
-  protected athleteName(athleteId: string | null, isBye: boolean): string {
+  protected athleteName(
+    athleteId: string | null,
+    isBye: boolean,
+    categoryId?: string,
+    fight?: Fight,
+    side?: 'white' | 'blue',
+  ): string {
     if (isBye && !athleteId) {
       return this.i18n.translate('draw.bye');
     }
     if (!athleteId) {
+      const source = categoryId && fight && side
+        ? this.slotSource(categoryId, fight, side)
+        : null;
+      if (source?.isBye) {
+        return this.i18n.translate('draw.bye');
+      }
+      if (source) {
+        return this.i18n.translate(
+          source.outcome === 'Winner' ? 'draw.sourceWinner' : 'draw.sourceLoser',
+          { n: source.fightNumber },
+        );
+      }
       return this.i18n.translate('draw.tbd');
     }
     const a = this.athleteMap().get(athleteId);
     return a ? `${a.lastName}, ${a.firstName}` : this.i18n.translate('draw.tbd');
+  }
+
+  private slotSource(
+    categoryId: string,
+    fight: Fight,
+    side: 'white' | 'blue',
+  ): { fightNumber: number; outcome: 'Winner' | 'Loser'; isBye: boolean } | null {
+    const sourceId = side === 'white' ? fight.whiteSourceFightId : fight.blueSourceFightId;
+    const sourceOutcome = side === 'white' ? fight.whiteSourceOutcome : fight.blueSourceOutcome;
+    const fights = this.fightsForCategory(categoryId);
+
+    if (sourceId && sourceOutcome) {
+      const sourceFight = fights.find((candidate) => candidate.id === sourceId);
+      return sourceFight ? this.sourceReference(sourceFight, sourceOutcome) : null;
+    }
+
+    if (fight.bracketType === 'Main' && fight.round > 1) {
+      const sourceFightNumber = fight.fightNumber * 2 - (side === 'white' ? 1 : 0);
+      const sourceFight = fights.find((candidate) => candidate.bracketType === 'Main'
+        && candidate.round === fight.round - 1
+        && candidate.fightNumber === sourceFightNumber);
+      return sourceFight ? this.sourceReference(sourceFight, 'Winner') : null;
+    }
+
+    if (fight.bracketType === 'Repechage') {
+      const mainFights = fights.filter((candidate) => candidate.bracketType === 'Main');
+      const maxRound = Math.max(...mainFights.map((candidate) => candidate.round));
+      const semifinal = mainFights.find((candidate) => candidate.round === maxRound - 1
+        && candidate.fightNumber === (side === 'white' ? 1 : 2));
+      return semifinal ? this.sourceReference(semifinal, 'Loser') : null;
+    }
+
+    return null;
+  }
+
+  private sourceReference(
+    fight: Fight,
+    outcome: 'Winner' | 'Loser',
+  ): { fightNumber: number; outcome: 'Winner' | 'Loser'; isBye: boolean } {
+    const athleteId = outcome === 'Winner'
+      ? fight.winnerId
+      : fight.winnerId === fight.whiteAthleteId ? fight.blueAthleteId : fight.whiteAthleteId;
+
+    return {
+      fightNumber: fight.fightNumber,
+      outcome,
+      isBye: fight.status === 'Completed' && athleteId === null,
+    };
   }
 
   protected athleteClubName(athleteId: string | null, isBye: boolean): string | null {

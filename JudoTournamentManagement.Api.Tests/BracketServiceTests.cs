@@ -134,6 +134,75 @@ public sealed class BracketServiceTests
         Assert.Equal(15, fights.Count);
     }
 
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Generate_DoubleEliminationWithThirtyTwoAthletes_CreatesNwjvGraph()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid, _) = await SeedAsync(ctx, 32);
+
+        var fights = await CreateService(ctx).GenerateAsync(
+            tid, cid, BracketFormat.DoubleElimination, CancellationToken.None);
+        var byNumber = fights.ToDictionary(fight => fight.FightNumber);
+
+        Assert.Equal(61, fights.Count);
+        Assert.Equal(31, fights.Count(fight => fight.BracketType == FightBracketType.Main));
+        Assert.Equal(30, fights.Count(fight => fight.BracketType == FightBracketType.Repechage));
+
+        Assert.Equal(byNumber[1].Id, byNumber[17].WhiteSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Winner, byNumber[17].WhiteSourceOutcome);
+        Assert.Equal(byNumber[2].Id, byNumber[17].BlueSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Winner, byNumber[17].BlueSourceOutcome);
+
+        Assert.Equal(byNumber[1].Id, byNumber[25].WhiteSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Loser, byNumber[25].WhiteSourceOutcome);
+        Assert.Equal(byNumber[2].Id, byNumber[25].BlueSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Loser, byNumber[25].BlueSourceOutcome);
+
+        Assert.Equal(byNumber[57].Id, byNumber[59].WhiteSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Winner, byNumber[59].WhiteSourceOutcome);
+        Assert.Equal(byNumber[45].Id, byNumber[59].BlueSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Loser, byNumber[59].BlueSourceOutcome);
+
+        Assert.Equal(byNumber[45].Id, byNumber[61].WhiteSourceFightId);
+        Assert.Equal(byNumber[46].Id, byNumber[61].BlueSourceFightId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Generate_DoubleEliminationWithMoreThanThirtyTwoAthletes_RejectsDraw()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid, _) = await SeedAsync(ctx, 33);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateService(ctx).GenerateAsync(
+                tid, cid, BracketFormat.DoubleElimination, CancellationToken.None));
+
+        Assert.Contains("höchstens 32", exception.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Generate_DoubleEliminationWithFiveAthletes_UsesEightAthleteBracket()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid, _) = await SeedAsync(ctx, 5);
+
+        var fights = await CreateService(ctx).GenerateAsync(
+            tid, cid, BracketFormat.DoubleElimination, CancellationToken.None);
+
+        Assert.Equal(11, fights.Count);
+        Assert.Equal(4, fights.Count(fight => fight.BracketType == FightBracketType.Main && fight.Round == 1));
+        Assert.DoesNotContain(fights, fight => fight.FightNumber > 11);
+    }
+
     // ─── Bye handling ─────────────────────────────────────────────────────────
 
     [Fact]
@@ -316,6 +385,7 @@ public sealed class BracketServiceTests
     [Theory]
     [Trait("Category", "UnitTest")]
     [InlineData(BracketFormat.SingleElimination)]
+    [InlineData(BracketFormat.DoubleElimination)]
     [InlineData(BracketFormat.SingleEliminationWithRepechage)]
     [InlineData(BracketFormat.RoundRobin)]
     [InlineData(BracketFormat.RoundRobinWithKnockout)]

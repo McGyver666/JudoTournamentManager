@@ -54,6 +54,12 @@ public sealed class BracketService : IBracketService
             throw new InvalidOperationException(
             "Mindestens 1 Athlet ist für die Auslosung erforderlich.");
 
+        if (format == BracketFormat.DoubleElimination && registrations.Count > 32)
+        {
+            throw new InvalidOperationException(
+                "Das Doppel-K.-o.-System unterstützt höchstens 32 Athleten pro Kategorie.");
+        }
+
         // Deterministic shuffle: seed derived from category ID so same input → same bracket
         var athletes = registrations.Select(r => r.AthleteId).ToList();
         var seed = Math.Abs(categoryId.GetHashCode());
@@ -90,6 +96,10 @@ public sealed class BracketService : IBracketService
             fights = GenerateRoundRobinFights(
                 tournamentId, categoryId, shuffled,
                 FightBracketType.Main, poolNumber: null, utcNow);
+        }
+        else if (format == BracketFormat.DoubleElimination)
+        {
+            fights = GenerateDoubleEliminationFights(tournamentId, categoryId, shuffled, utcNow);
         }
         else if (format == BracketFormat.RoundRobinWithKnockout)
         {
@@ -278,6 +288,318 @@ public sealed class BracketService : IBracketService
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Generates a NWJV-style double-elimination graph for the smallest supported power of two.
+    /// Fight numbers follow the applicable bracket form and are stable identifiers for the graph.
+    /// </summary>
+    private static List<FightRecord> GenerateDoubleEliminationFights(
+        Guid tournamentId,
+        Guid categoryId,
+        List<Guid> athletes,
+        DateTimeOffset utcNow)
+    {
+        var fights = new List<FightRecord>();
+        var byNumber = new Dictionary<int, FightRecord>();
+        int bracketSize = NextPowerOfTwo(athletes.Count);
+        var slots = CreateSlots(athletes, bracketSize);
+
+        FightRecord AddInitial(int fightNumber, Guid? white, Guid? blue)
+        {
+            bool isBye = white is null || blue is null;
+            var fight = new FightRecord
+            {
+                Id = Guid.NewGuid(),
+                TournamentId = tournamentId,
+                CategoryId = categoryId,
+                BracketType = FightBracketType.Main.ToString(),
+                Round = 1,
+                FightNumber = fightNumber,
+                WhiteAthleteId = white,
+                BlueAthleteId = blue,
+                WinnerId = isBye ? white ?? blue : null,
+                IsBye = isBye,
+                Status = isBye ? FightStatus.Completed.ToString() : FightStatus.Pending.ToString(),
+                CreatedAtUtc = utcNow,
+                UpdatedAtUtc = utcNow
+            };
+            fights.Add(fight);
+            byNumber.Add(fightNumber, fight);
+            return fight;
+        }
+
+        void AddDerived(
+            FightBracketType bracketType,
+            int round,
+            int fightNumber,
+            int whiteSourceFightNumber,
+            FightSlotSourceOutcome whiteOutcome,
+            int blueSourceFightNumber,
+            FightSlotSourceOutcome blueOutcome)
+        {
+            var fight = new FightRecord
+            {
+                Id = Guid.NewGuid(),
+                TournamentId = tournamentId,
+                CategoryId = categoryId,
+                BracketType = bracketType.ToString(),
+                Round = round,
+                FightNumber = fightNumber,
+                WhiteSourceFightId = byNumber[whiteSourceFightNumber].Id,
+                WhiteSourceOutcome = whiteOutcome.ToString(),
+                BlueSourceFightId = byNumber[blueSourceFightNumber].Id,
+                BlueSourceOutcome = blueOutcome.ToString(),
+                Status = FightStatus.Pending.ToString(),
+                CreatedAtUtc = utcNow,
+                UpdatedAtUtc = utcNow
+            };
+            fights.Add(fight);
+            byNumber.Add(fightNumber, fight);
+        }
+
+        switch (bracketSize)
+        {
+            case 2:
+                AddInitial(1, slots[0], slots[1]);
+                break;
+
+            case 4:
+                AddInitial(1, slots[0], slots[1]);
+                AddInitial(2, slots[2], slots[3]);
+                AddDerived(FightBracketType.Main, 2, 3,
+                    1, FightSlotSourceOutcome.Winner,
+                    2, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Repechage, 1, 4,
+                    1, FightSlotSourceOutcome.Loser,
+                    2, FightSlotSourceOutcome.Loser);
+                break;
+
+            case 8:
+                for (int index = 0; index < 4; index++)
+                {
+                    AddInitial(index + 1, slots[index * 2], slots[index * 2 + 1]);
+                }
+
+                AddDerived(FightBracketType.Main, 2, 5,
+                    1, FightSlotSourceOutcome.Winner,
+                    2, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Main, 2, 6,
+                    3, FightSlotSourceOutcome.Winner,
+                    4, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Repechage, 1, 7,
+                    1, FightSlotSourceOutcome.Loser,
+                    2, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 1, 8,
+                    3, FightSlotSourceOutcome.Loser,
+                    4, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 2, 9,
+                    7, FightSlotSourceOutcome.Winner,
+                    5, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 2, 10,
+                    8, FightSlotSourceOutcome.Winner,
+                    6, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Main, 3, 11,
+                    5, FightSlotSourceOutcome.Winner,
+                    6, FightSlotSourceOutcome.Winner);
+                break;
+
+            case 16:
+                for (int index = 0; index < 8; index++)
+                {
+                    AddInitial(index + 1, slots[index * 2], slots[index * 2 + 1]);
+                }
+
+                for (int index = 0; index < 4; index++)
+                {
+                    int source = index * 2 + 1;
+                    AddDerived(FightBracketType.Main, 2, 9 + index,
+                        source, FightSlotSourceOutcome.Winner,
+                        source + 1, FightSlotSourceOutcome.Winner);
+                    AddDerived(FightBracketType.Repechage, 1, 13 + index,
+                        source, FightSlotSourceOutcome.Loser,
+                        source + 1, FightSlotSourceOutcome.Loser);
+                }
+
+                AddDerived(FightBracketType.Repechage, 2, 17,
+                    13, FightSlotSourceOutcome.Winner,
+                    11, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 2, 18,
+                    14, FightSlotSourceOutcome.Winner,
+                    12, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 2, 19,
+                    15, FightSlotSourceOutcome.Winner,
+                    9, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 2, 20,
+                    16, FightSlotSourceOutcome.Winner,
+                    10, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Main, 3, 21,
+                    9, FightSlotSourceOutcome.Winner,
+                    10, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Main, 3, 22,
+                    11, FightSlotSourceOutcome.Winner,
+                    12, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Repechage, 3, 23,
+                    17, FightSlotSourceOutcome.Winner,
+                    18, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Repechage, 3, 24,
+                    19, FightSlotSourceOutcome.Winner,
+                    20, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Repechage, 4, 25,
+                    23, FightSlotSourceOutcome.Winner,
+                    21, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 4, 26,
+                    24, FightSlotSourceOutcome.Winner,
+                    22, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Main, 4, 27,
+                    21, FightSlotSourceOutcome.Winner,
+                    22, FightSlotSourceOutcome.Winner);
+                break;
+
+            case 32:
+                for (int index = 0; index < 16; index++)
+                {
+                    AddInitial(index + 1, slots[index * 2], slots[index * 2 + 1]);
+                }
+
+                for (int index = 0; index < 8; index++)
+                {
+                    int source = index * 2 + 1;
+                    AddDerived(FightBracketType.Main, 2, 17 + index,
+                        source, FightSlotSourceOutcome.Winner,
+                        source + 1, FightSlotSourceOutcome.Winner);
+                    AddDerived(FightBracketType.Repechage, 1, 25 + index,
+                        source, FightSlotSourceOutcome.Loser,
+                        source + 1, FightSlotSourceOutcome.Loser);
+                }
+
+                for (int index = 0; index < 4; index++)
+                {
+                    int source = 17 + index * 2;
+                    AddDerived(FightBracketType.Main, 3, 33 + index,
+                        source, FightSlotSourceOutcome.Winner,
+                        source + 1, FightSlotSourceOutcome.Winner);
+                }
+
+                for (int index = 0; index < 8; index++)
+                {
+                    AddDerived(FightBracketType.Repechage, 2, 37 + index,
+                        25 + index, FightSlotSourceOutcome.Winner,
+                        17 + index, FightSlotSourceOutcome.Loser);
+                }
+
+                AddDerived(FightBracketType.Main, 4, 45,
+                    33, FightSlotSourceOutcome.Winner,
+                    34, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Main, 4, 46,
+                    35, FightSlotSourceOutcome.Winner,
+                    36, FightSlotSourceOutcome.Winner);
+
+                for (int index = 0; index < 4; index++)
+                {
+                    int source = 37 + index * 2;
+                    AddDerived(FightBracketType.Repechage, 3, 47 + index,
+                        source, FightSlotSourceOutcome.Winner,
+                        source + 1, FightSlotSourceOutcome.Winner);
+                }
+
+                for (int index = 0; index < 4; index++)
+                {
+                    AddDerived(FightBracketType.Repechage, 4, 51 + index,
+                        47 + index, FightSlotSourceOutcome.Winner,
+                        33 + index, FightSlotSourceOutcome.Loser);
+                }
+
+                AddDerived(FightBracketType.Repechage, 5, 55,
+                    51, FightSlotSourceOutcome.Winner,
+                    52, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Repechage, 5, 56,
+                    53, FightSlotSourceOutcome.Winner,
+                    54, FightSlotSourceOutcome.Winner);
+                AddDerived(FightBracketType.Repechage, 6, 57,
+                    55, FightSlotSourceOutcome.Winner,
+                    45, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 6, 58,
+                    56, FightSlotSourceOutcome.Winner,
+                    46, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 7, 59,
+                    57, FightSlotSourceOutcome.Winner,
+                    45, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Repechage, 7, 60,
+                    58, FightSlotSourceOutcome.Winner,
+                    46, FightSlotSourceOutcome.Loser);
+                AddDerived(FightBracketType.Main, 5, 61,
+                    45, FightSlotSourceOutcome.Winner,
+                    46, FightSlotSourceOutcome.Winner);
+                break;
+
+            default:
+                throw new InvalidOperationException("Nicht unterstützte Doppel-K.-o.-Baumgröße.");
+        }
+
+        PropagateDoubleEliminationByes(fights);
+        return fights;
+    }
+
+    private static void PropagateDoubleEliminationByes(List<FightRecord> fights)
+    {
+        var byId = fights.ToDictionary(fight => fight.Id);
+        bool changed;
+
+        do
+        {
+            changed = false;
+            foreach (var fight in fights.Where(fight => fight.WhiteSourceFightId.HasValue || fight.BlueSourceFightId.HasValue)
+                         .OrderBy(fight => fight.FightNumber))
+            {
+                if (!TryResolveSlot(byId, fight.WhiteSourceFightId, fight.WhiteSourceOutcome, out var white)
+                    || !TryResolveSlot(byId, fight.BlueSourceFightId, fight.BlueSourceOutcome, out var blue))
+                {
+                    continue;
+                }
+
+                bool slotsChanged = fight.WhiteAthleteId != white || fight.BlueAthleteId != blue;
+                if (slotsChanged)
+                {
+                    fight.WhiteAthleteId = white;
+                    fight.BlueAthleteId = blue;
+                    fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                }
+
+                if (white is null || blue is null)
+                {
+                    bool wasCompletedBye = fight.IsBye
+                        && fight.Status == FightStatus.Completed.ToString()
+                        && fight.WinnerId == (white ?? blue);
+                    fight.IsBye = true;
+                    fight.Status = FightStatus.Completed.ToString();
+                    fight.WinnerId = white ?? blue;
+                    changed |= !wasCompletedBye;
+                }
+            }
+        }
+        while (changed);
+    }
+
+    private static bool TryResolveSlot(
+        IReadOnlyDictionary<Guid, FightRecord> fights,
+        Guid? sourceFightId,
+        string? sourceOutcome,
+        out Guid? athleteId)
+    {
+        athleteId = null;
+        if (sourceFightId is not { } sourceId
+            || sourceOutcome is null
+            || !fights.TryGetValue(sourceId, out var source)
+            || source.Status != FightStatus.Completed.ToString())
+        {
+            return false;
+        }
+
+        athleteId = sourceOutcome == FightSlotSourceOutcome.Winner.ToString()
+            ? source.WinnerId
+            : source.WinnerId == source.WhiteAthleteId ? source.BlueAthleteId : source.WhiteAthleteId;
+        return true;
+    }
 
     /// <summary>
     /// Generates all round-robin fights for a set of athletes using the circle scheduling algorithm.
@@ -550,6 +872,10 @@ public sealed class BracketService : IBracketService
             r.Round,
             r.FightNumber,
             r.PoolNumber,
+            r.WhiteSourceFightId,
+            r.WhiteSourceOutcome is null ? null : Enum.Parse<FightSlotSourceOutcome>(r.WhiteSourceOutcome),
+            r.BlueSourceFightId,
+            r.BlueSourceOutcome is null ? null : Enum.Parse<FightSlotSourceOutcome>(r.BlueSourceOutcome),
             r.WhiteAthleteId,
             r.BlueAthleteId,
             r.WinnerId,

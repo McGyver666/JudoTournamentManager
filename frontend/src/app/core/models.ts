@@ -12,6 +12,7 @@ export type CategoryGenerationWeightMode = 'StandardClasses' | 'AthletesByTarget
 /** Bracket generation format. */
 export type BracketFormat =
   | 'SingleElimination'
+  | 'DoubleElimination'
   | 'SingleEliminationWithRepechage'
   | 'RoundRobin'
   | 'RoundRobinWithKnockout';
@@ -30,6 +31,9 @@ export type FightSide = 'white' | 'blue';
 
 /** Whether a fight belongs to the main bracket, the repechage, or a round-robin group stage. */
 export type FightBracketType = 'Main' | 'Repechage' | 'GroupStage';
+
+/** Outcome selected from a source fight to fill a derived slot. */
+export type FightSlotSourceOutcome = 'Winner' | 'Loser';
 
 export interface Tournament {
   id: string;
@@ -298,6 +302,10 @@ export interface Fight {
   round: number;
   fightNumber: number;
   poolNumber: number | null;
+  whiteSourceFightId: string | null;
+  whiteSourceOutcome: FightSlotSourceOutcome | null;
+  blueSourceFightId: string | null;
+  blueSourceOutcome: FightSlotSourceOutcome | null;
   whiteAthleteId: string | null;
   blueAthleteId: string | null;
   winnerId: string | null;

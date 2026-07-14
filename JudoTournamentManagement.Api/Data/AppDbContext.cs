@@ -160,6 +160,8 @@ public sealed class AppDbContext : DbContext
         fight.HasKey(x => x.Id);
         fight.Property(x => x.BracketType).IsRequired().HasMaxLength(20);
         fight.Property(x => x.Status).IsRequired().HasMaxLength(20);
+        fight.Property(x => x.WhiteSourceOutcome).HasMaxLength(10);
+        fight.Property(x => x.BlueSourceOutcome).HasMaxLength(10);
         fight.HasOne(x => x.Tournament)
              .WithMany()
              .HasForeignKey(x => x.TournamentId)

@@ -39,6 +39,11 @@
   align-items: flex-end;
 }
 
+.double-elimination-limit {
+  margin: 0.35rem 0 0;
+  max-width: 28rem;
+}
+
 .swap-bar {
   display: flex;
   align-items: center;

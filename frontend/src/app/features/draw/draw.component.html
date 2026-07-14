@@ -7,6 +7,7 @@
       <label>{{ 'draw.globalFormat' | t }}</label>
       <select [ngModel]="globalFormat()" (ngModelChange)="applyGlobalFormat($event)" name="globalFormat">
         <option value="SingleElimination">{{ 'draw.format.single' | t }}</option>
+        <option value="DoubleElimination">{{ 'draw.format.doubleElimination' | t }}</option>
         <option value="SingleEliminationWithRepechage">{{ 'draw.format.repechage' | t }}</option>
         <option value="RoundRobin">{{ 'draw.format.roundRobin' | t }}</option>
         <option value="RoundRobinWithKnockout">{{ 'draw.format.roundRobinWithKnockout' | t }}</option>
@@ -56,17 +57,21 @@
               [disabled]="cat.isLocked || !canOperate() || isCategoryLoading(cat.id) || generatingAll()"
               [name]="'format-' + cat.id">
               <option value="SingleElimination">{{ 'draw.format.single' | t }}</option>
+              <option value="DoubleElimination">{{ 'draw.format.doubleElimination' | t }}</option>
               <option value="SingleEliminationWithRepechage">{{ 'draw.format.repechage' | t }}</option>
               <option value="RoundRobin">{{ 'draw.format.roundRobin' | t }}</option>
               <option value="RoundRobinWithKnockout">{{ 'draw.format.roundRobinWithKnockout' | t }}</option>
             </select>
+            @if (isDoubleEliminationLimitExceeded(cat.id)) {
+              <p class="error double-elimination-limit">{{ 'draw.doubleEliminationMaxAthletes' | t }}</p>
+            }
           </div>
           @if (canOperate()) {
             <div class="category-generate">
               <button
                 class="primary"
                 (click)="generateForCategory(cat)"
-                [disabled]="cat.isLocked || isCategoryLoading(cat.id) || generatingAll()">
+                [disabled]="cat.isLocked || isCategoryLoading(cat.id) || generatingAll() || isDoubleEliminationLimitExceeded(cat.id)">
                 {{ (hasFights(cat.id) ? 'draw.regenerate' : 'draw.generate') | t }}
               </button>
             </div>
@@ -141,7 +146,7 @@
                         [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
                         [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
                         (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
-                        <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                        <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                         @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                           <div class="slot-club">{{ clubName }}</div>
                         }
@@ -150,7 +155,7 @@
                         [class.selected]="isSelected(cat.id, f.blueAthleteId)"
                         [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
                         (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
-                        <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                        <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                         @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                           <div class="slot-club">{{ clubName }}</div>
                         }
@@ -205,7 +210,7 @@
                             [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
                             [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
                             (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
-                            <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                            <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                             @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                               <div class="slot-club">{{ clubName }}</div>
                             }
@@ -214,7 +219,7 @@
                             [class.selected]="isSelected(cat.id, f.blueAthleteId)"
                             [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
                             (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
-                            <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                            <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                             @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                               <div class="slot-club">{{ clubName }}</div>
                             }
@@ -255,7 +260,7 @@
                           [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
                           [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
                           (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
-                          <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                          <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                           @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                             <div class="slot-club">{{ clubName }}</div>
                           }
@@ -264,7 +269,7 @@
                           [class.selected]="isSelected(cat.id, f.blueAthleteId)"
                           [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
                           (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
-                          <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                          <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                           @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                             <div class="slot-club">{{ clubName }}</div>
                           }
@@ -304,7 +309,7 @@
                             [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
                             [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
                             (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
-                            <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                            <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                             @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                               <div class="slot-club">{{ clubName }}</div>
                             }
@@ -313,7 +318,7 @@
                             [class.selected]="isSelected(cat.id, f.blueAthleteId)"
                             [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
                             (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
-                            <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                            <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                             @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                               <div class="slot-club">{{ clubName }}</div>
                             }
@@ -355,7 +360,7 @@
                         [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
                         [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
                         (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
-                        <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                        <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                         @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                           <div class="slot-club">{{ clubName }}</div>
                         }
@@ -364,7 +369,7 @@
                         [class.selected]="isSelected(cat.id, f.blueAthleteId)"
                         [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
                         (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
-                        <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                        <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                         @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                           <div class="slot-club">{{ clubName }}</div>
                         }
@@ -404,7 +409,7 @@
                           [class.selected]="isSelected(cat.id, f.whiteAthleteId)"
                           [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId"
                           (click)="canOperate() && toggleSwap(cat.id, f.whiteAthleteId)">
-                          <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye) }}</div>
+                          <div class="slot-name">{{ athleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
                           @if (athleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
                             <div class="slot-club">{{ clubName }}</div>
                           }
@@ -413,7 +418,7 @@
                           [class.selected]="isSelected(cat.id, f.blueAthleteId)"
                           [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId"
                           (click)="canOperate() && toggleSwap(cat.id, f.blueAthleteId)">
-                          <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye) }}</div>
+                          <div class="slot-name">{{ athleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
                           @if (athleteClubName(f.blueAthleteId, f.isBye); as clubName) {
                             <div class="slot-club">{{ clubName }}</div>
                           }

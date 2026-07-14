@@ -28,6 +28,18 @@ public sealed class FightRecord
     /// <summary>Pool/group number for group-stage fights in a round-robin-with-knockout bracket; null for all other fight types.</summary>
     public int? PoolNumber { get; set; }
 
+    /// <summary>Source fight for the White slot; null when the slot is assigned directly.</summary>
+    public Guid? WhiteSourceFightId { get; set; }
+
+    /// <summary>Outcome selected from the White slot source fight; null when no source exists.</summary>
+    public string? WhiteSourceOutcome { get; set; }
+
+    /// <summary>Source fight for the Blue slot; null when the slot is assigned directly.</summary>
+    public Guid? BlueSourceFightId { get; set; }
+
+    /// <summary>Outcome selected from the Blue slot source fight; null when no source exists.</summary>
+    public string? BlueSourceOutcome { get; set; }
+
     /// <summary>Athlete in the White role; null when the slot is TBD.</summary>
     public Guid? WhiteAthleteId { get; set; }
 
