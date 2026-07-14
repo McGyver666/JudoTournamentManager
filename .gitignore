@@ -68,5 +68,7 @@ Thumbs.db
 Desktop.ini
 *.dm4
 artifacts/*
+release/
+release.zip
 JTMt.7z
 node_modules
