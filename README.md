@@ -154,6 +154,39 @@ Useful endpoints:
 If you run an older local database, startup will auto-add missing legacy columns needed by current features.
 For larger local schema drifts, reset the local database by deleting `JudoTournamentManagement.Api/App_Data/judo-tournament.db*` and restart the API.
 
+## Admin-Passwort Bootstrap
+
+On first launch, the database is empty. Bootstrap an admin account using the `/api/auth/bootstrap-admin` endpoint:
+
+**Windows (PowerShell):**
+
+```powershell
+$body = @{
+    username = "admin"
+    password = "MySecurePassword123!"
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri "http://localhost:5080/api/auth/bootstrap-admin" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+**Linux/macOS (curl):**
+
+```bash
+curl -X POST http://localhost:5080/api/auth/bootstrap-admin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "MySecurePassword123!"
+  }'
+```
+
+After successful bootstrap, log in at `http://localhost:5080/login` with your credentials.
+
+**Note:** The bootstrap endpoint only works when no admin accounts exist. It will return an error if an admin user is already present.
+
 ## Build und Tests
 
 Build the solution (Windows with local SDK):
