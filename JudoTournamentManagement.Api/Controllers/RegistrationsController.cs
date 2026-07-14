@@ -20,6 +20,7 @@ public sealed class RegistrationsController : ControllerBase
     private readonly ICategoriesStore _categoriesStore;
     private readonly ITournamentStore _tournamentStore;
     private readonly IBracketService _bracketService;
+    private readonly IDokumePassParser _dokumePassParser;
     private readonly ILogger<RegistrationsController> _logger;
 
     /// <summary>
@@ -31,6 +32,7 @@ public sealed class RegistrationsController : ControllerBase
         ICategoriesStore categoriesStore,
         ITournamentStore tournamentStore,
         IBracketService bracketService,
+        IDokumePassParser dokumePassParser,
         ILogger<RegistrationsController> logger)
     {
         ArgumentNullException.ThrowIfNull(registrationsStore);
@@ -38,12 +40,14 @@ public sealed class RegistrationsController : ControllerBase
         ArgumentNullException.ThrowIfNull(categoriesStore);
         ArgumentNullException.ThrowIfNull(tournamentStore);
         ArgumentNullException.ThrowIfNull(bracketService);
+        ArgumentNullException.ThrowIfNull(dokumePassParser);
         ArgumentNullException.ThrowIfNull(logger);
         _registrationsStore = registrationsStore;
         _athletesStore = athletesStore;
         _categoriesStore = categoriesStore;
         _tournamentStore = tournamentStore;
         _bracketService = bracketService;
+        _dokumePassParser = dokumePassParser;
         _logger = logger;
     }
 
@@ -177,7 +181,54 @@ public sealed class RegistrationsController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var created = await _registrationsStore.CreateAsync(
+        var tournament = await _tournamentStore.GetByIdAsync(tournamentId, cancellationToken);
+        if (tournament is null)
+        {
+            return NotFound();
+        }
+
+        // If DokuMe QR URL provided, use license-aware registration flow
+        if (!string.IsNullOrEmpty(request.DokumeQrUrl))
+        {
+            var created = await _registrationsStore.CreateWithLicenseCheckAsync(
+                tournamentId,
+                request.AthleteId,
+                request.WeightKg,
+                request.LicenseId,
+                request.LicenseConfirmed,
+                request.DokumeQrUrl,
+                request.LicenseCheckOverrideReason,
+                _dokumePassParser,
+                tournament.Date,
+                User.Identity?.Name ?? "system",
+                cancellationToken);
+
+            if (created is null)
+            {
+                if (await _registrationsStore.GetByIdAsync(request.AthleteId, cancellationToken) is not null)
+                {
+                    return Conflict(new ProblemDetails
+                    {
+                        Title = "Athlet bereits angemeldet.",
+                        Detail = "Der Athlet ist in diesem Turnier bereits angemeldet.",
+                        Status = StatusCodes.Status409Conflict
+                    });
+                }
+
+                ModelState.AddModelError(
+                    nameof(request.DokumeQrUrl),
+                    "Lizenzenprüfung fehlgeschlagen. Überprüfen Sie die QR-Code-Daten.");
+                return ValidationProblem(ModelState);
+            }
+
+            return CreatedAtAction(
+                nameof(GetByIdAsync),
+                new { tournamentId, registrationId = created.Id },
+                created);
+        }
+
+        // No QR URL: use standard registration flow
+        var registration = await _registrationsStore.CreateAsync(
             tournamentId,
             request.AthleteId,
             request.WeightKg,
@@ -185,7 +236,7 @@ public sealed class RegistrationsController : ControllerBase
             request.LicenseConfirmed,
             cancellationToken);
 
-        if (created is null)
+        if (registration is null)
         {
             return Conflict(new ProblemDetails
             {
@@ -197,8 +248,8 @@ public sealed class RegistrationsController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetByIdAsync),
-            new { tournamentId, registrationId = created.Id },
-            created);
+            new { tournamentId, registrationId = registration.Id },
+            registration);
     }
 
     /// <summary>

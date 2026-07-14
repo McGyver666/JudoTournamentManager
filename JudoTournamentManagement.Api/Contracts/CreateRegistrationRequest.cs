@@ -30,6 +30,23 @@ public sealed record CreateRegistrationRequest
 
     /// <summary>
     /// Whether the athlete's license was confirmed/verified at registration.
+    /// Derived from DokuMe QR code validation result on the server side.
     /// </summary>
     public bool LicenseConfirmed { get; init; }
+
+    /// <summary>
+    /// Optional DokuMe QR code URL for license verification.
+    /// Must be from https://qr.dokume.net with document type d=l.
+    /// If provided, the server will parse and validate the license asynchronously.
+    /// </summary>
+    [StringLength(2000, ErrorMessage = "Die QR-URL darf maximal 2000 Zeichen lang sein.")]
+    public string? DokumeQrUrl { get; init; }
+
+    /// <summary>
+    /// If the DokuMe license check fails but the operator overrides it,
+    /// this field must contain a brief reason (max 200 characters).
+    /// Null or empty indicates no override; a failed check blocks registration unless this is provided.
+    /// </summary>
+    [StringLength(200, ErrorMessage = "Die Begr\u00fcndung darf maximal 200 Zeichen lang sein.")]
+    public string? LicenseCheckOverrideReason { get; init; }
 }
