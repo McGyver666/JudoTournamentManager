@@ -59,7 +59,6 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         Guid tournamentId,
         Guid athleteId,
         decimal weightKg,
-        string? licenseId,
         bool licenseConfirmed,
         CancellationToken cancellationToken)
     {
@@ -86,13 +85,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             return null;
         }
 
-        // Update athlete with captured weight and license info
+        // Update athlete with captured weight.
         athlete.WeightKg = weightKg;
-
-        if (!string.IsNullOrEmpty(licenseId))
-        {
-            athlete.LicenseId = licenseId;
-        }
 
         var record = new RegistrationRecord
         {
@@ -117,7 +111,6 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         Guid tournamentId,
         Guid athleteId,
         decimal weightKg,
-        string? licenseId,
         bool licenseConfirmed,
         string? dokumeQrUrl,
         string? licenseCheckOverrideReason,
@@ -147,8 +140,6 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         }
 
         athlete.WeightKg = weightKg;
-        if (!string.IsNullOrEmpty(licenseId))
-            athlete.LicenseId = licenseId;
 
         bool licenseCheckPassed = false;
         DateOnly? passExpiryDate = null;
@@ -341,7 +332,6 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             r.Athlete!.BirthYear,
             Enum.Parse<Gender>(r.Athlete!.Gender),
             r.Athlete!.Club!.Name,
-            r.Athlete!.LicenseId,
             r.CategoryId,
             r.Category?.Name,
             r.Category?.AgeGroup,

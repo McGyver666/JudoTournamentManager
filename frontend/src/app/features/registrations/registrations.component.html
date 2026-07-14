@@ -42,10 +42,6 @@
           <label>{{ 'registrations.weight' | t }} *</label>
           <input type="number" [(ngModel)]="form.weightKg" name="rw" step="0.1" min="1" max="300" required />
         </div>
-        <div>
-          <label>{{ 'registrations.licenseOptional' | t }}</label>
-          <input type="text" [(ngModel)]="form.licenseId" name="rl" maxlength="40" />
-        </div>
       </div>
 
       <div class="row">
@@ -88,7 +84,6 @@
           <th>{{ 'athletes.firstName' | t }}</th>
           <th>{{ 'registrations.birthYear' | t }}</th>
           <th>{{ 'registrations.weight' | t }}</th>
-          <th>{{ 'registrations.license' | t }}</th>
           <th>{{ 'registrations.licenseConfirmed' | t }}</th>
           <th>{{ 'registrations.licenseNumber' | t }}</th>
           <th>{{ 'registrations.licenseExpiry' | t }}</th>
@@ -109,7 +104,6 @@
             <td>{{ r.athleteFirstName }}</td>
             <td>{{ r.athleteBirthYear }}</td>
             <td>{{ r.athleteWeightKg !== null ? (r.athleteWeightKg + ' kg') : '–' }}</td>
-            <td>{{ r.athleteLicenseId || '–' }}</td>
             <td>{{ r.licenseConfirmed ? '✓' : '–' }}</td>
             <td>
               @if (r.licenseNumber) {
