@@ -21,6 +21,14 @@
   @if (showForm() && canOperate()) {
     <div class="card">
       <h2>{{ 'registrations.new' | t }}</h2>
+
+      @if (showQrScanner()) {
+        <app-qr-license-scanner
+          (qrScanned)="onQrScanned($event)"
+          (scanCancelled)="onScanCancelled()">
+        </app-qr-license-scanner>
+      }
+
       <div class="row">
         <div>
           <label>{{ 'registrations.athlete' | t }}</label>
@@ -39,6 +47,18 @@
           <input type="text" [(ngModel)]="form.licenseId" name="rl" maxlength="40" />
         </div>
       </div>
+
+      <div class="row">
+        <div>
+          <button (click)="showQrScanner.set(true)" [disabled]="showQrScanner()">
+            {{ 'registrations.scan' | t }}
+          </button>
+          @if (form.dokumeQrUrl) {
+            <p class="success">✓ {{ 'registrations.licenseCheckRequired' | t }}</p>
+          }
+        </div>
+      </div>
+
       <div class="row">
         <div>
           <label class="checkbox-inline">
@@ -47,6 +67,7 @@
           </label>
         </div>
       </div>
+
       <div class="form-actions">
         <button (click)="showForm.set(false)">{{ 'common.cancel' | t }}</button>
         <button class="primary" (click)="save()" [disabled]="!isFormValid()">{{ 'common.save' | t }}</button>
@@ -69,6 +90,8 @@
           <th>{{ 'registrations.weight' | t }}</th>
           <th>{{ 'registrations.license' | t }}</th>
           <th>{{ 'registrations.licenseConfirmed' | t }}</th>
+          <th>{{ 'registrations.licenseNumber' | t }}</th>
+          <th>{{ 'registrations.licenseExpiry' | t }}</th>
           <th>{{ 'common.actions' | t }}</th>
         </tr>
       </thead>
@@ -88,6 +111,19 @@
             <td>{{ r.athleteWeightKg !== null ? (r.athleteWeightKg + ' kg') : '–' }}</td>
             <td>{{ r.athleteLicenseId || '–' }}</td>
             <td>{{ r.licenseConfirmed ? '✓' : '–' }}</td>
+            <td>
+              @if (r.licenseNumber) {
+                {{ r.licenseNumber }}
+                @if (r.licenseCheckPassed === true) {
+                  <span class="success">✓</span>
+                } @else if (r.licenseCheckPassed === false) {
+                  <span class="warning">⚠</span>
+                }
+              } @else {
+                <span class="muted">–</span>
+              }
+            </td>
+            <td>{{ r.passExpiryDate || '–' }}</td>
             <td>
               <button class="danger" (click)="remove(r)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
             </td>
