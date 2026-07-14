@@ -1,0 +1,94 @@
+name: Build and package release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+# A tagged build also creates a GitHub Release. All other builds retain the
+# package as a workflow artifact.
+permissions:
+  contents: write
+
+jobs:
+  build-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Restore frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Restore .NET dependencies
+        run: dotnet restore JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj
+
+      - name: Build deployable application
+        run: dotnet build JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj --configuration Release --no-restore
+
+      - name: Create Linux release folder
+        shell: bash
+        run: |
+          rm -rf release release.zip
+          mkdir -p release/app/App_Data release/deploy
+
+          dotnet publish JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            --self-contained true \
+            --output release/app \
+            -p:UseAppHost=true \
+            -p:DebugType=None \
+            -p:DebugSymbols=false
+
+          # Runtime data is deliberately empty; do not ship the repository's
+          # development certificate or any local SQLite database.
+          rm -rf release/app/App_Data
+          mkdir -p release/app/App_Data
+          find release/app -name '*.pdb' -delete
+          cp deploy/judo-tournament-release.service release/deploy/judo-tournament.service
+          cp deploy/judo-tournament.nginx.conf release/deploy/judo-tournament.nginx.conf
+          cp deploy/install_release.sh release/deploy/install_release.sh
+          cp deploy/release-README.md release/README.md
+          chmod +x release/app/JudoTournamentManagement.Api
+          chmod +x release/deploy/install_release.sh
+
+      - name: Create release archive
+        run: zip -r release.zip release
+
+      - name: Upload release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: judo-tournament-linux-release
+          path: |
+            release/
+            release.zip
+          if-no-files-found: error
+
+      - name: Publish GitHub Release for version tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release.zip --title "$GITHUB_REF_NAME" --generate-notes
