@@ -341,5 +341,25 @@
   "results.tab.medals": "Medaillenspiegel",
   "results.athlete": "Athlet",
   "results.club": "Verein",
-  "results.noResults": "Noch keine abgeschlossenen Kämpfe."
+  "results.noResults": "Noch keine abgeschlossenen Kämpfe.",
+
+  "registrations.scan": "QR-Code scannen",
+  "registrations.startCamera": "Kamera starten",
+  "registrations.stopCamera": "Kamera stoppen",
+  "registrations.cameraAccess": "Kamerazugriff wird angefordert …",
+  "registrations.cameraNotAvailable": "Kamera nicht verfügbar. Bitte über HTTPS oder localhost zugreifen.",
+  "registrations.licenseCheckResult": "Lizenzenprüfung",
+  "registrations.licenseNumber": "Lizenznummer",
+  "registrations.licenseExpiry": "Gültig bis",
+  "registrations.licenseValid": "Lizenz gültig",
+  "registrations.licenseExpired": "Lizenz abgelaufen",
+  "registrations.licenseNameMismatch": "Name stimmt nicht überein",
+  "registrations.licenseBirthYearMismatch": "Geburtsjahr stimmt nicht überein",
+  "registrations.licenseInvalid": "Lizenz ungültig oder nicht lesbar",
+  "registrations.signatureNotVerified": "Signatur derzeit nicht verifiziert",
+  "registrations.override": "Überprüfung überschreiben",
+  "registrations.overrideReason": "Grund für Überschreibung",
+  "registrations.overrideReasonHint": "Z.B. 'Athlet hat Lizenz mit sich, aber QR ungültig'",
+  "registrations.overrideConfirm": "Trotz fehlgeschlagener Lizenzenprüfung anmelden",
+  "registrations.licenseCheckRequired": "Lizenzenprüfung erforderlich oder Überschreibungsgrund angeben"
 }

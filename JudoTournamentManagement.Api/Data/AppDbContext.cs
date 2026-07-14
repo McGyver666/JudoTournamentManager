@@ -139,6 +139,9 @@ public sealed class AppDbContext : DbContext
         registration.ToTable("Registrations");
         registration.HasKey(x => x.Id);
         registration.HasIndex(x => new { x.AthleteId, x.TournamentId }).IsUnique();
+        registration.Property(x => x.LicenseNumber).HasMaxLength(40);
+        registration.Property(x => x.LicenseVerifiedByUser).HasMaxLength(120);
+        registration.Property(x => x.LicenseOverrideReason).HasMaxLength(200);
         registration.HasOne(x => x.Tournament)
                     .WithMany()
                     .HasForeignKey(x => x.TournamentId)

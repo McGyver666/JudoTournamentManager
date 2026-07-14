@@ -21,6 +21,7 @@ public interface IRegistrationsStore
     /// <summary>
     /// Registers an athlete (without assigning a category).
     /// Captures weight and license information at registration time.
+    /// Optionally processes and validates a DokuMe QR code if provided.
     /// Returns <c>null</c> when the athlete already has a registration in this tournament
     /// (one registration per athlete per tournament).
     /// </summary>
@@ -30,6 +31,25 @@ public interface IRegistrationsStore
         decimal weightKg,
         string? licenseId,
         bool licenseConfirmed,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Registers an athlete with optional DokuMe license verification.
+    /// If dokumeQrUrl is provided, parses and validates the QR code against athlete data.
+    /// If validation fails and no override reason is provided, returns null with validation error logged.
+    /// Returns <c>null</c> when the athlete already has a registration in this tournament.
+    /// </summary>
+    Task<Registration?> CreateWithLicenseCheckAsync(
+        Guid tournamentId,
+        Guid athleteId,
+        decimal weightKg,
+        string? licenseId,
+        bool licenseConfirmed,
+        string? dokumeQrUrl,
+        string? licenseCheckOverrideReason,
+        IDokumePassParser dokumePassParser,
+        DateOnly tournamentDate,
+        string operatorName,
         CancellationToken cancellationToken);
 
     /// <summary>
