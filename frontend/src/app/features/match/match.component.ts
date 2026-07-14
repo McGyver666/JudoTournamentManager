@@ -229,13 +229,9 @@ export class MatchComponent implements OnInit, OnDestroy {
       // Use fight.isGoldenScore from server (reload-safe, score-aware).
       if (fight.isGoldenScore) {
         this.timerIsGoldenScore.set(true);
-        if (fight.status === 'Paused') {
-          this.timerSeconds.set(goldenScoreDuration);
-        } else {
-          const goldenElapsed = Math.max(0, elapsed - duration);
-          const goldenRemaining = Math.max(0, goldenScoreDuration - goldenElapsed);
-          this.timerSeconds.set(Math.ceil(goldenRemaining));
-        }
+        const goldenElapsed = Math.max(0, elapsed - duration);
+        const goldenRemaining = Math.max(0, goldenScoreDuration - goldenElapsed);
+        this.timerSeconds.set(Math.ceil(goldenRemaining));
       } else {
         // Regular time countdown.
         this.timerIsGoldenScore.set(false);
