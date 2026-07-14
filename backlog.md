@@ -186,6 +186,7 @@ Story points are rough relative estimates.
 **Acceptance Criteria:**
 - Support single elimination.
 - Support repechage variant required by target tournament format (configurable preset).
+- Support NWJV Doppel-K.-o.-System for categories with up to 32 athletes; reject larger categories without omitting registrations.
 - Byes handled automatically.
 - Draw generation is deterministic for same seed input.
 
