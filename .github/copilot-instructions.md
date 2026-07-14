@@ -25,7 +25,8 @@
 - Follow the MVP backlog in `backlog.md`.
 - Prefer small, end-to-end slices over speculative broad scaffolding.
 - Update `backlog.md` when implementation status changes materially.
-- Update `README.md` if setup, architecture, or developer workflow changes.
+- Keep `README.md` (English) and `README.de.md` (German) current whenever setup, architecture, developer workflow, APIs, or operational behavior changes.
+- Keep both README versions consistent: synchronize their structure, commands, endpoints, technical facts, and bidirectional language links while preserving the language of each document.
 
 ## .NET Conventions
 - Use async APIs with `CancellationToken` for I/O-bound work.

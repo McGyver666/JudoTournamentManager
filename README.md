@@ -1,8 +1,10 @@
 # Judo Tournament Management
 
+[Deutsch](README.de.md)
+
 A tournament management application for on-site judo events, designed to run reliably without internet and with German as the primary user language. It combines offline-capable ASP.NET Core backend services, SQLite persistence, and an Angular frontend to support tournament planning, match operation, registration, and real-time display workflows.
 
-## Projektstatus
+## Project Status
 
 This project is in active MVP implementation with most core tournament workflows already delivered.
 
@@ -31,16 +33,16 @@ Already available:
 - unit test project (192 passing tests, Category=UnitTest)
 - TLS/LAN operational stabilization and repeated field validation runs
 
-## Architektur
+## Architecture
 
-## Zielbild
+## Target Vision
 - **Offline-first**
 - **Single host laptop** as default mode
 - **Optional LAN clients** on the same local network
 - **German-first UI**
 - **Localizable from the start**
 
-## Aktueller technischer Stand
+## Current Technical Status
 - **Backend:** ASP.NET Core Web API (.NET 10)
 - **Solution style:** modular monolith
 - **Persistence:** SQLite via EF Core (`App_Data/judo-tournament.db`, auto-created on startup)
@@ -49,14 +51,14 @@ Already available:
 - **Health endpoint:** `/health`
 - **App entry point:** `/` (Angular app; deep links fall back to `index.html`)
 
-## Zielarchitektur fuer den MVP
+## Target MVP Architecture
 - **Backend:** ASP.NET Core Web API
 - **Frontend:** SPA served locally by the host machine
 - **Database:** SQLite
 - **Realtime updates:** SignalR/WebSockets
 - **Operation mode:** local machine or local LAN only
 
-## Projektstruktur
+## Project Structure
 
 ```text
 JudoTournamentManagement.sln
@@ -70,7 +72,7 @@ start-local.sh
   copilot-instructions.md
 ```
 
-## Voraussetzungen
+## Prerequisites
 
 The project can run on Windows, Linux, and macOS.
 
@@ -92,7 +94,7 @@ Linux/macOS local SDK path:
 
 This allows fully local execution without depending on a machine-wide installation.
 
-## Lokales Starten
+## Running Locally
 
 Start the API locally (Windows / PowerShell):
 
@@ -187,7 +189,7 @@ After successful bootstrap, log in at `http://localhost:5080/login` with your cr
 
 **Note:** The bootstrap endpoint only works when no admin accounts exist. It will return an error if an admin user is already present.
 
-## Build und Tests
+## Build and Tests
 
 Build the solution (Windows with local SDK):
 
@@ -263,7 +265,7 @@ The smoke script validates this sequence end-to-end against a running local API:
 - first real fight start locks the category
 - reassignment after lock is rejected with HTTP 409
 
-## Paket Fuer Anderes System
+## Package for Another System
 
 Create a minimal transfer bundle (published API + start scripts + README):
 
@@ -331,7 +333,7 @@ Localization assets are plain JSON dictionaries in `frontend/public/i18n/`
 (`de.json` is the complete German source; `en.json` is the English fallback) and
 are served at `/i18n/{lang}.json`.
 
-## Aktuelle API
+## Current API
 
 ### Core endpoints
 
@@ -396,7 +398,7 @@ Example `POST /api/tournaments` request body:
 }
 ```
 
-## Lokalisierung
+## Localization
 
 Localization rules for the MVP:
 - primary language is German
@@ -408,7 +410,7 @@ Current backend culture setup:
 - default: `de-DE`
 - fallback-ready secondary culture: `en-US`
 
-## Entwicklungsprinzipien
+## Development Principles
 
 - offline-first before cloud-first
 - simple architecture before distributed architecture
@@ -418,7 +420,7 @@ Current backend culture setup:
 - no silent error swallowing
 - keep work aligned with `backlog.md`
 
-## Sicherheit und Betriebsmodell
+## Security and Operating Model
 
 - no mandatory internet dependency for tournament execution
 - local/LAN deployment only for MVP
