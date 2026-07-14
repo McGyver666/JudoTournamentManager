@@ -553,12 +553,14 @@ public sealed class ControllerUnitTests
             .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
         mockRegistrationsStore.Setup(s => s.GetDetailedAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RegistrationDetail>());
+        var mockDokumePassParser = new Mock<IDokumePassParser>();
         var controller = new RegistrationsController(
             mockRegistrationsStore.Object,
             mockAthletesStore.Object,
             mockCategoriesStore.Object,
             mockTournamentStore.Object,
             mockBracketService.Object,
+            mockDokumePassParser.Object,
             NullLogger<RegistrationsController>.Instance);
 
         var result = await controller.GetAllAsync(tournamentId, CancellationToken.None);
@@ -610,12 +612,14 @@ public sealed class ControllerUnitTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Fight>());
 
+        var mockDokumePassParser = new Mock<IDokumePassParser>();
         var controller = new RegistrationsController(
             mockRegistrationsStore.Object,
             mockAthletesStore.Object,
             mockCategoriesStore.Object,
             mockTournamentStore.Object,
             mockBracketService.Object,
+            mockDokumePassParser.Object,
             NullLogger<RegistrationsController>.Instance);
 
         var result = await controller.AssignCategoryAsync(

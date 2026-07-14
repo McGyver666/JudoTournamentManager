@@ -7,6 +7,7 @@ import { TournamentContextService } from '../../core/tournament-context.service'
 import { I18nService } from '../../core/i18n.service';
 import { extractApiError } from '../../core/http-error';
 import { Athlete, Category, Gender, RegistrationDetail } from '../../core/models';
+import { QrLicenseScannerComponent } from './qr-license-scanner.component';
 
 /**
  * Registration management for the active tournament: register athletes to
@@ -15,7 +16,7 @@ import { Athlete, Category, Gender, RegistrationDetail } from '../../core/models
 @Component({
   selector: 'app-registrations',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe, QrLicenseScannerComponent],
   templateUrl: './registrations.component.html',
 })
 export class RegistrationsComponent implements OnInit {
@@ -31,8 +32,16 @@ export class RegistrationsComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showForm = signal(false);
+  protected readonly showQrScanner = signal(false);
 
-  protected form = { athleteId: '', weightKg: 0 as number, licenseId: '', licenseConfirmed: true };
+  protected form = {
+    athleteId: '',
+    weightKg: 0 as number,
+    licenseId: '',
+    licenseConfirmed: true,
+    dokumeQrUrl: '',
+    licenseCheckOverrideReason: ''
+  };
 
   ngOnInit(): void {
     if (this.context.tournamentId()) {
@@ -106,8 +115,22 @@ export class RegistrationsComponent implements OnInit {
       weightKg: firstAthlete?.weightKg ?? 0,
       licenseId: firstAthlete?.licenseId ?? '',
       licenseConfirmed: true,
+      dokumeQrUrl: '',
+      licenseCheckOverrideReason: ''
     };
     this.showForm.set(true);
+  }
+
+  protected onQrScanned(event: { qrUrl: string; passNumber: string | null }): void {
+    this.form.dokumeQrUrl = event.qrUrl;
+    if (event.passNumber) {
+      this.form.licenseId = event.passNumber;
+    }
+    this.showQrScanner.set(false);
+  }
+
+  protected onScanCancelled(): void {
+    this.showQrScanner.set(false);
   }
 
   protected onAthleteSelected(): void {
@@ -115,6 +138,7 @@ export class RegistrationsComponent implements OnInit {
     if (selected) {
       this.form.weightKg = selected.weightKg ?? 0;
       this.form.licenseId = selected.licenseId ?? '';
+      // Preserve QR URL and override reason across athlete selection
     }
   }
 
@@ -135,13 +159,23 @@ export class RegistrationsComponent implements OnInit {
       return;
     }
     this.error.set(null);
-    this.api.createRegistration(id, this.form).subscribe({
+
+    const request = {
+      athleteId: this.form.athleteId,
+      weightKg: this.form.weightKg,
+      licenseId: this.form.licenseId || null,
+      licenseConfirmed: this.form.licenseConfirmed,
+      dokumeQrUrl: this.form.dokumeQrUrl || undefined,
+      licenseCheckOverrideReason: this.form.licenseCheckOverrideReason || undefined
+    };
+
+    this.api.createRegistration(id, request).subscribe({
       next: () => {
         // Update athlete if weight or license changed during registration
         const selected = this.athletes().find((a) => a.id === this.form.athleteId);
         const weightChanged = selected && this.form.weightKg && selected.weightKg !== this.form.weightKg;
         const licenseChanged = selected && this.form.licenseId && selected.licenseId !== this.form.licenseId;
-        
+
         if (weightChanged || licenseChanged) {
           const updateRequest = {
             clubId: selected!.clubId,
