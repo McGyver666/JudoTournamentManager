@@ -77,6 +77,39 @@ public sealed class RegistrationsStoreTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task CreateWithLicenseCheckAsync_PersistsQrLicenseNumberWithoutUpdatingAthleteLicense()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tournamentId, athleteId, _) = await SeedAsync(ctx);
+        var athlete = await ctx.Athletes.SingleAsync(a => a.Id == athleteId);
+        athlete.LicenseId = "legacy-license";
+        await ctx.SaveChangesAsync();
+
+        var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        var created = await store.CreateWithLicenseCheckAsync(
+            tournamentId,
+            athleteId,
+            25.0m,
+            true,
+            "https://qr.dokume.net?d=l&s=token",
+            null,
+            new TestDokumePassParser(),
+            new DateOnly(2026, 1, 1),
+            "operator",
+            CancellationToken.None);
+
+        await ctx.Entry(athlete).ReloadAsync();
+        var registration = await ctx.Registrations.SingleAsync(r => r.Id == created!.Id);
+
+        Assert.NotNull(created);
+        Assert.Equal("qr-license", registration.LicenseNumber);
+        Assert.Equal("legacy-license", athlete.LicenseId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task GetDetailedAsync_IncludesAthleteAndCategoryInfo()
     {
         var db = CreateDatabasePath();
@@ -150,5 +183,24 @@ public sealed class RegistrationsStoreTests
         var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
 
         Assert.False(await store.DeleteAsync(Guid.NewGuid(), CancellationToken.None));
+    }
+
+    private sealed class TestDokumePassParser : IDokumePassParser
+    {
+        public DokumePassCheckResult? ParseQrUrl(string? qrUrl) => new()
+        {
+            PassNumber = "qr-license",
+            ExpiryDate = new DateOnly(2027, 1, 1)
+        };
+
+        public DokumePassValidationResult ValidatePass(
+            DokumePassCheckResult parsed,
+            DateOnly tournamentDate,
+            string athleteFirstName,
+            string athleteLastName,
+            int athleteBirthYear) => new()
+            {
+                IsValid = true
+            };
     }
 }

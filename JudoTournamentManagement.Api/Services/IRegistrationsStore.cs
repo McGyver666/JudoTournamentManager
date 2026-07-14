@@ -20,8 +20,7 @@ public interface IRegistrationsStore
 
     /// <summary>
     /// Registers an athlete (without assigning a category).
-    /// Captures weight and license information at registration time.
-    /// Optionally processes and validates a DokuMe QR code if provided.
+    /// Captures weight and license confirmation at registration time.
     /// Returns <c>null</c> when the athlete already has a registration in this tournament
     /// (one registration per athlete per tournament).
     /// </summary>
@@ -29,7 +28,6 @@ public interface IRegistrationsStore
         Guid tournamentId,
         Guid athleteId,
         decimal weightKg,
-        string? licenseId,
         bool licenseConfirmed,
         CancellationToken cancellationToken);
 
@@ -43,7 +41,6 @@ public interface IRegistrationsStore
         Guid tournamentId,
         Guid athleteId,
         decimal weightKg,
-        string? licenseId,
         bool licenseConfirmed,
         string? dokumeQrUrl,
         string? licenseCheckOverrideReason,

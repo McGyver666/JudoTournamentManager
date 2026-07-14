@@ -238,7 +238,6 @@ export interface RegistrationDetail {
   athleteBirthYear: number;
   athleteGender: Gender;
   athleteClubName: string;
-  athleteLicenseId: string | null;
   athleteWeightKg: number | null;
   categoryId: string | null;
   categoryName: string | null;
@@ -257,7 +256,6 @@ export interface RegistrationDetail {
 export interface CreateRegistrationRequest {
   athleteId: string;
   weightKg: number;
-  licenseId: string | null;
   licenseConfirmed: boolean;
   dokumeQrUrl?: string;
   licenseCheckOverrideReason?: string;

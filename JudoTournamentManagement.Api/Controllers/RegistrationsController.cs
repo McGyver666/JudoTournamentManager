@@ -114,7 +114,7 @@ public sealed class RegistrationsController : ControllerBase
         var registrations = await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken);
 
         var sb = new StringBuilder();
-        sb.AppendLine("Kategorie;Altersklasse;Geschlecht;Gewichtsklasse;Nachname;Vorname;Jahrgang;Verein;Lizenznummer;Gewicht;Lizenzbest");
+        sb.AppendLine("Kategorie;Altersklasse;Geschlecht;Gewichtsklasse;Nachname;Vorname;Jahrgang;Verein;Gewicht;Lizenzbest;Lizenznummer;Lizenzablauf");
 
         foreach (var r in registrations)
         {
@@ -144,9 +144,10 @@ public sealed class RegistrationsController : ControllerBase
                 EscapeCsv(r.AthleteFirstName),
                 r.AthleteBirthYear.ToString(),
                 EscapeCsv(r.AthleteClubName),
-                EscapeCsv(r.AthleteLicenseId ?? string.Empty),
                 EscapeCsv(athleteWeight),
-                EscapeCsv(licenseConfirmed)));
+                EscapeCsv(licenseConfirmed),
+                EscapeCsv(r.LicenseNumber ?? string.Empty),
+                EscapeCsv(r.PassExpiryDate?.ToString("yyyy-MM-dd") ?? string.Empty)));
         }
 
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());
@@ -194,7 +195,6 @@ public sealed class RegistrationsController : ControllerBase
                 tournamentId,
                 request.AthleteId,
                 request.WeightKg,
-                request.LicenseId,
                 request.LicenseConfirmed,
                 request.DokumeQrUrl,
                 request.LicenseCheckOverrideReason,
@@ -232,7 +232,6 @@ public sealed class RegistrationsController : ControllerBase
             tournamentId,
             request.AthleteId,
             request.WeightKg,
-            request.LicenseId,
             request.LicenseConfirmed,
             cancellationToken);
 
