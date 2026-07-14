@@ -341,5 +341,25 @@
   "results.tab.medals": "Medal table",
   "results.athlete": "Athlete",
   "results.club": "Club",
-  "results.noResults": "No completed fights yet."
+  "results.noResults": "No completed fights yet.",
+
+  "registrations.scan": "Scan QR code",
+  "registrations.startCamera": "Start camera",
+  "registrations.stopCamera": "Stop camera",
+  "registrations.cameraAccess": "Requesting camera access…",
+  "registrations.cameraNotAvailable": "Camera not available. Please access via HTTPS or localhost.",
+  "registrations.licenseCheckResult": "License verification",
+  "registrations.licenseNumber": "License number",
+  "registrations.licenseExpiry": "Valid until",
+  "registrations.licenseValid": "License valid",
+  "registrations.licenseExpired": "License expired",
+  "registrations.licenseNameMismatch": "Name does not match",
+  "registrations.licenseBirthYearMismatch": "Birth year does not match",
+  "registrations.licenseInvalid": "License invalid or unreadable",
+  "registrations.signatureNotVerified": "Signature currently not verified",
+  "registrations.override": "Override verification",
+  "registrations.overrideReason": "Reason for override",
+  "registrations.overrideReasonHint": "E.g., 'Athlete has license but QR is invalid'",
+  "registrations.overrideConfirm": "Register despite failed license verification",
+  "registrations.licenseCheckRequired": "License verification required or provide override reason"
 }
