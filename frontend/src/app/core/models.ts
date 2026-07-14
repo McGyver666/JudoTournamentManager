@@ -246,6 +246,11 @@ export interface RegistrationDetail {
   categoryGender: Gender | null;
   categoryWeightClassKg: number | null;
   licenseConfirmed: boolean;
+  licenseNumber: string | null;
+  passExpiryDate: string | null;
+  licenseCheckPassed: boolean | null;
+  licenseVerifiedAtUtc: string | null;
+  licenseVerifiedByUser: string | null;
   createdAtUtc: string;
 }
 
@@ -254,6 +259,20 @@ export interface CreateRegistrationRequest {
   weightKg: number;
   licenseId: string | null;
   licenseConfirmed: boolean;
+  dokumeQrUrl?: string;
+  licenseCheckOverrideReason?: string;
+}
+
+export interface DokumePassCheckResult {
+  passNumber: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  dateOfBirth: string | null;
+  licenseTypeName: string | null;
+  expiryDate: string | null;
+  issuer: string | null;
+  isRs384Claimed: boolean;
+  signatureVerified: boolean;
 }
 
 export interface AssignCategoryRequest {
