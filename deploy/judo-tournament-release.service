@@ -1,0 +1,19 @@
+[Unit]
+Description=Judo Tournament Management API
+After=network.target
+
+[Service]
+Type=simple
+User=judo
+Group=judo
+WorkingDirectory=/opt/judo-tournament/app
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+Environment=HOME=/opt/judo-tournament
+EnvironmentFile=/etc/default/judo-tournament
+ExecStart=/opt/judo-tournament/app/JudoTournamentManagement.Api
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
