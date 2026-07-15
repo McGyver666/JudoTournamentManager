@@ -5,6 +5,9 @@ namespace JudoTournamentManagement.Api.Models;
 /// </summary>
 public sealed record Dm4AthleteImportData(
     string ClubName,
+    string? ContactName,
+    string? ContactEmail,
+    string? ContactPhone,
     Gender Gender,
     IReadOnlyList<Dm4AthleteImportRow> Athletes);
 

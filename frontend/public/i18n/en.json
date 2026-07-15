@@ -15,6 +15,7 @@
   "common.create": "Create",
   "common.save": "Save",
   "common.cancel": "Cancel",
+  "common.ok": "OK",
   "common.edit": "Edit",
   "common.delete": "Delete",
   "common.close": "Close",
@@ -299,6 +300,9 @@
   "match.confirmWhiteWins": "White wins",
   "match.confirmBlueWins": "Blue wins",
   "match.confirmRedWins": "Red wins",
+  "match.confirmWinnerDialogTitle": "Load next fight?",
+  "match.confirmWinnerDialogHint": "The result will be confirmed and the next fight will then be loaded onto this tatami.",
+  "match.noUpcomingFightToLoad": "There is currently no next fight in the queue.",
   "match.openTatamiDisplay": "Tatami display",
 
   "tatamiAssignment.title": "Tatami Assignment",
@@ -320,6 +324,7 @@
   "tatamiAssignment.unknownCategory": "Unknown category",
   "tatamiAssignment.alreadyAssigned": "All assignable fights are already distributed across tatamis.",
   "tatamiAssignment.autoAssignDone": "{count} fights were distributed to tatamis.",
+  "tatamiAssignment.assignCategory": "Assign category",
   "tatamiAssignment.round": "Round",
   "tatamiAssignment.fight": "Fight",
 

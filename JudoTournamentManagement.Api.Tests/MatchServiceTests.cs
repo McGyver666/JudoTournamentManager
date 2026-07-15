@@ -51,7 +51,7 @@ public sealed class MatchServiceTests
         var t = await tStore.CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var club = await clubStore.CreateAsync(t.Id, "JC Test", CancellationToken.None);
+        var club = await clubStore.CreateAsync(t.Id, "JC Test", null, null, null, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         var athleteIds = new List<Guid>();

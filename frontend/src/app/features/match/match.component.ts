@@ -29,6 +29,12 @@ import {
 
 const OPERATOR_NAME_KEY = 'judo.operatorName';
 
+interface WinnerConfirmationState {
+  fight: Fight;
+  winnerId: string;
+  nextFight: Fight | null;
+}
+
 @Component({
   selector: 'app-match',
   standalone: true,
@@ -54,6 +60,8 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly operatorName = signal<string>(this.restoreOperatorName());
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly loading = signal(false);
+  protected readonly winnerConfirmation = signal<WinnerConfirmationState | null>(null);
+  protected readonly confirmingWinner = signal(false);
 
   /** Remaining seconds in the current fight's countdown. */
   protected readonly timerSeconds = signal<number | null>(null);
@@ -321,6 +329,10 @@ export class MatchComponent implements OnInit, OnDestroy {
     return a ? `${a.lastName}, ${a.firstName}` : id.substring(0, 8);
   }
 
+  protected categoryName(id: string): string {
+    return this.categories().find((category) => category.id === id)?.name ?? id;
+  }
+
   protected startFight(fight: Fight): void {
     if (!this.canOperate()) return;
     const tid = this.context.tournamentId();
@@ -412,12 +424,40 @@ export class MatchComponent implements OnInit, OnDestroy {
     }
 
   protected confirmWinner(fight: Fight, winnerId: string): void {
-    if (!this.canOperate()) return;
+    if (!this.canOperate() || this.confirmingWinner()) return;
+    this.winnerConfirmation.set({
+      fight,
+      winnerId,
+      nextFight: this.queue()?.next ?? null,
+    });
+  }
+
+  protected cancelWinnerConfirmation(): void {
+    if (this.confirmingWinner()) {
+      return;
+    }
+
+    this.winnerConfirmation.set(null);
+  }
+
+  protected confirmWinnerAndLoadNext(): void {
+    if (!this.canOperate() || this.confirmingWinner()) return;
     const tid = this.context.tournamentId();
-    if (!tid) return;
-    this.api.confirmResult(tid, fight.id, { winnerId }, this.operatorName()).subscribe({
-      next: () => { this.queue.set(null); this.refreshQueue(); },
-      error: () => this.errorMessage.set('Ergebnis konnte nicht bestätigt werden.'),
+    const confirmation = this.winnerConfirmation();
+    if (!tid || !confirmation) return;
+
+    this.confirmingWinner.set(true);
+    this.api.confirmResult(tid, confirmation.fight.id, { winnerId: confirmation.winnerId }, this.operatorName()).subscribe({
+      next: () => {
+        this.winnerConfirmation.set(null);
+        this.queue.set(null);
+        this.refreshQueue();
+        this.confirmingWinner.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Ergebnis konnte nicht bestätigt werden.');
+        this.confirmingWinner.set(false);
+      },
     });
   }
 

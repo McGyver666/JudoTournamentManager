@@ -21,12 +21,12 @@ public interface IClubsStore
     /// Creates a new club. Returns <c>null</c> when a club with the same name already
     /// exists within the tournament (case-insensitive).
     /// </summary>
-    Task<Club?> CreateAsync(Guid tournamentId, string name, CancellationToken cancellationToken);
+    Task<Club?> CreateAsync(Guid tournamentId, string name, string? contactName, string? contactEmail, string? contactPhone, CancellationToken cancellationToken);
 
     /// <summary>
     /// Updates an existing club. Returns <c>false</c> if the club was not found.
     /// </summary>
-    Task<bool> UpdateAsync(Guid clubId, string name, CancellationToken cancellationToken);
+    Task<bool> UpdateAsync(Guid clubId, string name, string? contactName, string? contactEmail, string? contactPhone, CancellationToken cancellationToken);
 
     /// <summary>
     /// Deletes a club. Returns <c>false</c> if the club was not found.

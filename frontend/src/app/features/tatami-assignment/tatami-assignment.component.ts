@@ -19,6 +19,13 @@ interface FightAssignmentView {
   blueName: string;
 }
 
+interface CategoryFightGroup {
+  categoryId: string;
+  categoryName: string;
+  fights: FightAssignmentView[];
+  assignedCount: number;
+}
+
 @Component({
   selector: 'app-tatami-assignment',
   standalone: true,
@@ -43,6 +50,7 @@ export class TatamiAssignmentComponent implements OnInit {
   protected readonly info = signal<string | null>(null);
   protected readonly operatorName = signal<string>(this.restoreOperatorName());
   protected readonly keepCategoryOnSingleTatami = signal(false);
+  protected readonly categoryTatamiSelections = signal<Partial<Record<string, string>>>({});
 
   protected readonly activeTatamis = computed(() =>
     this.tatamis()
@@ -65,9 +73,13 @@ export class TatamiAssignmentComponent implements OnInit {
     return this.fights()
       .filter((f) => this.isAssignable(f))
       .sort((a, b) => {
+        const aCategoryName = categoryMap.get(a.categoryId) ?? this.i18n.translate('tatamiAssignment.unknownCategory');
+        const bCategoryName = categoryMap.get(b.categoryId) ?? this.i18n.translate('tatamiAssignment.unknownCategory');
+        const categoryCompare = aCategoryName.localeCompare(bCategoryName);
+        if (categoryCompare !== 0) return categoryCompare;
         if (a.round !== b.round) return a.round - b.round;
         if (a.fightNumber !== b.fightNumber) return a.fightNumber - b.fightNumber;
-        return a.categoryId.localeCompare(b.categoryId);
+        return a.id.localeCompare(b.id);
       })
       .map((fight) => ({
         fight,
@@ -75,6 +87,29 @@ export class TatamiAssignmentComponent implements OnInit {
         whiteName: this.athleteName(fight.whiteAthleteId),
         blueName: this.athleteName(fight.blueAthleteId),
       } satisfies FightAssignmentView));
+  });
+
+  protected readonly groupedAssignableFightViews = computed(() => {
+    const groupMap = new Map<string, CategoryFightGroup>();
+    for (const view of this.assignableFightViews()) {
+      const existing = groupMap.get(view.fight.categoryId);
+      if (existing) {
+        existing.fights.push(view);
+        if (view.fight.tatamiId !== null) {
+          existing.assignedCount++;
+        }
+        continue;
+      }
+
+      groupMap.set(view.fight.categoryId, {
+        categoryId: view.fight.categoryId,
+        categoryName: view.categoryName,
+        fights: [view],
+        assignedCount: view.fight.tatamiId !== null ? 1 : 0,
+      });
+    }
+
+    return Array.from(groupMap.values());
   });
 
   protected readonly assignedCount = computed(() =>
@@ -218,6 +253,64 @@ export class TatamiAssignmentComponent implements OnInit {
     });
   }
 
+  protected updateCategoryTatamiSelection(categoryId: string, tatamiIdValue: string): void {
+    this.categoryTatamiSelections.update((selections) => ({
+      ...selections,
+      [categoryId]: tatamiIdValue,
+    }));
+  }
+
+  protected assignCategory(categoryId: string): void {
+    if (!this.canOperate()) {
+      return;
+    }
+
+    const id = this.tournamentId;
+    if (!id || this.assigning()) {
+      return;
+    }
+
+    const selectedTatamiId = this.categoryTatamiSelections()[categoryId] ?? '';
+    const tatamiId = selectedTatamiId || null;
+    const categoryViews = this.groupedAssignableFightViews().find((group) => group.categoryId === categoryId)?.fights ?? [];
+    if (categoryViews.length === 0) {
+      return;
+    }
+
+    const assignments = categoryViews
+      .map((view) => ({
+        fightId: view.fight.id,
+        currentTatamiId: view.fight.tatamiId,
+      }))
+      .filter((assignment) => assignment.currentTatamiId !== tatamiId);
+
+    if (assignments.length === 0) {
+      this.info.set(this.i18n.translate('tatamiAssignment.alreadyAssigned'));
+      return;
+    }
+
+    this.assigning.set(true);
+    this.clearMessages();
+
+    forkJoin(assignments.map((assignment) =>
+      this.api.assignTatami(id, assignment.fightId, { tatamiId }, this.operatorName()))).subscribe({
+      next: () => {
+        const assignmentMap = new Map(assignments.map((assignment) => [assignment.fightId, tatamiId]));
+        this.fights.update((fights) =>
+          fights.map((fight) => {
+            const newTatamiId = assignmentMap.get(fight.id);
+            return newTatamiId !== undefined ? { ...fight, tatamiId: newTatamiId } : fight;
+          }));
+        this.info.set(this.i18n.translate('tatamiAssignment.autoAssignDone', { count: assignments.length }));
+        this.assigning.set(false);
+      },
+      error: (err) => {
+        this.error.set(extractApiError(err, this.i18n.translate('errors.save')));
+        this.assigning.set(false);
+      },
+    });
+  }
+
   private loadFightsForCategories(categories: Category[]): void {
     const id = this.tournamentId;
     if (!id) {
@@ -256,9 +349,7 @@ export class TatamiAssignmentComponent implements OnInit {
 
   private isAssignable(fight: Fight): boolean {
     return fight.status === 'Pending'
-      && !fight.isBye
-      && fight.whiteAthleteId !== null
-      && fight.blueAthleteId !== null;
+      && !fight.isBye;
   }
 
   private buildCategoryStickyAssignments(

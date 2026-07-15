@@ -90,6 +90,39 @@ public sealed class Dm4AthleteImportParser : IDm4AthleteImportParser
         }
 
         var clubName = clubFields[1].Trim();
+
+        string? contactName = null;
+        string? contactEmail = null;
+        string? contactPhone = null;
+
+        if (clubFields.Count > 5)
+        {
+            var firstName = clubFields[5].Trim();
+            var lastName = clubFields[4].Trim();
+            if (!string.IsNullOrEmpty(firstName) || !string.IsNullOrEmpty(lastName))
+            {
+                contactName = $"{firstName} {lastName}".Trim();
+            }
+        }
+
+        if (clubFields.Count > 9)
+        {
+            var phone = clubFields[9].Trim();
+            if (!string.IsNullOrEmpty(phone))
+            {
+                contactPhone = phone;
+            }
+        }
+
+        if (clubFields.Count > 12)
+        {
+            var email = clubFields[12].Trim();
+            if (!string.IsNullOrEmpty(email))
+            {
+                contactEmail = email;
+            }
+        }
+
         var athletes = new List<Dm4AthleteImportRow>(participantLines.Count);
 
         foreach (var participantLine in participantLines)
@@ -140,7 +173,7 @@ public sealed class Dm4AthleteImportParser : IDm4AthleteImportParser
             athletes.Add(new Dm4AthleteImportRow(lastName, firstName, grade, weight, birthYear));
         }
 
-        return new Dm4AthleteImportData(clubName, gender, athletes);
+        return new Dm4AthleteImportData(clubName, contactName, contactEmail, contactPhone, gender, athletes);
     }
 
     private static Gender ParseGender(string? marker)

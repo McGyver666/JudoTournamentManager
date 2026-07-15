@@ -46,7 +46,7 @@ public sealed class SqliteClubsStore : IClubsStore
     }
 
     /// <inheritdoc />
-    public async Task<Club?> CreateAsync(Guid tournamentId, string name, CancellationToken cancellationToken)
+    public async Task<Club?> CreateAsync(Guid tournamentId, string name, string? contactName, string? contactEmail, string? contactPhone, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(name);
 
@@ -69,6 +69,9 @@ public sealed class SqliteClubsStore : IClubsStore
             Id = Guid.NewGuid(),
             TournamentId = tournamentId,
             Name = trimmedName,
+            ContactName = string.IsNullOrWhiteSpace(contactName) ? null : contactName.Trim(),
+            ContactEmail = string.IsNullOrWhiteSpace(contactEmail) ? null : contactEmail.Trim(),
+            ContactPhone = string.IsNullOrWhiteSpace(contactPhone) ? null : contactPhone.Trim(),
             CreatedAtUtc = utcNow,
             UpdatedAtUtc = utcNow
         };
@@ -80,7 +83,7 @@ public sealed class SqliteClubsStore : IClubsStore
     }
 
     /// <inheritdoc />
-    public async Task<bool> UpdateAsync(Guid clubId, string name, CancellationToken cancellationToken)
+    public async Task<bool> UpdateAsync(Guid clubId, string name, string? contactName, string? contactEmail, string? contactPhone, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(name);
 
@@ -94,6 +97,9 @@ public sealed class SqliteClubsStore : IClubsStore
         }
 
         record.Name = name.Trim();
+        record.ContactName = string.IsNullOrWhiteSpace(contactName) ? null : contactName.Trim();
+        record.ContactEmail = string.IsNullOrWhiteSpace(contactEmail) ? null : contactEmail.Trim();
+        record.ContactPhone = string.IsNullOrWhiteSpace(contactPhone) ? null : contactPhone.Trim();
         record.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -126,5 +132,5 @@ public sealed class SqliteClubsStore : IClubsStore
     }
 
     private static Club MapToModel(ClubRecord record) =>
-        new(record.Id, record.TournamentId, record.Name, record.CreatedAtUtc, record.UpdatedAtUtc);
+        new(record.Id, record.TournamentId, record.Name, record.ContactName, record.ContactEmail, record.ContactPhone, record.CreatedAtUtc, record.UpdatedAtUtc);
 }
