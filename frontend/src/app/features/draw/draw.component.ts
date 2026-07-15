@@ -321,12 +321,13 @@ export class DrawComponent implements OnInit {
 
       const sourceRect = sourceElement.getBoundingClientRect();
       const targetRect = targetElement.getBoundingClientRect();
+      const sourceAnchorRect = this.sourceAnchorRect(sourceElement, sourceRect);
       const targetSlot = fight.fightNumber % 2 === 1 ? '.slot.white' : '.slot.blue';
       const targetSlotElement = targetElement.querySelector(targetSlot) as HTMLElement | null;
       const targetAnchorRect = targetSlotElement?.getBoundingClientRect() ?? targetRect;
 
       const x1 = sourceRect.right - bracketRect.left + bracket.scrollLeft;
-      const y1 = sourceRect.top + sourceRect.height / 2 - bracketRect.top + bracket.scrollTop;
+      const y1 = sourceAnchorRect.top + sourceAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
       const x2 = targetRect.left - bracketRect.left + bracket.scrollLeft;
       const y2 = targetAnchorRect.top + targetAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
 
@@ -387,10 +388,11 @@ export class DrawComponent implements OnInit {
 
     const sourceRect = sourceElement.getBoundingClientRect();
     const targetRect = targetElement.getBoundingClientRect();
+  const sourceAnchorRect = this.sourceAnchorRect(sourceElement, sourceRect);
     const targetSlotElement = targetElement.querySelector(targetSlot) as HTMLElement | null;
     const targetAnchorRect = targetSlotElement?.getBoundingClientRect() ?? targetRect;
     const x1 = sourceRect.right - bracketRect.left + bracket.scrollLeft;
-    const y1 = sourceRect.top + sourceRect.height / 2 - bracketRect.top + bracket.scrollTop;
+  const y1 = sourceAnchorRect.top + sourceAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
     const x2 = targetRect.left - bracketRect.left + bracket.scrollLeft;
     const y2 = targetAnchorRect.top + targetAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
     const midX = x1 + Math.max(12, Math.min(46, (x2 - x1) * 0.5));
@@ -399,6 +401,11 @@ export class DrawComponent implements OnInit {
       id: `${source.id}-${target.id}-${targetSlot}`,
       d: `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`,
     };
+  }
+
+  private sourceAnchorRect(sourceElement: HTMLElement, fallbackRect: DOMRect): DOMRect {
+    const sourceHeaderElement = sourceElement.querySelector('.fight-no') as HTMLElement | null;
+    return sourceHeaderElement?.getBoundingClientRect() ?? fallbackRect;
   }
 
   protected loadFightsForCategory(categoryId: string): void {
@@ -636,6 +643,23 @@ export class DrawComponent implements OnInit {
     return a ? `${a.lastName}, ${a.firstName}` : this.i18n.translate('draw.tbd');
   }
 
+  protected isPlaceholderSlot(
+    athleteId: string | null,
+    isBye: boolean,
+    categoryId?: string,
+    fight?: Fight,
+    side?: 'white' | 'blue',
+  ): boolean {
+    if (athleteId || (isBye && !athleteId)) {
+      return false;
+    }
+
+    const source = categoryId && fight && side
+      ? this.slotSource(categoryId, fight, side)
+      : null;
+    return !source?.isBye;
+  }
+
   private slotSource(
     categoryId: string,
     fight: Fight,
@@ -768,6 +792,7 @@ export class DrawComponent implements OnInit {
   }
 
   private applyRoundVerticalAlignment(bracket: HTMLElement): void {
+    const context = this.bracketContext(bracket.id);
     const rounds = Array.from(bracket.querySelectorAll('.round')) as HTMLElement[];
     if (rounds.length <= 1) {
       return;
@@ -807,11 +832,106 @@ export class DrawComponent implements OnInit {
       const desiredTopOffset = ((2 ** roundIndex) - 1) * baselineCenterDistance / 2;
       const desiredInterFightGap = Math.max(0, desiredCenterDistance - baselineHeight);
 
-      fights[0].style.marginTop = `${desiredTopOffset}px`;
-      for (let fightIndex = 1; fightIndex < fights.length; fightIndex += 1) {
-        fights[fightIndex].style.marginTop = `${desiredInterFightGap}px`;
+      const fallbackTopOffsets = fights.map((_, fightIndex) => fightIndex === 0 ? desiredTopOffset : desiredInterFightGap);
+      const aligned = context
+        ? this.alignRoundToVisibleSources(bracket, context.categoryId, fights, fallbackTopOffsets)
+        : false;
+
+      if (!aligned) {
+        fights[0].style.marginTop = `${desiredTopOffset}px`;
+        for (let fightIndex = 1; fightIndex < fights.length; fightIndex += 1) {
+          fights[fightIndex].style.marginTop = `${desiredInterFightGap}px`;
+        }
       }
     }
+  }
+
+  private alignRoundToVisibleSources(
+    bracket: HTMLElement,
+    categoryId: string,
+    fights: HTMLElement[],
+    fallbackTopOffsets: number[],
+  ): boolean {
+    const fightsById = new Map(this.fightsForCategory(categoryId).map((fight) => [fight.id, fight]));
+    let usedVisibleSources = false;
+
+    for (let fightIndex = 0; fightIndex < fights.length; fightIndex += 1) {
+      const fightElement = fights[fightIndex];
+      const fightId = fightElement.dataset['fightId'];
+      const fightModel = fightId ? fightsById.get(fightId) : undefined;
+      const sourceTop = fightModel
+        ? this.desiredFightTopFromVisibleSources(bracket, fightElement, fightModel)
+        : null;
+
+      if (sourceTop === null) {
+        fightElement.style.marginTop = `${fallbackTopOffsets[fightIndex]}px`;
+        continue;
+      }
+
+      usedVisibleSources = true;
+      const currentTop = fightElement.getBoundingClientRect().top;
+      const nextMarginTop = Math.max(0, sourceTop - currentTop);
+      fightElement.style.marginTop = `${nextMarginTop}px`;
+    }
+
+    return usedVisibleSources;
+  }
+
+  private desiredFightTopFromVisibleSources(
+    bracket: HTMLElement,
+    fightElement: HTMLElement,
+    fight: Fight,
+  ): number | null {
+    const references = [
+      { sourceId: fight.whiteSourceFightId, targetSlot: '.slot.white' },
+      { sourceId: fight.blueSourceFightId, targetSlot: '.slot.blue' },
+    ];
+
+    const desiredTops: number[] = [];
+    for (const reference of references) {
+      if (!reference.sourceId) {
+        continue;
+      }
+
+      const sourceElement = bracket.querySelector(`.fight[data-fight-id="${reference.sourceId}"]`) as HTMLElement | null;
+      const targetSlotElement = fightElement.querySelector(reference.targetSlot) as HTMLElement | null;
+      if (!sourceElement || !targetSlotElement) {
+        continue;
+      }
+
+      const sourceRect = sourceElement.getBoundingClientRect();
+      const slotRect = targetSlotElement.getBoundingClientRect();
+      const fightRect = fightElement.getBoundingClientRect();
+      const slotCenterOffset = slotRect.top + slotRect.height / 2 - fightRect.top;
+      desiredTops.push(sourceRect.top + sourceRect.height / 2 - slotCenterOffset);
+    }
+
+    if (desiredTops.length === 0) {
+      return null;
+    }
+
+    return desiredTops.reduce((sum, top) => sum + top, 0) / desiredTops.length;
+  }
+
+  private bracketContext(bracketId: string): { categoryId: string; bracketType: 'Main' | 'Repechage' } | null {
+    const repechagePrefix = 'bracket-';
+    const repechageSuffix = '-repechage';
+    if (bracketId.startsWith(repechagePrefix) && bracketId.endsWith(repechageSuffix)) {
+      return {
+        categoryId: bracketId.slice(repechagePrefix.length, -repechageSuffix.length),
+        bracketType: 'Repechage',
+      };
+    }
+
+    const mainSuffix = '-main';
+    if (bracketId.startsWith(repechagePrefix) && bracketId.endsWith(mainSuffix)) {
+      return {
+        categoryId: bracketId.slice(repechagePrefix.length, -mainSuffix.length),
+        bracketType: 'Main',
+      };
+    }
+
+    return null;
   }
 
   private averageFightHeight(fights: HTMLElement[]): number {

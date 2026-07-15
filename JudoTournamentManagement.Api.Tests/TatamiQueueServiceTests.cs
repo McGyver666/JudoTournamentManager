@@ -48,7 +48,7 @@ public sealed class TatamiQueueServiceTests
             .CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var club = await new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance)
-            .CreateAsync(t.Id, "JC Test", CancellationToken.None);
+            .CreateAsync(t.Id, "JC Test", null, null, null, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         for (int i = 0; i < athleteCount; i++)

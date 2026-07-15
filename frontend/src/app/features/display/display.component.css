@@ -179,7 +179,7 @@
 }
 
 .tatami-counter span {font-size:clamp(1.275rem,2.325vw,1.65rem);color:#dce8f8;text-transform:uppercase;letter-spacing:.06em}
-.tatami-counter strong {font-size:clamp(2.7rem,7.5vw,5.1rem);line-height:1}
+.tatami-counter strong {font-size:clamp(2.7rem,7.5vw,5.1rem);line-height:1;color:var(--side-accent-contrast)}
 
 .tatami-counter--ippon {
 	background: rgba(8, 24, 44, 0.36);

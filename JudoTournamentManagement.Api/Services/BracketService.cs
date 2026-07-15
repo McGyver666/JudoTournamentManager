@@ -29,17 +29,6 @@ public sealed class BracketService : IBracketService
         BracketFormat format,
         CancellationToken cancellationToken)
     {
-        // Check for unassigned athletes
-        var unassignedCount = await _dbContext.Registrations
-            .AsNoTracking()
-            .CountAsync(r => r.TournamentId == tournamentId && r.CategoryId == null, cancellationToken);
-
-        if (unassignedCount > 0)
-        {
-            throw new InvalidOperationException(
-                $"Auslosung nicht möglich: {unassignedCount} Athleten ohne zugewiesene Kategorie.");
-        }
-
         // Retrieve registered athletes ordered deterministically before shuffling
         var registrations = await _dbContext.Registrations
             .AsNoTracking()

@@ -333,8 +333,8 @@ public sealed class ControllerUnitTests
         var mockTournamentStore = new Mock<ITournamentStore>();
         mockTournamentStore.Setup(s => s.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
-        mockClubsStore.Setup(s => s.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Club(clubId, tournamentId, "Test Club", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+        mockClubsStore.Setup(s => s.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Club(clubId, tournamentId, "Test Club", null, null, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
         var controller = new ClubsController(mockClubsStore.Object, mockTournamentStore.Object);
         var request = new CreateClubRequest { Name = "Test Club" };
 
@@ -390,7 +390,7 @@ public sealed class ControllerUnitTests
 
         mockClubsStore
             .Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new Club(clubId, tournamentId, "Test Club", now, now)]);
+            .ReturnsAsync([new Club(clubId, tournamentId, "Test Club", null, null, null, now, now)]);
 
         mockAthletesStore
             .Setup(s => s.CreateBulkAsync(
@@ -456,14 +456,15 @@ public sealed class ControllerUnitTests
             .ReturnsAsync([]);
 
         mockClubsStore
-            .Setup(s => s.CreateAsync(tournamentId, "DJK D\u00fclmen", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Club(clubId, tournamentId, "DJK D\u00fclmen", now, now));
+            .Setup(s => s.CreateAsync(tournamentId, "DJK Dülmen", "Jean-Andre Meis", "jean-andre.meis@posteo.de", "01794853997", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Club(clubId, tournamentId, "DJK Dülmen", null, null, null, now, now));
 
         mockDm4Parser
             .Setup(x => x.Parse(It.IsAny<ReadOnlyMemory<byte>>()))
             .Returns(new Dm4AthleteImportData(
-                "DJK D\u00fclmen",
-                Gender.Male,
+                "DJK D\u00fclmen",                "Jean-Andre Meis",
+                "jean-andre.meis@posteo.de",
+                "01794853997",                Gender.Male,
                 [new Dm4AthleteImportRow("Muster", "Max", 3, 30.5m, 2010)]));
 
         mockAthletesStore
@@ -489,7 +490,7 @@ public sealed class ControllerUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
 
-        mockClubsStore.Verify(s => s.CreateAsync(tournamentId, "DJK D\u00fclmen", It.IsAny<CancellationToken>()), Times.Once);
+        mockClubsStore.Verify(s => s.CreateAsync(tournamentId, "DJK Dülmen", "Jean-Andre Meis", "jean-andre.meis@posteo.de", "01794853997", It.IsAny<CancellationToken>()), Times.Once);
         mockAthletesStore.Verify(s => s.CreateBulkAsync(
             tournamentId,
             It.Is<IReadOnlyList<AthleteImportItem>>(items =>

@@ -15,6 +15,7 @@
   "common.create": "Anlegen",
   "common.save": "Speichern",
   "common.cancel": "Abbrechen",
+  "common.ok": "OK",
   "common.edit": "Bearbeiten",
   "common.delete": "Löschen",
   "common.close": "Schließen",
@@ -299,6 +300,9 @@
   "match.confirmWhiteWins": "Weiß gewinnt",
   "match.confirmBlueWins": "Blau gewinnt",
   "match.confirmRedWins": "Rot gewinnt",
+  "match.confirmWinnerDialogTitle": "Nächsten Kampf laden?",
+  "match.confirmWinnerDialogHint": "Das Ergebnis wird bestätigt und anschließend der nächste Kampf auf diese Matte nachgeladen.",
+  "match.noUpcomingFightToLoad": "Es ist aktuell kein nächster Kampf in der Warteschlange.",
   "match.openTatamiDisplay": "Tatami-Anzeige",
 
   "tatamiAssignment.title": "Mattenzuordnung",
@@ -320,6 +324,7 @@
   "tatamiAssignment.unknownCategory": "Unbekannte Kategorie",
   "tatamiAssignment.alreadyAssigned": "Alle zuweisbaren Kämpfe sind bereits auf Matten verteilt.",
   "tatamiAssignment.autoAssignDone": "{count} Kämpfe wurden automatisch auf Matten verteilt.",
+  "tatamiAssignment.assignCategory": "Kategorie zuweisen",
   "tatamiAssignment.round": "Runde",
   "tatamiAssignment.fight": "Kampf",
 

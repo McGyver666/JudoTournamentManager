@@ -166,6 +166,7 @@ static async Task InitializeDatabaseAsync(WebApplication application)
     await EnsureLegacyFightWhiteSideColumnsAsync(dbContext, logger);
     await EnsureLegacyTournamentAccentSideColorColumnAsync(dbContext, logger);
     await EnsureCategoryPresetsTableAsync(dbContext, logger);
+    await EnsureClubContactColumnsAsync(dbContext, logger);
 }
 
 static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, ILogger logger)
@@ -459,6 +460,25 @@ static async Task EnsureCategoryPresetsTableAsync(AppDbContext dbContext, ILogge
         "CREATE INDEX IF NOT EXISTS \"IX_CategoryPresets_TournamentId\" ON \"CategoryPresets\" (\"TournamentId\");");
 
     logger.LogWarning("Schema patch applied: created missing CategoryPresets table.");
+}
+
+static async Task EnsureClubContactColumnsAsync(AppDbContext dbContext, ILogger logger)
+{
+    var hasContactEmail = await ColumnExistsAsync(dbContext, "Clubs", "ContactEmail");
+    if (hasContactEmail)
+    {
+        logger.LogInformation("Schema check: Clubs contact columns already exist.");
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "ALTER TABLE \"Clubs\" ADD COLUMN \"ContactName\" TEXT NULL;");
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "ALTER TABLE \"Clubs\" ADD COLUMN \"ContactEmail\" TEXT NULL;");
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "ALTER TABLE \"Clubs\" ADD COLUMN \"ContactPhone\" TEXT NULL;");
+
+    logger.LogWarning("Schema patch applied: added ContactName, ContactEmail, ContactPhone columns to Clubs.");
 }
 
 /// <summary>

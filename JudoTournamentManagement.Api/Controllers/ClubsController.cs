@@ -92,7 +92,7 @@ public sealed class ClubsController : ControllerBase
             return NotFound();
         }
 
-        var created = await _clubsStore.CreateAsync(tournamentId, request.Name, cancellationToken);
+        var created = await _clubsStore.CreateAsync(tournamentId, request.Name, request.ContactName, request.ContactEmail, request.ContactPhone, cancellationToken);
         if (created is null)
         {
             return Conflict(new ProblemDetails
@@ -131,7 +131,7 @@ public sealed class ClubsController : ControllerBase
             return NotFound();
         }
 
-        await _clubsStore.UpdateAsync(clubId, request.Name, cancellationToken);
+        await _clubsStore.UpdateAsync(clubId, request.Name, request.ContactName, request.ContactEmail, request.ContactPhone, cancellationToken);
         return NoContent();
     }
 
