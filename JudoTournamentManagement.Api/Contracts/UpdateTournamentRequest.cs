@@ -40,4 +40,19 @@ public sealed record UpdateTournamentRequest
     [Required]
     [RegularExpression("^(Blue|Red)$", ErrorMessage = "Die Farbseite muss Blue oder Red sein.")]
     public string AccentSideColor { get; init; } = "Blue";
+
+    /// <summary>Hold duration in seconds for Ippon. Must be between 10 and 60.</summary>
+    [Range(10, 60)]
+    public int OsaeKomiIpponSeconds { get; init; } = 20;
+
+    /// <summary>Hold duration in seconds for Waza-ari. Must be between 5 and 30.</summary>
+    [Range(5, 30)]
+    public int OsaeKomiWazaAriSeconds { get; init; } = 10;
+
+    /// <summary>Hold duration in seconds for Yuko. Must be between 1 and 15.</summary>
+    [Range(1, 15)]
+    public int OsaeKomiYukoSeconds { get; init; } = 5;
+
+    /// <summary>Whether Yuko is awarded for a hold between Yuko and Waza-ari thresholds.</summary>
+    public bool OsaeKomiYukoEnabled { get; init; } = true;
 }

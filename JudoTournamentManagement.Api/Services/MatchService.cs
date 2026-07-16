@@ -158,6 +158,8 @@ public sealed class MatchService : IMatchService
         fight.Status = InProgress;
         fight.StartedAtUtc = now - elapsedBeforePause;
         fight.PausedAtUtc = null;
+        fight.OsaeKomiSide = null;
+        fight.OsaeKomiStartedAtUtc = null;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -261,9 +263,53 @@ public sealed class MatchService : IMatchService
 
         if (fight.OsaeKomiStartedAtUtc is null || fight.OsaeKomiSide is null) return MatchActionResult.InvalidState;
 
+        // Capture hold duration and side before clearing the timer fields.
+        var holdSeconds = (int)Math.Ceiling((DateTimeOffset.UtcNow - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds);
+        var holderIsWhite = fight.OsaeKomiSide == "White";
+
+        // Load tournament Osae-komi rule settings.
+        var tournament = await _dbContext.Tournaments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == fight.TournamentId, cancellationToken);
+
+        var ipponSeconds    = tournament?.OsaeKomiIpponSeconds    ?? 20;
+        var wazaAriSeconds  = tournament?.OsaeKomiWazaAriSeconds  ?? 10;
+        var yukoSeconds     = tournament?.OsaeKomiYukoSeconds     ?? 5;
+        var yukoEnabled     = tournament?.OsaeKomiYukoEnabled     ?? true;
+
+        var holderHasWazaAri = holderIsWhite
+            ? fight.WhiteWazaAriCount > 0
+            : fight.BlueWazaAriCount > 0;
+
+        // Determine which score to award based on DJB hold-down rules.
+        ScoreType? scoreToAward = null;
+        if (holdSeconds >= ipponSeconds)
+        {
+            scoreToAward = ScoreType.Ippon;
+        }
+        else if (holderHasWazaAri && holdSeconds >= wazaAriSeconds)
+        {
+            // Second Waza-ari converts to Ippon per DJB rules.
+            scoreToAward = ScoreType.Ippon;
+        }
+        else if (holdSeconds >= wazaAriSeconds)
+        {
+            scoreToAward = ScoreType.WazaAri;
+        }
+        else if (yukoEnabled && holdSeconds >= yukoSeconds)
+        {
+            scoreToAward = ScoreType.Yuko;
+        }
+
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
         fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        if (scoreToAward is not null)
+        {
+            ApplyScoreDelta(fight, holderIsWhite, scoreToAward.Value, 1);
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _ = _hub.Clients.Group(fight.TournamentId.ToString())

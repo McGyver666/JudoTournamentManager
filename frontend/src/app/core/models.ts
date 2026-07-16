@@ -43,6 +43,10 @@ export interface Tournament {
   venue: string;
   organizer: string;
   accentSideColor: AccentSideColor;
+  osaeKomiIpponSeconds: number;
+  osaeKomiWazaAriSeconds: number;
+  osaeKomiYukoSeconds: number;
+  osaeKomiYukoEnabled: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -53,6 +57,10 @@ export interface CreateTournamentRequest {
   venue: string;
   organizer: string;
   accentSideColor: AccentSideColor;
+  osaeKomiIpponSeconds: number;
+  osaeKomiWazaAriSeconds: number;
+  osaeKomiYukoSeconds: number;
+  osaeKomiYukoEnabled: boolean;
 }
 
 export type UpdateTournamentRequest = CreateTournamentRequest;
@@ -166,12 +174,18 @@ export interface Club {
   id: string;
   tournamentId: string;
   name: string;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
 
 export interface CreateClubRequest {
   name: string;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
 }
 
 export type UpdateClubRequest = CreateClubRequest;

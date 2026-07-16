@@ -23,4 +23,16 @@ public sealed record Tournament(
     /// Side color used for the non-white athlete in the UI.
     /// </summary>
     public string AccentSideColor { get; init; } = "Blue";
+
+    /// <summary>Hold duration in seconds required for Ippon. Default: 20 s (DJB).</summary>
+    public int OsaeKomiIpponSeconds { get; init; } = 20;
+
+    /// <summary>Hold duration in seconds required for Waza-ari. Default: 10 s (DJB).</summary>
+    public int OsaeKomiWazaAriSeconds { get; init; } = 10;
+
+    /// <summary>Hold duration in seconds required for Yuko. Default: 5 s (DJB).</summary>
+    public int OsaeKomiYukoSeconds { get; init; } = 5;
+
+    /// <summary>Whether a Yuko is awarded for a hold between Yuko and Waza-ari thresholds.</summary>
+    public bool OsaeKomiYukoEnabled { get; init; } = true;
 }

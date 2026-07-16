@@ -510,13 +510,7 @@ public sealed class BracketService : IBracketService
                 AddDerived(FightBracketType.Repechage, 6, 58,
                     56, FightSlotSourceOutcome.Winner,
                     46, FightSlotSourceOutcome.Loser);
-                AddDerived(FightBracketType.Repechage, 7, 59,
-                    57, FightSlotSourceOutcome.Winner,
-                    45, FightSlotSourceOutcome.Loser);
-                AddDerived(FightBracketType.Repechage, 7, 60,
-                    58, FightSlotSourceOutcome.Winner,
-                    46, FightSlotSourceOutcome.Loser);
-                AddDerived(FightBracketType.Main, 5, 61,
+                AddDerived(FightBracketType.Main, 5, 59,
                     45, FightSlotSourceOutcome.Winner,
                     46, FightSlotSourceOutcome.Winner);
                 break;

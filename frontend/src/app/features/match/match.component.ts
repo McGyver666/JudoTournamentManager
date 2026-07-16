@@ -71,6 +71,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly osaeKomiSide = signal<FightSide | null>(null);
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private autoPauseInFlightFightId: string | null = null;
+  private autoStopOsaeKomiInFlightFightId: string | null = null;
 
   /** Track the previous fight to detect osae-komi transitions and cleanup. */
   private previousFight: Fight | null = null;
@@ -255,6 +256,11 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.osaeKomiCapSeconds.set(cap);
         this.osaeKomiSide.set(side);
         this.frozenOsaeKomiDisplay = null; // Active hold, no frozen display.
+
+        // Auto-stop when the hold reaches the cap (Ippon or second Waza-ari threshold).
+        if (holdSeconds >= cap) {
+          this.tryAutoStopOsaeKomi(fight);
+        }
       } else {
         // No active osae-komi: clear signals (display will use frozen fallback).
         // This allows start buttons to be re-enabled after stopping osae-komi.
@@ -555,7 +561,31 @@ export class MatchComponent implements OnInit, OnDestroy {
   }
 
   private getOsaeKomiCap(fight: Fight, side: FightSide): number {
-    return this.hasWazaAri(fight, side) ? 20 : 25;
+    const t = this.context.tournament();
+    if (this.hasWazaAri(fight, side)) {
+      return t?.osaeKomiWazaAriSeconds ?? 10;
+    }
+    return t?.osaeKomiIpponSeconds ?? 20;
+  }
+
+  private tryAutoStopOsaeKomi(fight: Fight): void {
+    if (!this.canOperate() || fight.osaeKomiSide === null) return;
+    if (this.autoStopOsaeKomiInFlightFightId === fight.id) return;
+
+    const tid = this.context.tournamentId();
+    if (!tid) return;
+
+    this.autoStopOsaeKomiInFlightFightId = fight.id;
+    this.api.stopOsaeKomi(tid, fight.id, this.operatorName()).subscribe({
+      next: () => {
+        this.autoStopOsaeKomiInFlightFightId = null;
+        this.refreshQueue();
+      },
+      error: () => {
+        this.autoStopOsaeKomiInFlightFightId = null;
+        this.errorMessage.set('Osae-komi konnte nicht automatisch gestoppt werden.');
+      },
+    });
   }
 
   private restoreOperatorName(): string {

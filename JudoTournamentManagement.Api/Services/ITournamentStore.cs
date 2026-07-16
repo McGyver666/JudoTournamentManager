@@ -62,6 +62,22 @@ public interface ITournamentStore
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Updates an existing tournament with all configurable fields including Osae-komi rule settings.
+    /// </summary>
+    Task<bool> UpdateAsync(
+        Guid tournamentId,
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        int osaeKomiIpponSeconds,
+        int osaeKomiWazaAriSeconds,
+        int osaeKomiYukoSeconds,
+        bool osaeKomiYukoEnabled,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Deletes a tournament and all its dependent data (tatamis, categories, clubs,
     /// athletes, registrations) in a single transaction.
     /// Returns <c>false</c> if the tournament was not found.

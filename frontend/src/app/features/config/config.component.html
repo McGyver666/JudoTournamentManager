@@ -360,6 +360,18 @@
           <label>{{ 'clubs.name' | t }}</label>
           <input [(ngModel)]="clubForm.name" name="clname" />
         </div>
+        <div>
+          <label>{{ 'clubs.contactName' | t }}</label>
+          <input [(ngModel)]="clubForm.contactName" name="clcontactname" />
+        </div>
+        <div>
+          <label>{{ 'clubs.contactEmail' | t }}</label>
+          <input [(ngModel)]="clubForm.contactEmail" name="clcontactemail" type="email" />
+        </div>
+        <div>
+          <label>{{ 'clubs.contactPhone' | t }}</label>
+          <input [(ngModel)]="clubForm.contactPhone" name="clcontactphone" type="tel" />
+        </div>
         <div class="form-actions">
           <button (click)="showClubForm.set(false)">{{ 'common.cancel' | t }}</button>
           <button class="primary" (click)="saveClub()">{{ 'common.save' | t }}</button>
@@ -374,6 +386,9 @@
         <thead>
           <tr>
             <th>{{ 'clubs.name' | t }}</th>
+            <th>{{ 'clubs.contactName' | t }}</th>
+            <th>{{ 'clubs.contactEmail' | t }}</th>
+            <th>{{ 'clubs.contactPhone' | t }}</th>
             <th>{{ 'common.actions' | t }}</th>
           </tr>
         </thead>
@@ -381,6 +396,9 @@
           @for (c of clubs(); track c.id) {
             <tr>
               <td>{{ c.name }}</td>
+              <td>{{ c.contactName ?? '' }}</td>
+              <td>{{ c.contactEmail ?? '' }}</td>
+              <td>{{ c.contactPhone ?? '' }}</td>
               <td>
                 <button (click)="editClub(c)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
                 <button class="danger" (click)="deleteClub(c)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>

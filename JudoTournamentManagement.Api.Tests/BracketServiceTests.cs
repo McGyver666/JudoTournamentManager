@@ -34,7 +34,10 @@ public sealed class BracketServiceTests
     private static async Task<(Guid TournamentId, Guid CategoryId, List<Guid> AthleteIds)>
         SeedAsync(AppDbContext ctx, int athleteCount)
     {
-        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var mockPresets = new Mock<ICategoryPresetsStore>();
+        mockPresets.Setup(p => p.SeedDefaultsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance, mockPresets.Object);
         var t = await tStore.CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
@@ -147,9 +150,9 @@ public sealed class BracketServiceTests
             tid, cid, BracketFormat.DoubleElimination, CancellationToken.None);
         var byNumber = fights.ToDictionary(fight => fight.FightNumber);
 
-        Assert.Equal(61, fights.Count);
+        Assert.Equal(59, fights.Count);
         Assert.Equal(31, fights.Count(fight => fight.BracketType == FightBracketType.Main));
-        Assert.Equal(30, fights.Count(fight => fight.BracketType == FightBracketType.Repechage));
+        Assert.Equal(28, fights.Count(fight => fight.BracketType == FightBracketType.Repechage));
 
         Assert.Equal(byNumber[1].Id, byNumber[17].WhiteSourceFightId);
         Assert.Equal(FightSlotSourceOutcome.Winner, byNumber[17].WhiteSourceOutcome);
@@ -161,13 +164,22 @@ public sealed class BracketServiceTests
         Assert.Equal(byNumber[2].Id, byNumber[25].BlueSourceFightId);
         Assert.Equal(FightSlotSourceOutcome.Loser, byNumber[25].BlueSourceOutcome);
 
-        Assert.Equal(byNumber[57].Id, byNumber[59].WhiteSourceFightId);
-        Assert.Equal(FightSlotSourceOutcome.Winner, byNumber[59].WhiteSourceOutcome);
-        Assert.Equal(byNumber[45].Id, byNumber[59].BlueSourceFightId);
-        Assert.Equal(FightSlotSourceOutcome.Loser, byNumber[59].BlueSourceOutcome);
+        Assert.Equal(byNumber[55].Id, byNumber[57].WhiteSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Winner, byNumber[57].WhiteSourceOutcome);
+        Assert.Equal(byNumber[45].Id, byNumber[57].BlueSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Loser, byNumber[57].BlueSourceOutcome);
 
-        Assert.Equal(byNumber[45].Id, byNumber[61].WhiteSourceFightId);
-        Assert.Equal(byNumber[46].Id, byNumber[61].BlueSourceFightId);
+        Assert.Equal(byNumber[56].Id, byNumber[58].WhiteSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Winner, byNumber[58].WhiteSourceOutcome);
+        Assert.Equal(byNumber[46].Id, byNumber[58].BlueSourceFightId);
+        Assert.Equal(FightSlotSourceOutcome.Loser, byNumber[58].BlueSourceOutcome);
+
+        Assert.DoesNotContain(fights, fight =>
+            fight.BracketType == FightBracketType.Repechage && fight.Round > 6);
+        Assert.DoesNotContain(fights, fight => fight.FightNumber == 60);
+
+        Assert.Equal(byNumber[45].Id, byNumber[59].WhiteSourceFightId);
+        Assert.Equal(byNumber[46].Id, byNumber[59].BlueSourceFightId);
     }
 
     [Fact]

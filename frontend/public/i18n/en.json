@@ -56,8 +56,11 @@
   "tournaments.restoreInvalidFile": "The selected file is not a valid JSON backup.",
   "tournaments.confirmDelete": "Delete this tournament and all its data?",
   "tournaments.selected": "Active tournament",
-  "tournaments.none": "No tournament selected. Please open a tournament first.",
-
+  "tournaments.none": "No tournament selected. Please open a tournament first.",  "tournaments.regelungen": "Rules",
+  "tournaments.osaeKomiIpponSeconds": "Osae-komi Ippon (seconds)",
+  "tournaments.osaeKomiWazaAriSeconds": "Osae-komi Waza-ari (seconds)",
+  "tournaments.osaeKomiYukoSeconds": "Osae-komi Yuko (seconds)",
+  "tournaments.osaeKomiYukoEnabled": "Yuko enabled",
   "config.title": "Configuration",
   "config.tatamis": "Tatamis",
   "config.categories": "Categories",
@@ -119,6 +122,9 @@
   "clubs.new": "New club",
   "clubs.edit": "Edit club",
   "clubs.name": "Name",
+  "clubs.contactName": "Contact person",
+  "clubs.contactEmail": "Email",
+  "clubs.contactPhone": "Phone",
   "clubs.empty": "No clubs yet.",
 
   "athletes.title": "Athletes",
