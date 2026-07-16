@@ -180,6 +180,7 @@
 
 .tatami-counter span {font-size:clamp(1.275rem,2.325vw,1.65rem);color:#dce8f8;text-transform:uppercase;letter-spacing:.06em}
 .tatami-counter strong {font-size:clamp(2.7rem,7.5vw,5.1rem);line-height:1;color:var(--side-accent-contrast)}
+.tatami-athlete--white .tatami-counter strong {color:#f4f9ff}
 
 .tatami-counter--ippon {
 	background: rgba(8, 24, 44, 0.36);
@@ -196,6 +197,8 @@
 .tatami-counter--ippon-active strong {
 	color: #4a3000;
 }
+
+.tatami-athlete--white .tatami-counter--ippon-active strong {color:#4a3000}
 
 .tatami-shido-row {display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:clamp(1.5rem,3vw,2.175rem);color:#e8f1fc;margin-top:.2rem}
 .shido-bubbles--xl {gap:.5rem}

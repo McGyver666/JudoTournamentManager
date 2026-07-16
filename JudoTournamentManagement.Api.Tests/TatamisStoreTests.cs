@@ -26,7 +26,10 @@ public sealed class TatamisStoreTests
 
     private static async Task<Guid> SeedTournamentAsync(AppDbContext ctx)
     {
-        var tournamentStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var mockPresets = new Mock<ICategoryPresetsStore>();
+        mockPresets.Setup(p => p.SeedDefaultsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var tournamentStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance, mockPresets.Object);
         var tournament = await tournamentStore.CreateAsync(
             "Test Turnier", new DateOnly(2026, 9, 1), "Köln", "NWJV", CancellationToken.None);
         return tournament.Id;

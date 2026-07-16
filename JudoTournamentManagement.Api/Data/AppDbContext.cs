@@ -82,6 +82,10 @@ public sealed class AppDbContext : DbContext
         tournament.Property(x => x.Venue).IsRequired().HasMaxLength(160);
         tournament.Property(x => x.Organizer).IsRequired().HasMaxLength(120);
         tournament.Property(x => x.AccentSideColor).IsRequired().HasMaxLength(10).HasDefaultValue("Blue");
+        tournament.Property(x => x.OsaeKomiIpponSeconds).IsRequired().HasDefaultValue(20);
+        tournament.Property(x => x.OsaeKomiWazaAriSeconds).IsRequired().HasDefaultValue(10);
+        tournament.Property(x => x.OsaeKomiYukoSeconds).IsRequired().HasDefaultValue(5);
+        tournament.Property(x => x.OsaeKomiYukoEnabled).IsRequired().HasDefaultValue(true);
 
         var tatami = modelBuilder.Entity<TatamiRecord>();
         tatami.ToTable("Tatamis");

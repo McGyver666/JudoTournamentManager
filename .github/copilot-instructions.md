@@ -14,9 +14,9 @@
 - Do not introduce distributed services unless the backlog explicitly requires them.
 
 ## Build and Test
-- Use the project-local SDK at `.\.dotnet\dotnet.exe`.
-- Build with: `.\.dotnet\dotnet.exe build .\JudoTournamentManagement.sln`
-- Run tests with: `.\.dotnet\dotnet.exe test .\JudoTournamentManagement.sln --filter Category=UnitTest`
+- Use the .NET 10 SDK available on `PATH`.
+- Build with: `dotnet build .\JudoTournamentManagement.sln`
+- Run tests with: `dotnet test .\JudoTournamentManagement.sln --filter Category=UnitTest`
 - Start locally with: `.\start-local.ps1`
 
 ## Implementation Conventions

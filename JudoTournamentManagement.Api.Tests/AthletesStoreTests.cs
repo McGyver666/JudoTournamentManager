@@ -24,7 +24,10 @@ public sealed class AthletesStoreTests
 
     private static async Task<(Guid TournamentId, Guid ClubId)> SeedTournamentAndClubAsync(AppDbContext ctx)
     {
-        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var mockPresets = new Mock<ICategoryPresetsStore>();
+        mockPresets.Setup(p => p.SeedDefaultsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance, mockPresets.Object);
         var t = await tStore.CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var cStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);

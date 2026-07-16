@@ -67,11 +67,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   protected readonly nowEpochMs = signal<number>(Date.now());
   protected readonly hubConnected = computed(() => this.hub.connected());
   protected readonly isTatamiMode = computed(() => this.tatamiModeTatamiId() !== null);
-
-  /** Map of fight IDs to frozen osae-komi display when the hold has stopped. */
-  private readonly frozenOsaeKomiMap = new Map<string, { seconds: number; cap: number; side: FightSide }>();
-  /** Track previous fight states to detect osae-komi transitions. */
-  private readonly previousFightMap = new Map<string, Fight>();
+  private readonly frozenOsaeKomiMap = new Map<string, { seconds: number; side: FightSide }>();
 
   protected readonly tatamiDisplay = computed(() => {
     const tatamiId = this.tatamiModeTatamiId();
@@ -94,6 +90,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private readonly connectorRefreshVersion = signal(0);
   private connectorRefreshHandle: number | null = null;
+  private lastTatamiQueueRefreshAt = 0;
+  private tatamiQueueRefreshInFlight = false;
 
   ngOnInit(): void {
     this.querySub = combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([paramMap, queryParamMap]) => {
@@ -111,36 +109,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
     });
 
     this.fightSub = this.hub.fightUpdated$.subscribe((fight) => {
-      // Detect osae-komi transitions and update the frozen osae-komi map.
-      const prevFight = this.previousFightMap.get(fight.id);
-      this.previousFightMap.set(fight.id, fight);
-
-      if (prevFight !== undefined) {
-        const prevHadOsaeKomi = prevFight.osaeKomiSide !== null && prevFight.osaeKomiStartedAtUtc !== null;
-        const newHasOsaeKomi = fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
-        const wasPausedNowRunning = prevFight.status === 'Paused' && fight.status === 'InProgress';
-        const isNowPaused = fight.status === 'Paused';
-
-        // Osae-komi was active and is now stopped: freeze the display (but not if being paused or just resumed).
-        if (prevHadOsaeKomi && !newHasOsaeKomi && !isNowPaused && !wasPausedNowRunning) {
-          const side = prevFight.osaeKomiSide === 'White' ? 'white' : 'blue';
-          const cap = this.getOsaeKomiCapForFight(prevFight, side);
-          const now = Date.now();
-          const osaeStartMs = new Date(prevFight.osaeKomiStartedAtUtc!).getTime();
-          const seconds = Math.min(cap, Math.ceil((now - osaeStartMs) / 1000));
-          this.frozenOsaeKomiMap.set(fight.id, { seconds, cap, side });
-        }
-
-        // New osae-komi started: clear frozen display.
-        if (!prevHadOsaeKomi && newHasOsaeKomi) {
-          this.frozenOsaeKomiMap.delete(fight.id);
-        }
-
-        // Fight was resumed: clear frozen display.
-        if (wasPausedNowRunning) {
-          this.frozenOsaeKomiMap.delete(fight.id);
-        }
-      }
+      this.updateDisplayedFight(fight);
 
       const tid = this.tournamentId();
       if (tid) {
@@ -154,7 +123,14 @@ export class DisplayComponent implements OnInit, OnDestroy {
     });
 
     this.timerHandle = setInterval(() => {
-      this.nowEpochMs.set(Date.now());
+      const now = Date.now();
+      this.nowEpochMs.set(now);
+
+      const tid = this.tournamentId();
+      if (tid && this.isTatamiMode() && now - this.lastTatamiQueueRefreshAt >= 2_000) {
+        this.lastTatamiQueueRefreshAt = now;
+        this.refreshCurrentTatamiQueue(tid);
+      }
     }, 1000);
   }
 
@@ -904,18 +880,72 @@ export class DisplayComponent implements OnInit, OnDestroy {
             updates.push({ tatami, current: q.current, nextFights });
             pending--;
             if (pending === 0) {
-              this.displays.set([...updates]);
+              this.displays.set(updates.sort((a, b) => a.tatami.displayOrder - b.tatami.displayOrder || a.tatami.name.localeCompare(b.tatami.name)));
             }
           },
           error: () => {
             updates.push({ tatami, current: null, nextFights: [] });
             pending--;
             if (pending === 0) {
-              this.displays.set([...updates]);
+              this.displays.set(updates.sort((a, b) => a.tatami.displayOrder - b.tatami.displayOrder || a.tatami.name.localeCompare(b.tatami.name)));
             }
           },
         });
       });
+    });
+  }
+
+  private updateDisplayedFight(fight: Fight): void {
+    const previousFight = this.displays()
+      .map(display => display.current)
+      .find(current => current?.id === fight.id);
+
+    if (previousFight && this.isOsaeKomiRunning(previousFight) && fight.status === 'Paused') {
+      const side = previousFight.osaeKomiSide === 'White' ? 'white' : 'blue';
+      const cap = this.getOsaeKomiCapForFight(previousFight, side);
+      const startedAtMs = new Date(previousFight.osaeKomiStartedAtUtc!).getTime();
+      const seconds = Math.min(cap, Math.ceil((Date.now() - startedAtMs) / 1000));
+      this.frozenOsaeKomiMap.set(fight.id, { seconds, side });
+    }
+
+    if (fight.status === 'InProgress') {
+      this.frozenOsaeKomiMap.delete(fight.id);
+    }
+
+    this.displays.update(displays => displays.map(display => ({
+      ...display,
+      current: display.current?.id === fight.id ? fight : display.current,
+      nextFights: display.nextFights.map(nextFight => nextFight.id === fight.id ? fight : nextFight),
+    })));
+  }
+
+  private refreshCurrentTatamiQueue(tournamentId: string): void {
+    const tatamiId = this.tatamiModeTatamiId();
+    if (!tatamiId || this.tatamiQueueRefreshInFlight) {
+      return;
+    }
+
+    this.tatamiQueueRefreshInFlight = true;
+    this.api.getTatamiQueue(tournamentId, tatamiId).subscribe({
+      next: queue => {
+        if (queue.current) {
+          this.updateDisplayedFight(queue.current);
+        }
+
+        const currentId = queue.current?.id;
+        const nextFights = [queue.next, queue.onDeck, ...queue.upcoming]
+          .filter((fight): fight is Fight => !!fight && fight.id !== currentId)
+          .slice(0, 3);
+
+        this.displays.update(displays => displays.map(display =>
+          display.tatami.id === tatamiId
+            ? { ...display, current: queue.current, nextFights }
+            : display));
+        this.tatamiQueueRefreshInFlight = false;
+      },
+      error: () => {
+        this.tatamiQueueRefreshInFlight = false;
+      },
     });
   }
 
@@ -928,40 +958,30 @@ export class DisplayComponent implements OnInit, OnDestroy {
   }
 
   protected hasFrozenOsaeKomi(fight: Fight): boolean {
-    // Never show frozen if osae-komi is currently active.
-    if (fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null) {
-      return false;
-    }
-    // Show frozen during running or paused states (until fight resumes).
-    return this.frozenOsaeKomiMap.has(fight.id);
+    return fight.status === 'Paused' && this.frozenOsaeKomiMap.has(fight.id);
   }
 
   protected osaeKomiSideLabel(fight: Fight): FightSide | null {
-    // First check if osae-komi is active.
     if (fight.osaeKomiSide) {
       return fight.osaeKomiSide === 'White' ? 'white' : 'blue';
     }
 
-    // Fall back to frozen display if available.
-    const frozen = this.frozenOsaeKomiMap.get(fight.id);
-    return frozen?.side ?? null;
+    return this.frozenOsaeKomiMap.get(fight.id)?.side ?? null;
   }
 
   protected osaeKomiSecondsLabel(fight: Fight): string {
-    // Check if osae-komi is currently active.
     if (fight.osaeKomiSide && fight.osaeKomiStartedAtUtc) {
       const side = this.osaeKomiSideLabel(fight);
       if (!side) {
         return '--';
       }
 
-      const capSeconds = this.hasWazaAri(fight, side) ? 20 : 25;
+      const capSeconds = this.getOsaeKomiCapForFight(fight, side);
       const elapsedSeconds = Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000);
       const runningSeconds = Math.min(capSeconds, Math.max(0, elapsedSeconds));
       return `${runningSeconds}s`;
     }
 
-    // Fall back to frozen display if available.
     const frozen = this.frozenOsaeKomiMap.get(fight.id);
     if (frozen) {
       return `${frozen.seconds}s`;
@@ -976,7 +996,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       return '--';
     }
 
-    return `${this.hasWazaAri(fight, side) ? 20 : 25}s`;
+    return `${this.getOsaeKomiCapForFight(fight, side)}s`;
   }
 
   private hasWazaAri(fight: Fight, side: FightSide): boolean {
@@ -984,7 +1004,11 @@ export class DisplayComponent implements OnInit, OnDestroy {
   }
 
   private getOsaeKomiCapForFight(fight: Fight, side: FightSide): number {
-    return this.hasWazaAri(fight, side) ? 20 : 25;
+    const t = this.tournament();
+    if (this.hasWazaAri(fight, side)) {
+      return t?.osaeKomiWazaAriSeconds ?? 10;
+    }
+    return t?.osaeKomiIpponSeconds ?? 20;
   }
 
   protected tatamiDisplayLink(tatamiId: string): string {

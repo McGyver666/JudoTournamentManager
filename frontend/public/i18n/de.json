@@ -57,6 +57,11 @@
   "tournaments.confirmDelete": "Soll dieses Turnier mit allen Daten gelöscht werden?",
   "tournaments.selected": "Aktives Turnier",
   "tournaments.none": "Kein Turnier ausgewählt. Bitte zuerst ein Turnier öffnen.",
+  "tournaments.regelungen": "Regelungen",
+  "tournaments.osaeKomiIpponSeconds": "Osae-komi Ippon (Sekunden)",
+  "tournaments.osaeKomiWazaAriSeconds": "Osae-komi Waza-ari (Sekunden)",
+  "tournaments.osaeKomiYukoSeconds": "Osae-komi Yuko (Sekunden)",
+  "tournaments.osaeKomiYukoEnabled": "Yuko aktiviert",
 
   "config.title": "Konfiguration",
   "config.tatamis": "Matten",
@@ -119,6 +124,9 @@
   "clubs.new": "Neuer Verein",
   "clubs.edit": "Verein bearbeiten",
   "clubs.name": "Name",
+  "clubs.contactName": "Ansprechpartner",
+  "clubs.contactEmail": "E-Mail",
+  "clubs.contactPhone": "Telefon",
   "clubs.empty": "Noch keine Vereine angelegt.",
 
   "athletes.title": "Athleten",

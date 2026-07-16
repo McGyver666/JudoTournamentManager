@@ -38,7 +38,7 @@
             </button>
             <div class="nav-dropdown-menu" role="menu">
               @if (context.tournamentId(); as tid) {
-                @for (tatami of displayTatamis(); track tatami.id) {
+                @for (tatami of activeTatamis(); track tatami.id) {
                   <a
                     class="nav-dropdown-action"
                     [class.active]="routeTatamiId() === tatami.id"
