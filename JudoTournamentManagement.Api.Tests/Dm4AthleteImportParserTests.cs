@@ -19,7 +19,7 @@ public sealed class Dm4AthleteImportParserTests
         $"Geschlecht={geschlecht}",
         "[Vereine]",
         "Anzahl=1",
-        "1=\"\"1\",\"DJK Dülmen\",\"\",\"6003003\",\"Meis\",\"Jean-Andre\",\"Hasenpatt 8\",\"48249\",\"Dülmen\",\"01794853997\",\"\",\"\",\"jean-andre.meis@posteo.de\",\"\",\"Coesfeld\",\"Münster\",\"NRW\",\"\",\"\"\"",
+        "1=\"\"1\",\"JC Teststadt\",\"\",\"6003003\",\"Beispiel\",\"Max\",\"Testweg 1\",\"10000\",\"Teststadt\",\"015000000001\",\"\",\"\",\"kontakt+test@example.invalid\",\"\",\"Musterkreis\",\"Musterregion\",\"TS\",\"\",\"\"\"",
         "[Teilnehmer]",
         "1=\"\"1\",\"Höfer\",\"Justus\",\"4\",\"34\",\"\",\"2015\",\"\",\"\",\"\",\"\",\"\"\"",
         "2=\"\"1\",\"Kriesch\",\"Karl\",\"5\",\"26\",\"\",\"2016\",\"\",\"\",\"\",\"\",\"\"\"",
@@ -33,10 +33,10 @@ public sealed class Dm4AthleteImportParserTests
 
         var result = _parser.Parse(Encoding.UTF8.GetBytes(content));
 
-        Assert.Equal("DJK Dülmen", result.ClubName);
-        Assert.Equal("Jean-Andre Meis", result.ContactName);
-        Assert.Equal("jean-andre.meis@posteo.de", result.ContactEmail);
-        Assert.Equal("01794853997", result.ContactPhone);
+        Assert.Equal("JC Teststadt", result.ClubName);
+        Assert.Equal("Max Beispiel", result.ContactName);
+        Assert.Equal("kontakt+test@example.invalid", result.ContactEmail);
+        Assert.Equal("015000000001", result.ContactPhone);
         Assert.Equal(Gender.Male, result.Gender);
         Assert.Equal(2, result.Athletes.Count);
 
@@ -70,7 +70,7 @@ public sealed class Dm4AthleteImportParserTests
             "Geschlecht=m",
             "[Vereine]",
             "Anzahl=1",
-            "1=\"\"1\",\"DJK Dülmen\",\"\",\"6003003\",\"Meis\",\"Jean-Andre\",\"Hasenpatt 8\",\"48249\",\"Dülmen\",\"01794853997\",\"\",\"\",\"jean-andre.meis@posteo.de\",\"\",\"Coesfeld\",\"Münster\",\"NRW\",\"\",\"\"\""
+            "1=\"\"1\",\"JC Teststadt\",\"\",\"6003003\",\"Beispiel\",\"Max\",\"Testweg 1\",\"10000\",\"Teststadt\",\"015000000001\",\"\",\"\",\"kontakt+test@example.invalid\",\"\",\"Musterkreis\",\"Musterregion\",\"TS\",\"\",\"\"\""
         ]);
 
         var ex = Assert.Throws<Dm4ImportParseException>(() => _parser.Parse(Encoding.UTF8.GetBytes(content)));
@@ -87,7 +87,7 @@ public sealed class Dm4AthleteImportParserTests
             "Geschlecht=m",
             "[Vereine]",
             "Anzahl=1",
-            "1=\"\"1\",\"DJK Dülmen\",\"\",\"6003003\",\"Meis\",\"Jean-Andre\",\"Hasenpatt 8\",\"48249\",\"Dülmen\",\"01794853997\",\"\",\"\",\"jean-andre.meis@posteo.de\",\"\",\"Coesfeld\",\"Münster\",\"NRW\",\"\",\"\"\"",
+            "1=\"\"1\",\"JC Teststadt\",\"\",\"6003003\",\"Beispiel\",\"Max\",\"Testweg 1\",\"10000\",\"Teststadt\",\"015000000001\",\"\",\"\",\"kontakt+test@example.invalid\",\"\",\"Musterkreis\",\"Musterregion\",\"TS\",\"\",\"\"\"",
             "[Teilnehmer]",
             "1=\"\"1\",\"OnlyLastName\",\"\",\"\",\"\",\"\"",
             "Anzahl=1"
@@ -105,7 +105,8 @@ public sealed class Dm4AthleteImportParserTests
         var bytes = Encoding.Latin1.GetBytes(content);
         var result = _parser.Parse(bytes);
 
-        Assert.Equal("DJK Dülmen", result.ClubName);
+        Assert.Equal("JC Teststadt", result.ClubName);
         Assert.Equal("Höfer", result.Athletes[0].LastName);
     }
 }
+

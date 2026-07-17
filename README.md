@@ -109,6 +109,8 @@ Skip frontend build and start backend only (Windows / PowerShell):
 .\start-local.ps1 -SkipFrontendBuild
 ```
 
+If `JudoTournamentManagement.Api/wwwroot/index.html` does not exist yet, the startup script performs a one-time frontend build even with `-SkipFrontendBuild` so the UI does not come up as `404`.
+
 Start with optional HTTPS binding for LAN mode (Windows / PowerShell):
 
 ```powershell
@@ -127,6 +129,8 @@ Skip frontend build and start backend only (Linux/macOS / bash):
 ```bash
 ./start-local.sh --skip-frontend-build
 ```
+
+If `JudoTournamentManagement.Api/wwwroot/index.html` does not exist yet, the startup script performs a one-time frontend build even with `--skip-frontend-build` so the UI does not come up as `404`.
 
 Start with optional HTTPS binding for LAN mode (Linux/macOS / bash):
 

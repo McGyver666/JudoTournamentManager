@@ -456,15 +456,15 @@ public sealed class ControllerUnitTests
             .ReturnsAsync([]);
 
         mockClubsStore
-            .Setup(s => s.CreateAsync(tournamentId, "DJK Dülmen", "Jean-Andre Meis", "jean-andre.meis@posteo.de", "01794853997", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Club(clubId, tournamentId, "DJK Dülmen", null, null, null, now, now));
+            .Setup(s => s.CreateAsync(tournamentId, "JC Teststadt", "Max Beispiel", "kontakt+test@example.invalid", "015000000001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Club(clubId, tournamentId, "JC Teststadt", null, null, null, now, now));
 
         mockDm4Parser
             .Setup(x => x.Parse(It.IsAny<ReadOnlyMemory<byte>>()))
             .Returns(new Dm4AthleteImportData(
-                "DJK D\u00fclmen",                "Jean-Andre Meis",
-                "jean-andre.meis@posteo.de",
-                "01794853997",                Gender.Male,
+                "JC Teststadt",                "Max Beispiel",
+                "kontakt+test@example.invalid",
+                "015000000001",                Gender.Male,
                 [new Dm4AthleteImportRow("Muster", "Max", 3, 30.5m, 2010)]));
 
         mockAthletesStore
@@ -490,7 +490,7 @@ public sealed class ControllerUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
 
-        mockClubsStore.Verify(s => s.CreateAsync(tournamentId, "DJK Dülmen", "Jean-Andre Meis", "jean-andre.meis@posteo.de", "01794853997", It.IsAny<CancellationToken>()), Times.Once);
+        mockClubsStore.Verify(s => s.CreateAsync(tournamentId, "JC Teststadt", "Max Beispiel", "kontakt+test@example.invalid", "015000000001", It.IsAny<CancellationToken>()), Times.Once);
         mockAthletesStore.Verify(s => s.CreateBulkAsync(
             tournamentId,
             It.Is<IReadOnlyList<AthleteImportItem>>(items =>
@@ -651,3 +651,4 @@ public sealed class ControllerUnitTests
 
     #endregion
 }
+

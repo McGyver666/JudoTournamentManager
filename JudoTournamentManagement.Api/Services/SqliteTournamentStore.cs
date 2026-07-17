@@ -30,6 +30,17 @@ public sealed class SqliteTournamentStore : ITournamentStore
         _categoryPresetsStore = categoryPresetsStore;
     }
 
+    /// <summary>
+    /// Initializes a new store instance.
+    /// Compatibility constructor for tests that do not provide a preset store.
+    /// </summary>
+    public SqliteTournamentStore(
+        AppDbContext dbContext,
+        ILogger<SqliteTournamentStore> logger)
+        : this(dbContext, logger, new SqliteCategoryPresetsStore(dbContext))
+    {
+    }
+
     /// <inheritdoc />
     public async Task<IReadOnlyList<Tournament>> GetAllAsync(CancellationToken cancellationToken)
     {

@@ -51,6 +51,14 @@ else
 fi
 
 FRONTEND_ROOT="$PROJECT_ROOT/frontend"
+FRONTEND_OUTPUT_ROOT="$PROJECT_ROOT/JudoTournamentManagement.Api/wwwroot"
+FRONTEND_INDEX_PATH="$FRONTEND_OUTPUT_ROOT/index.html"
+
+build_frontend() {
+  echo "Baue Frontend (Angular) nach wwwroot ..."
+  (cd "$FRONTEND_ROOT" && npm run build)
+}
+
 if [[ "$SKIP_FRONTEND_BUILD" != "true" ]]; then
   if [[ ! -f "$FRONTEND_ROOT/package.json" ]]; then
     echo "Frontend-Ordner nicht gefunden: '$FRONTEND_ROOT'. Nutze --skip-frontend-build, wenn nur das API gestartet werden soll." >&2
@@ -62,10 +70,24 @@ if [[ "$SKIP_FRONTEND_BUILD" != "true" ]]; then
     exit 1
   fi
 
-  echo "Baue Frontend (Angular) nach wwwroot ..."
-  (cd "$FRONTEND_ROOT" && npm run build)
+  build_frontend
 else
-  echo "Frontend-Build uebersprungen (--skip-frontend-build)."
+  if [[ -f "$FRONTEND_INDEX_PATH" ]]; then
+    echo "Frontend-Build uebersprungen (--skip-frontend-build). Vorhandene UI-Artefakte werden verwendet."
+  else
+    if [[ ! -f "$FRONTEND_ROOT/package.json" ]]; then
+      echo "Frontend-Build wurde uebersprungen, aber '$FRONTEND_INDEX_PATH' fehlt und der Frontend-Ordner wurde nicht gefunden. Erst das Frontend bauen oder ohne --skip-frontend-build starten." >&2
+      exit 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+      echo "Frontend-Build wurde uebersprungen, aber '$FRONTEND_INDEX_PATH' fehlt. npm wurde nicht gefunden. Frontend zuerst bauen oder ohne --skip-frontend-build auf einem Rechner mit Node.js starten." >&2
+      exit 1
+    fi
+
+    echo "Frontend-Build wurde uebersprungen, aber es sind noch keine UI-Artefakte vorhanden. Fuehre einmalig einen Frontend-Build aus ..."
+    build_frontend
+  fi
 fi
 
 echo "Starte JudoTournamentManagement API lokal..."

@@ -16,11 +16,11 @@ public sealed class DokumePassParserTests
         var result = _parser.ParseQrUrl(validQrUrl);
 
         Assert.NotNull(result);
-        Assert.Equal("J-0080659", result.PassNumber);
-        Assert.Equal("Jonas", result.FirstName);
-        Assert.Equal("Winkler", result.LastName);
+        Assert.Equal("L-TEST-9001", result.PassNumber);
+        Assert.Equal("Alex", result.FirstName);
+        Assert.Equal("Muster", result.LastName);
         Assert.Equal(new DateOnly(1985, 3, 18), result.DateOfBirth);
-        Assert.Equal("Judopass", result.LicenseTypeName);
+        Assert.Equal("LizenzTest", result.LicenseTypeName);
         Assert.Equal("DokuMe", result.Issuer);
         Assert.True(result.IsRs384Claimed);
         Assert.False(result.SignatureVerified); // Signature is deliberately not verified
@@ -118,11 +118,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "Jonas",
-            LastName = "Winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "Alex",
+            LastName = "Muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2027, 2, 28),
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -131,8 +131,8 @@ public sealed class DokumePassParserTests
         var result = _parser.ValidatePass(
             pass,
             new DateOnly(2026, 7, 14),
-            "Jonas",
-            "Winkler",
+            "Alex",
+            "Muster",
             1985);
 
         Assert.True(result.IsValid);
@@ -145,11 +145,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "Jonas",
-            LastName = "Winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "Alex",
+            LastName = "Muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2027, 2, 28),
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -159,7 +159,7 @@ public sealed class DokumePassParserTests
             pass,
             new DateOnly(2026, 7, 14),
             "Johann",
-            "Winkler",
+            "Muster",
             1985);
 
         Assert.False(result.IsValid);
@@ -171,11 +171,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "Jonas",
-            LastName = "Winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "Alex",
+            LastName = "Muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2027, 2, 28),
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -184,7 +184,7 @@ public sealed class DokumePassParserTests
         var result = _parser.ValidatePass(
             pass,
             new DateOnly(2026, 7, 14),
-            "Jonas",
+            "Alex",
             "Mueller",
             1985);
 
@@ -197,11 +197,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "Jonas",
-            LastName = "Winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "Alex",
+            LastName = "Muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2027, 2, 28),
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -210,8 +210,8 @@ public sealed class DokumePassParserTests
         var result = _parser.ValidatePass(
             pass,
             new DateOnly(2026, 7, 14),
-            "Jonas",
-            "Winkler",
+            "Alex",
+            "Muster",
             1990);
 
         Assert.False(result.IsValid);
@@ -223,11 +223,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "Jonas",
-            LastName = "Winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "Alex",
+            LastName = "Muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2026, 6, 30), // Tournament date is after expiry
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -236,8 +236,8 @@ public sealed class DokumePassParserTests
         var result = _parser.ValidatePass(
             pass,
             new DateOnly(2026, 7, 14),
-            "Jonas",
-            "Winkler",
+            "Alex",
+            "Muster",
             1985);
 
         Assert.False(result.IsValid);
@@ -249,11 +249,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "Jonas",
-            LastName = "Winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "Alex",
+            LastName = "Muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2026, 7, 14), // Tournament on exact expiry date
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -262,8 +262,8 @@ public sealed class DokumePassParserTests
         var result = _parser.ValidatePass(
             pass,
             new DateOnly(2026, 7, 14),
-            "Jonas",
-            "Winkler",
+            "Alex",
+            "Muster",
             1985);
 
         Assert.True(result.IsValid);
@@ -275,11 +275,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "  Jonas  ",
-            LastName = "Winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "  Alex  ",
+            LastName = "Muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2027, 2, 28),
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -288,8 +288,8 @@ public sealed class DokumePassParserTests
         var result = _parser.ValidatePass(
             pass,
             new DateOnly(2026, 7, 14),
-            "Jonas",
-            "Winkler",
+            "Alex",
+            "Muster",
             1985);
 
         Assert.True(result.IsValid);
@@ -300,11 +300,11 @@ public sealed class DokumePassParserTests
     {
         var pass = new DokumePassCheckResult
         {
-            PassNumber = "J-0080659",
-            FirstName = "JONAS",
-            LastName = "winkler",
+            PassNumber = "L-TEST-9001",
+            FirstName = "ALEX",
+            LastName = "muster",
             DateOfBirth = new DateOnly(1985, 3, 18),
-            LicenseTypeName = "Judopass",
+            LicenseTypeName = "LizenzTest",
             ExpiryDate = new DateOnly(2027, 2, 28),
             Issuer = "DokuMe",
             IsRs384Claimed = true
@@ -313,10 +313,11 @@ public sealed class DokumePassParserTests
         var result = _parser.ValidatePass(
             pass,
             new DateOnly(2026, 7, 14),
-            "Jonas",
-            "Winkler",
+            "Alex",
+            "Muster",
             1985);
 
         Assert.True(result.IsValid);
     }
 }
+
