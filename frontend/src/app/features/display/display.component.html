@@ -366,17 +366,17 @@
                   <section class="ko-phase-block">
                     <h4 class="round-title">{{ 'draw.knockoutPhase' | t }}</h4>
                     <div class="bracket-shell">
-                      <svg
-                        class="bracket-connectors"
-                        [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
-                        [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
-                        [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
-                        preserveAspectRatio="none">
-                        @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
-                          <path [attr.d]="path.d" />
-                        }
-                      </svg>
                       <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                        <svg
+                          class="bracket-connectors"
+                          [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                          [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                          [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                          preserveAspectRatio="none">
+                          @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                            <path [attr.d]="path.d" />
+                          }
+                        </svg>
                         @for (group of roundRobinMainRoundsForCategory(cat.id); track group.round) {
                           <div class="round">
                             <h4>{{ 'draw.round' | t: { n: group.round } }}</h4>
@@ -409,17 +409,17 @@
                 }
               } @else {
                 <div class="bracket-shell">
-                  <svg
-                    class="bracket-connectors"
-                    [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
-                    [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
-                    [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
-                    preserveAspectRatio="none">
-                    @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
-                      <path [attr.d]="path.d" />
-                    }
-                  </svg>
                   <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                    <svg
+                      class="bracket-connectors"
+                      [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                      [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                      [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                      preserveAspectRatio="none">
+                      @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                        <path [attr.d]="path.d" />
+                      }
+                    </svg>
                     @for (group of mainRoundsForCategory(cat.id); track group.round) {
                       <div class="round">
                         <h4>{{ 'draw.round' | t: { n: group.round } }}</h4>
@@ -453,17 +453,17 @@
                   <section class="pool-block">
                     <h4 class="round-title">{{ 'draw.repechageSection' | t }}</h4>
                     <div class="bracket-shell">
-                      <svg
-                        class="bracket-connectors"
-                        [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Repechage'))"
-                        [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Repechage'))"
-                        [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Repechage'))"
-                        preserveAspectRatio="none">
-                        @for (path of connectorPaths(cat.id, 'Repechage'); track path.id) {
-                          <path [attr.d]="path.d" />
-                        }
-                      </svg>
                       <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Repechage')" (scroll)="onBracketScrolled()">
+                        <svg
+                          class="bracket-connectors"
+                          [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Repechage'))"
+                          [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Repechage'))"
+                          [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Repechage'))"
+                          preserveAspectRatio="none">
+                          @for (path of connectorPaths(cat.id, 'Repechage'); track path.id) {
+                            <path [attr.d]="path.d" />
+                          }
+                        </svg>
                         @for (group of repechageRoundsForCategory(cat.id); track group.round) {
                           <div class="round">
                             <h5>{{ 'draw.round' | t: { n: group.round } }}</h5>

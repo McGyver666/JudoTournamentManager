@@ -329,7 +329,7 @@ app-display .ko-phase-block {margin-top:.85rem}
 app-display .bracket {display:flex;gap:1.25rem;overflow-x:auto;padding-bottom:1rem;margin-bottom:1.25rem;position:relative;z-index:1}
 app-display .bracket-shell {position:relative;margin-bottom:1.1rem}
 app-display .bracket-shell .bracket {margin-bottom:0}
-app-display .bracket-connectors {position:absolute;top:0;left:0;pointer-events:none;z-index:0}
+app-display .bracket-connectors {position:absolute;top:0;left:0;pointer-events:none;z-index:-1}
 app-display .bracket-connectors path {fill:none;stroke:#90a6c3;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:1}
 app-display .round.progression-round {gap:0}
 app-display .round.progression-round :is(h3,h4,h5) {margin-bottom:1rem}
