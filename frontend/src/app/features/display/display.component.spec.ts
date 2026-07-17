@@ -108,7 +108,76 @@ describe('DisplayComponent', () => {
     });
   });
 
-  it('keeps a stopped Osae-Komi visible until the fight resumes', () => {
+  it('keeps a stopped Osae-Komi visible until a new Osae-Komi starts', () => {
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    const activeHold = createFight({
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: new Date(Date.now() - 5_000).toISOString(),
+    });
+    const stoppedFight = createFight();
+    const restartedHold = createFight({
+      osaeKomiSide: 'Blue',
+      osaeKomiStartedAtUtc: new Date(Date.now() - 2_000).toISOString(),
+    });
+
+    (fixture.componentInstance as any).displays.set([
+      { tatami: createTatami(), current: activeHold, nextFights: [] },
+    ]);
+
+    fightUpdates.next(activeHold);
+
+    expect((fixture.componentInstance as any).isOsaeKomiRunning(activeHold)).toBeTrue();
+
+    fightUpdates.next(stoppedFight);
+
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(stoppedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).osaeKomiSideLabel(stoppedFight)).toBe('white');
+
+    fightUpdates.next(restartedHold);
+
+    const displayedFight = (fixture.componentInstance as any).displays()[0].current as Fight;
+
+    expect((fixture.componentInstance as any).isOsaeKomiRunning(displayedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).osaeKomiSideLabel(displayedFight)).toBe('blue');
+
+    fixture.destroy();
+  });
+
+  it('keeps a stopped Osae-Komi visible through pause and clears it on resume', () => {
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    const activeHold = createFight({
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: new Date(Date.now() - 5_000).toISOString(),
+    });
+    const stoppedFight = createFight();
+    const pausedFight = createFight({
+      status: 'Paused',
+      pausedAtUtc: new Date().toISOString(),
+    });
+    const resumedFight = createFight();
+
+    (fixture.componentInstance as any).displays.set([
+      { tatami: createTatami(), current: activeHold, nextFights: [] },
+    ]);
+
+    fightUpdates.next(activeHold);
+    fightUpdates.next(stoppedFight);
+    fightUpdates.next(pausedFight);
+
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBeTrue();
+
+    fightUpdates.next(resumedFight);
+
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(resumedFight)).toBeFalse();
+
+    fixture.destroy();
+  });
+
+  it('keeps a running Osae-Komi visible when the fight is paused and clears it on resume', () => {
     const fixture = TestBed.createComponent(DisplayComponent);
     fixture.detectChanges();
 
@@ -131,14 +200,48 @@ describe('DisplayComponent', () => {
 
     fightUpdates.next(pausedFight);
 
-    expect((fixture.componentInstance as any).hasFrozenOsaeKomi(pausedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBeTrue();
 
     fightUpdates.next(resumedFight);
 
     const displayedFight = (fixture.componentInstance as any).displays()[0].current as Fight;
 
     expect((fixture.componentInstance as any).isOsaeKomiRunning(displayedFight)).toBeFalse();
-    expect((fixture.componentInstance as any).hasFrozenOsaeKomi(resumedFight)).toBeFalse();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(resumedFight)).toBeFalse();
+
+    fixture.destroy();
+  });
+
+  it('keeps the snapshot cleared across repeated resumed updates after pause', () => {
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    const activeHold = createFight({
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: new Date(Date.now() - 5_000).toISOString(),
+    });
+    const pausedFight = createFight({
+      status: 'Paused',
+      pausedAtUtc: new Date().toISOString(),
+    });
+    const resumedFight = createFight();
+
+    (fixture.componentInstance as any).displays.set([
+      { tatami: createTatami(), current: activeHold, nextFights: [] },
+    ]);
+
+    fightUpdates.next(activeHold);
+    fightUpdates.next(pausedFight);
+
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBeTrue();
+
+    fightUpdates.next(resumedFight);
+    (fixture.componentInstance as any).updateDisplayedFight(resumedFight);
+
+    const displayedFight = (fixture.componentInstance as any).displays()[0].current as Fight;
+
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(displayedFight)).toBeFalse();
+    expect((fixture.componentInstance as any).osaeKomiSideLabel(displayedFight)).toBeNull();
 
     fixture.destroy();
   });
