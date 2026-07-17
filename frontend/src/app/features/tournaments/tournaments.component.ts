@@ -86,6 +86,10 @@ export class TournamentsComponent implements OnInit {
       venue: t.venue,
       organizer: t.organizer,
       accentSideColor: t.accentSideColor,
+      osaeKomiIpponSeconds: t.osaeKomiIpponSeconds,
+      osaeKomiWazaAriSeconds: t.osaeKomiWazaAriSeconds,
+      osaeKomiYukoSeconds: t.osaeKomiYukoSeconds,
+      osaeKomiYukoEnabled: t.osaeKomiYukoEnabled,
     };
     this.showForm.set(true);
   }
@@ -217,7 +221,7 @@ export class TournamentsComponent implements OnInit {
   }
 
   private emptyForm(): CreateTournamentRequest {
-    return { name: '', date: '', venue: '', organizer: '', accentSideColor: 'Blue' };
+    return { name: '', date: '', venue: '', organizer: '', accentSideColor: 'Blue', osaeKomiIpponSeconds: 20, osaeKomiWazaAriSeconds: 10, osaeKomiYukoSeconds: 5, osaeKomiYukoEnabled: true };
   }
 
   protected colorLabelKey(color: AccentSideColor): string {

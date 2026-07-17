@@ -168,7 +168,7 @@ public sealed class SqliteTournamentStoreTests
 
         // Seed dependents
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var club = await clubStore.CreateAsync(tournament.Id, "JC Del", CancellationToken.None);
+        var club = await clubStore.CreateAsync(tournament.Id, "JC Del", null, null, null, CancellationToken.None);
 
         var tatamisStore = new SqliteTatamisStore(ctx, NullLogger<SqliteTatamisStore>.Instance);
         await tatamisStore.CreateAsync(tournament.Id, "Tatami 1", 0, CancellationToken.None);

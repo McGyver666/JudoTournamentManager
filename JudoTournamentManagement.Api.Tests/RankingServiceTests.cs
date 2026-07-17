@@ -36,7 +36,7 @@ public sealed class RankingServiceTests
         var t = await tStore.CreateAsync("Ranking T", new DateOnly(2026, 6, 1), "V", "O", CancellationToken.None);
 
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var club = await clubStore.CreateAsync(t.Id, "JC Ranking", CancellationToken.None);
+        var club = await clubStore.CreateAsync(t.Id, "JC Ranking", null, null, null, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         var ids = new List<Guid>();
@@ -266,6 +266,54 @@ public sealed class RankingServiceTests
     }
 
     [Fact]
+    public async Task GetCategoryRankings_RepechageBronzeBye_IncludesBothThirdPlaces()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        var (tid, cid, _, athletes) = await SeedAsync(ctx, 5);
+        var (gold, silver, bronzeOne, bronzeTwo, unused) = (athletes[0], athletes[1], athletes[2], athletes[3], athletes[4]);
+
+        ctx.Fights.AddRange(
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid, Round = 3,
+                BracketType = FightBracketType.Main.ToString(),
+                Status = FightStatus.Completed.ToString(), IsBye = false,
+                WhiteAthleteId = gold, BlueAthleteId = silver, WinnerId = gold,
+                WhiteScore = 10, BlueScore = 0, WhitePenalties = 0, BluePenalties = 0,
+                TatamiId = null, CreatedAtUtc = DateTimeOffset.UtcNow, UpdatedAtUtc = DateTimeOffset.UtcNow,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid, Round = 2,
+                BracketType = FightBracketType.Repechage.ToString(),
+                Status = FightStatus.Completed.ToString(), IsBye = false,
+                WhiteAthleteId = bronzeOne, BlueAthleteId = unused, WinnerId = bronzeOne,
+                WhiteScore = 7, BlueScore = 0, WhitePenalties = 0, BluePenalties = 0,
+                TatamiId = null, CreatedAtUtc = DateTimeOffset.UtcNow, UpdatedAtUtc = DateTimeOffset.UtcNow,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tid, CategoryId = cid, Round = 2,
+                BracketType = FightBracketType.Repechage.ToString(),
+                Status = FightStatus.Completed.ToString(), IsBye = true,
+                WhiteAthleteId = bronzeTwo, BlueAthleteId = null, WinnerId = bronzeTwo,
+                WhiteScore = 0, BlueScore = 0, WhitePenalties = 0, BluePenalties = 0,
+                TatamiId = null, CreatedAtUtc = DateTimeOffset.UtcNow, UpdatedAtUtc = DateTimeOffset.UtcNow,
+            });
+
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetCategoryRankingsAsync(tid, cid, CancellationToken.None);
+
+        Assert.Equal(4, result.Count);
+        Assert.Equal(1, result.Single(e => e.AthleteId == gold).Place);
+        Assert.Equal(2, result.Single(e => e.AthleteId == silver).Place);
+        Assert.Equal(3, result.Single(e => e.AthleteId == bronzeOne).Place);
+        Assert.Equal(3, result.Single(e => e.AthleteId == bronzeTwo).Place);
+    }
+
+    [Fact]
     public async Task GetCategoryRankings_IncompleteBracket_ReturnsPartialRanking()
     {
         await using var ctx = CreateDbContext();
@@ -304,8 +352,8 @@ public sealed class RankingServiceTests
         var tid = tournament.Id;
 
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var club1 = await clubStore.CreateAsync(tid, "Club Alpha", CancellationToken.None);
-        var club2 = await clubStore.CreateAsync(tid, "Club Beta", CancellationToken.None);
+        var club1 = await clubStore.CreateAsync(tid, "Club Alpha", null, null, null, CancellationToken.None);
+        var club2 = await clubStore.CreateAsync(tid, "Club Beta", null, null, null, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         var a1 = await athleteStore.CreateAsync(tid, club1!.Id, "Gold", "Alpha", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);

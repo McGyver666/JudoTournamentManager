@@ -34,6 +34,9 @@ public sealed class Dm4AthleteImportParserTests
         var result = _parser.Parse(Encoding.UTF8.GetBytes(content));
 
         Assert.Equal("DJK Dülmen", result.ClubName);
+        Assert.Equal("Jean-Andre Meis", result.ContactName);
+        Assert.Equal("jean-andre.meis@posteo.de", result.ContactEmail);
+        Assert.Equal("01794853997", result.ContactPhone);
         Assert.Equal(Gender.Male, result.Gender);
         Assert.Equal(2, result.Athletes.Count);
 

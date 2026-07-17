@@ -39,6 +39,11 @@
   align-items: flex-end;
 }
 
+.double-elimination-limit {
+  margin: 0.35rem 0 0;
+  max-width: 28rem;
+}
+
 .swap-bar {
   display: flex;
   align-items: center;
@@ -159,6 +164,12 @@
 .slot-name {
   font-size: 0.9rem;
   line-height: 1.2;
+}
+
+.slot.placeholder .slot-name {
+  color: var(--c-muted);
+  font-weight: 500;
+  opacity: 0.78;
 }
 
 .slot-club {

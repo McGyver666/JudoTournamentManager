@@ -313,7 +313,7 @@ public sealed class AthletesController : ControllerBase
 
         if (targetClub is null)
         {
-            targetClub = await _clubsStore.CreateAsync(tournamentId, parsed.ClubName, cancellationToken);
+            targetClub = await _clubsStore.CreateAsync(tournamentId, parsed.ClubName, parsed.ContactName, parsed.ContactEmail, parsed.ContactPhone, cancellationToken);
 
             // In case of a concurrent create, lookup the existing club by name.
             if (targetClub is null)

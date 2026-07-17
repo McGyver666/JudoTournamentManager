@@ -62,41 +62,69 @@
   } @else {
     <div class="card">
       <p class="muted">{{ 'tatamiAssignment.hint' | t }}</p>
-      <table>
-        <thead>
-          <tr>
-            <th>{{ 'draw.category' | t }}</th>
-            <th>{{ 'tatamiAssignment.round' | t }}</th>
-            <th>{{ 'tatamiAssignment.fight' | t }}</th>
-            <th>{{ 'tatamiAssignment.whiteAthlete' | t }}</th>
-            <th>{{ 'tatamiAssignment.blueAthlete' | t }}</th>
-            <th>{{ 'tatamiAssignment.tatami' | t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (view of assignableFightViews(); track view.fight.id) {
-            <tr>
-              <td>{{ view.categoryName }}</td>
-              <td>{{ view.fight.round }}</td>
-              <td>{{ view.fight.fightNumber }}</td>
-              <td>{{ view.whiteName }}</td>
-              <td>{{ view.blueName }}</td>
-              <td>
-                <select
-                  [ngModel]="view.fight.tatamiId ?? ''"
-                  (ngModelChange)="assignFight(view.fight.id, $event)"
-                  [disabled]="!canOperate() || assigning()"
-                >
-                  <option value="">{{ 'tatamiAssignment.notAssigned' | t }}</option>
-                  @for (tatami of selectableTatamis(); track tatami.id) {
-                    <option [value]="tatami.id">{{ tatami.name }}</option>
-                  }
-                </select>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+      @for (group of groupedAssignableFightViews(); track group.categoryId) {
+        <section class="category-group">
+          <div class="category-group-header">
+            <div>
+              <h2>{{ group.categoryName }}</h2>
+              <p class="muted">{{ group.assignedCount }} / {{ group.fights.length }} {{ 'tatamiAssignment.assignedFights' | t }}</p>
+            </div>
+            <div class="category-bulk-assignment">
+              <select
+                [ngModel]="categoryTatamiSelections()[group.categoryId] ?? ''"
+                (ngModelChange)="updateCategoryTatamiSelection(group.categoryId, $event)"
+                [disabled]="!canOperate() || assigning()"
+              >
+                <option value="">{{ 'tatamiAssignment.notAssigned' | t }}</option>
+                @for (tatami of selectableTatamis(); track tatami.id) {
+                  <option [value]="tatami.id">{{ tatami.name }}</option>
+                }
+              </select>
+              <button
+                type="button"
+                (click)="assignCategory(group.categoryId)"
+                [disabled]="!canOperate() || assigning()"
+              >
+                {{ 'tatamiAssignment.assignCategory' | t }}
+              </button>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>{{ 'tatamiAssignment.round' | t }}</th>
+                <th>{{ 'tatamiAssignment.fight' | t }}</th>
+                <th>{{ 'tatamiAssignment.whiteAthlete' | t }}</th>
+                <th>{{ 'tatamiAssignment.blueAthlete' | t }}</th>
+                <th>{{ 'tatamiAssignment.tatami' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (view of group.fights; track view.fight.id) {
+                <tr>
+                  <td>{{ view.fight.round }}</td>
+                  <td>{{ view.fight.fightNumber }}</td>
+                  <td>{{ view.whiteName }}</td>
+                  <td>{{ view.blueName }}</td>
+                  <td>
+                    <select
+                      [ngModel]="view.fight.tatamiId ?? ''"
+                      (ngModelChange)="assignFight(view.fight.id, $event)"
+                      [disabled]="!canOperate() || assigning()"
+                    >
+                      <option value="">{{ 'tatamiAssignment.notAssigned' | t }}</option>
+                      @for (tatami of selectableTatamis(); track tatami.id) {
+                        <option [value]="tatami.id">{{ tatami.name }}</option>
+                      }
+                    </select>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
     </div>
   }
 }

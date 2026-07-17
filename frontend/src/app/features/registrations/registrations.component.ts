@@ -113,7 +113,6 @@ export class RegistrationsComponent implements OnInit {
     this.form = {
       athleteId: firstAthlete?.id ?? '',
       weightKg: firstAthlete?.weightKg ?? 0,
-      licenseId: firstAthlete?.licenseId ?? '',
       licenseConfirmed: true,
       dokumeQrUrl: '',
       licenseCheckOverrideReason: ''
@@ -183,7 +182,7 @@ export class RegistrationsComponent implements OnInit {
             lastName: selected!.lastName,
             birthYear: selected!.birthYear,
             gender: selected!.gender,
-            licenseId: this.form.licenseId,
+            licenseId: selected!.licenseId,
             weightKg: this.form.weightKg,
             grade: selected!.grade,
           };

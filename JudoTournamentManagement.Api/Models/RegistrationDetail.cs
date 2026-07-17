@@ -35,7 +35,6 @@ public sealed record RegistrationDetail(
     int AthleteBirthYear,
     Gender AthleteGender,
     string AthleteClubName,
-    string? AthleteLicenseId,
     Guid? CategoryId,
     string? CategoryName,
     string? CategoryAgeGroup,

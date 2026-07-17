@@ -15,6 +15,66 @@
   min-width: 0;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 30;
+}
+
+.modal-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(32rem, calc(100vw - 2rem));
+  background: #fff;
+  border: 1px solid #d7dce1;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+  z-index: 31;
+}
+
+.modal-card h2,
+.modal-card p {
+  margin: 0;
+}
+
+.modal-next-fight {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: #f8fafc;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.modal-next-fight__category {
+  font-weight: 700;
+  color: #111827;
+}
+
+.modal-next-fight__athletes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  color: #111827;
+}
+
+.modal-next-fight__empty {
+  color: #6b7280;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 .queue-panel {
   display: flex;
   flex-direction: column;

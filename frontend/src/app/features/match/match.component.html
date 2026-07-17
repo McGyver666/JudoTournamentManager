@@ -17,6 +17,33 @@
     </div>
   }
 
+  @if (winnerConfirmation(); as confirmation) {
+    <div class="modal-backdrop" (click)="cancelWinnerConfirmation()"></div>
+    <section class="modal-card" role="dialog" aria-modal="true" [attr.aria-labelledby]="'winner-confirmation-title'" (click)="$event.stopPropagation()">
+      <h2 id="winner-confirmation-title">{{ 'match.confirmWinnerDialogTitle' | t }}</h2>
+      <p>{{ 'match.confirmWinnerDialogHint' | t }}</p>
+
+      <div class="modal-next-fight">
+        <div class="fight-card__label">{{ 'match.nextFight' | t }}</div>
+        @if (confirmation.nextFight; as nextFight) {
+          <div class="modal-next-fight__category">{{ categoryName(nextFight.categoryId) }}</div>
+          <div class="modal-next-fight__athletes">
+            <span class="athlete--white">{{ athleteName(nextFight.whiteAthleteId) }}</span>
+            <span>vs</span>
+            <span class="athlete--blue">{{ athleteName(nextFight.blueAthleteId) }}</span>
+          </div>
+        } @else {
+          <div class="modal-next-fight__empty">{{ 'match.noUpcomingFightToLoad' | t }}</div>
+        }
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn--secondary" type="button" [disabled]="confirmingWinner()" (click)="cancelWinnerConfirmation()">{{ 'common.cancel' | t }}</button>
+        <button class="btn btn--primary" type="button" [disabled]="confirmingWinner()" (click)="confirmWinnerAndLoadNext()">{{ 'common.ok' | t }}</button>
+      </div>
+    </section>
+  }
+
   @if (selectedTatamiId()) {
     <div class="queue-panel">
       @if (currentFight(); as fight) {

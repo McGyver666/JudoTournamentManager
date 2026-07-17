@@ -114,7 +114,7 @@ export class ConfigComponent implements OnInit {
   // Form models per entity.
   protected tatamiForm = { id: null as string | null, name: '', displayOrder: null as number | null, isActive: true };
   protected categoryForm: CreateCategoryRequest & { id: string | null } = this.emptyCategory();
-  protected clubForm = { id: null as string | null, name: '' };
+  protected clubForm = { id: null as string | null, name: '', contactName: '', contactEmail: '', contactPhone: '' };
   protected athleteForm: CreateAthleteRequest & { id: string | null } = this.emptyAthlete();
 
   protected showTatamiForm = signal(false);
@@ -495,7 +495,7 @@ export class ConfigComponent implements OnInit {
     if (!this.canOperate()) {
       return;
     }
-    this.clubForm = { id: null, name: '' };
+    this.clubForm = { id: null, name: '', contactName: '', contactEmail: '', contactPhone: '' };
     this.showClubForm.set(true);
   }
 
@@ -503,7 +503,7 @@ export class ConfigComponent implements OnInit {
     if (!this.canOperate()) {
       return;
     }
-    this.clubForm = { id: c.id, name: c.name };
+    this.clubForm = { id: c.id, name: c.name, contactName: c.contactName ?? '', contactEmail: c.contactEmail ?? '', contactPhone: c.contactPhone ?? '' };
     this.showClubForm.set(true);
   }
 
@@ -517,9 +517,14 @@ export class ConfigComponent implements OnInit {
     }
     this.error.set(null);
     const f = this.clubForm;
+    const contact = {
+      contactName: f.contactName.trim() || null,
+      contactEmail: f.contactEmail.trim() || null,
+      contactPhone: f.contactPhone.trim() || null,
+    };
     const req: Observable<unknown> = f.id
-      ? this.api.updateClub(id, f.id, { name: f.name })
-      : this.api.createClub(id, { name: f.name });
+      ? this.api.updateClub(id, f.id, { name: f.name, ...contact })
+      : this.api.createClub(id, { name: f.name, ...contact });
     req.subscribe({
       next: () => {
         this.showClubForm.set(false);

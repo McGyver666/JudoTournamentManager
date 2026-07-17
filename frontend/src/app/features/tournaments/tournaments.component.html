@@ -49,6 +49,29 @@
         </select>
       </div>
     </div>
+    <h3>{{ 'tournaments.regelungen' | t }}</h3>
+    <div class="row">
+      <div>
+        <label>{{ 'tournaments.osaeKomiIpponSeconds' | t }}</label>
+        <input type="number" [(ngModel)]="form.osaeKomiIpponSeconds" name="osaeKomiIpponSeconds" min="10" max="60" />
+      </div>
+      <div>
+        <label>{{ 'tournaments.osaeKomiWazaAriSeconds' | t }}</label>
+        <input type="number" [(ngModel)]="form.osaeKomiWazaAriSeconds" name="osaeKomiWazaAriSeconds" min="5" max="30" />
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" [(ngModel)]="form.osaeKomiYukoEnabled" name="osaeKomiYukoEnabled" />
+          {{ 'tournaments.osaeKomiYukoEnabled' | t }}
+        </label>
+      </div>
+      @if (form.osaeKomiYukoEnabled) {
+        <div>
+          <label>{{ 'tournaments.osaeKomiYukoSeconds' | t }}</label>
+          <input type="number" [(ngModel)]="form.osaeKomiYukoSeconds" name="osaeKomiYukoSeconds" min="1" max="15" />
+        </div>
+      }
+    </div>
     <div class="form-actions">
       <button (click)="cancel()">{{ 'common.cancel' | t }}</button>
       <button class="primary" (click)="save()">{{ 'common.save' | t }}</button>

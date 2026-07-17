@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/translate.pipe';
@@ -34,6 +34,8 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly canOperate = this.auth.canOperate;
   protected readonly currentUser = this.auth.user;
   protected readonly displayTatamis = signal<Tatami[]>([]);
+  protected readonly activeTatamis = computed(() =>
+    this.displayTatamis().filter((tatami) => tatami.isActive));
   protected readonly displayMenuOpen = signal(false);
   protected readonly tournamentleitungMenuOpen = signal(false);
   protected readonly mattenrichterMenuOpen = signal(false);
@@ -51,14 +53,7 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const sub = this.api.getTatamis(tournamentId).subscribe({
-      next: (tatamis) => {
-        this.displayTatamis.set(
-          [...tatamis].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)),
-        );
-      },
-      error: () => this.displayTatamis.set([]),
-    });
+    const sub = this.loadTatamis(tournamentId);
 
     onCleanup(() => sub.unsubscribe());
   });
@@ -83,6 +78,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const willOpen = !this.displayMenuOpen();
     this.displayMenuOpen.update((open) => !open);
     if (willOpen) {
+      this.refreshTatamis();
       this.tournamentleitungMenuOpen.set(false);
       this.mattenrichterMenuOpen.set(false);
     }
@@ -109,6 +105,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const willOpen = !this.mattenrichterMenuOpen();
     this.mattenrichterMenuOpen.update((open) => !open);
     if (willOpen) {
+      this.refreshTatamis();
       this.displayMenuOpen.set(false);
       this.tournamentleitungMenuOpen.set(false);
     }
@@ -128,6 +125,24 @@ export class AppComponent implements OnInit, OnDestroy {
 
   protected matchTatamiQueryParams(tournamentId: string, tatamiId: string): { tournamentId: string; tatamiId: string } {
     return { tournamentId, tatamiId };
+  }
+
+  private refreshTatamis(): void {
+    const tournamentId = this.context.tournamentId();
+    if (tournamentId) {
+      this.loadTatamis(tournamentId);
+    }
+  }
+
+  private loadTatamis(tournamentId: string): Subscription {
+    return this.api.getTatamis(tournamentId).subscribe({
+      next: (tatamis) => {
+        this.displayTatamis.set(
+          [...tatamis].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)),
+        );
+      },
+      error: () => this.displayTatamis.set([]),
+    });
   }
 
   @HostListener('document:click', ['$event'])

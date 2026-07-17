@@ -47,11 +47,14 @@ public sealed class MatchServiceTests
     private static async Task<(Guid TournamentId, Guid CategoryId, List<Guid> AthleteIds)>
         SeedBracketAsync(AppDbContext ctx, int athleteCount, BracketFormat format = BracketFormat.SingleElimination)
     {
-        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var mockPresets = new Mock<ICategoryPresetsStore>();
+        mockPresets.Setup(p => p.SeedDefaultsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance, mockPresets.Object);
         var t = await tStore.CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var club = await clubStore.CreateAsync(t.Id, "JC Test", CancellationToken.None);
+        var club = await clubStore.CreateAsync(t.Id, "JC Test", null, null, null, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         var athleteIds = new List<Guid>();
@@ -283,6 +286,7 @@ public sealed class MatchServiceTests
         {
             var svc = CreateService(ctx);
             await svc.StartAsync(final.Id, "Tisch1", CancellationToken.None);
+            await svc.StartOsaeKomiAsync(final.Id, "white", "Tisch1", CancellationToken.None);
             var pauseResult = await svc.PauseAsync(final.Id, "Tisch1", CancellationToken.None);
             Assert.Equal(MatchActionResult.Success, pauseResult);
         }
@@ -290,6 +294,8 @@ public sealed class MatchServiceTests
         var paused = (await ReadFightsAsync(db, cid)).Single();
         Assert.Equal(FightStatus.Paused.ToString(), paused.Status);
         Assert.NotNull(paused.PausedAtUtc);
+        Assert.Null(paused.OsaeKomiSide);
+        Assert.Null(paused.OsaeKomiStartedAtUtc);
 
         await using (var ctx = CreateDbContext(db))
         {
@@ -300,6 +306,8 @@ public sealed class MatchServiceTests
         var resumed = (await ReadFightsAsync(db, cid)).Single();
         Assert.Equal(FightStatus.InProgress.ToString(), resumed.Status);
         Assert.Null(resumed.PausedAtUtc);
+        Assert.Null(resumed.OsaeKomiSide);
+        Assert.Null(resumed.OsaeKomiStartedAtUtc);
     }
 
     // ─── Scoring ──────────────────────────────────────────────────────────────
@@ -667,5 +675,282 @@ public sealed class MatchServiceTests
         var result = await CreateService(ctx2)
             .AssignTatamiAsync(final.Id, Guid.NewGuid(), "Admin", CancellationToken.None);
         Assert.Equal(MatchActionResult.InvalidState, result);
+    }
+
+    // ─── StopOsaeKomi – Auto-Scoring ──────────────────────────────────────────
+
+    /// <summary>Seeds a tournament+fight directly into the DB and starts the fight.</summary>
+    private static async Task<(Guid TournamentId, Guid FightId)> SeedOsaeKomiFightAsync(
+        AppDbContext ctx,
+        int osaeKomiIpponSeconds = 20,
+        int osaeKomiWazaAriSeconds = 10,
+        int osaeKomiYukoSeconds = 5,
+        bool osaeKomiYukoEnabled = true)
+    {
+        var tid = Guid.NewGuid();
+        ctx.Tournaments.Add(new JudoTournamentManagement.Api.Data.TournamentRecord
+        {
+            Id = tid,
+            Name = "Test",
+            Date = new DateOnly(2026, 1, 1),
+            Venue = "V",
+            Organizer = "O",
+            AccentSideColor = "Blue",
+            OsaeKomiIpponSeconds = osaeKomiIpponSeconds,
+            OsaeKomiWazaAriSeconds = osaeKomiWazaAriSeconds,
+            OsaeKomiYukoSeconds = osaeKomiYukoSeconds,
+            OsaeKomiYukoEnabled = osaeKomiYukoEnabled,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        });
+
+        var cid = Guid.NewGuid();
+        ctx.Categories.Add(new JudoTournamentManagement.Api.Data.CategoryRecord
+        {
+            Id = cid,
+            TournamentId = tid,
+            Name = "U18 M -73",
+            AgeGroup = "U18",
+            Gender = "Male",
+            MatchDurationSeconds = 300,
+            GoldenScoreEnabled = false,
+            GoldenScoreDurationSeconds = 180,
+            DrawFormat = null,
+            IsLocked = true,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        });
+
+        var whiteId = Guid.NewGuid();
+        var blueId = Guid.NewGuid();
+        var fid = Guid.NewGuid();
+        ctx.Fights.Add(new JudoTournamentManagement.Api.Data.FightRecord
+        {
+            Id = fid,
+            TournamentId = tid,
+            CategoryId = cid,
+            BracketType = "Main",
+            Round = 1,
+            FightNumber = 1,
+            WhiteAthleteId = whiteId,
+            BlueAthleteId = blueId,
+            Status = "InProgress",
+            StartedAtUtc = DateTimeOffset.UtcNow,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        });
+
+        await ctx.SaveChangesAsync();
+        return (tid, fid);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_Hold20s_AwardsIppon()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            var f = ctx.Fights.Single(x => x.Id == fightId);
+            f.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-20);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var result = await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctxRead1 = CreateDbContext(db);
+        var updated = await ctxRead1.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Equal(1, updated.WhiteIpponCount);
+        Assert.Equal(0, updated.WhiteWazaAriCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_Hold12s_AwardsWazaAri()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            var f = ctx.Fights.Single(x => x.Id == fightId);
+            f.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-12);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctx2 = CreateDbContext(db);
+        var updated = await ctx2.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Equal(0, updated.WhiteIpponCount);
+        Assert.Equal(1, updated.WhiteWazaAriCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_Hold7s_YukoEnabled_AwardsYuko()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx, osaeKomiYukoEnabled: true);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            var f = ctx.Fights.Single(x => x.Id == fightId);
+            f.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-7);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctx2 = CreateDbContext(db);
+        var updated = await ctx2.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Equal(0, updated.WhiteIpponCount);
+        Assert.Equal(0, updated.WhiteWazaAriCount);
+        Assert.Equal(1, updated.WhiteYukoCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_Hold7s_YukoDisabled_NoScore()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx, osaeKomiYukoEnabled: false);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            var f = ctx.Fights.Single(x => x.Id == fightId);
+            f.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-7);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctx2 = CreateDbContext(db);
+        var updated = await ctx2.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Equal(0, updated.WhiteIpponCount);
+        Assert.Equal(0, updated.WhiteWazaAriCount);
+        Assert.Equal(0, updated.WhiteYukoCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_Hold3s_NoScore()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            var f = ctx.Fights.Single(x => x.Id == fightId);
+            f.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-3);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctx2 = CreateDbContext(db);
+        var updated = await ctx2.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Equal(0, updated.WhiteIpponCount);
+        Assert.Equal(0, updated.WhiteWazaAriCount);
+        Assert.Equal(0, updated.WhiteYukoCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_HolderHasWazaAri_Hold10s_AwardsIppon()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx);
+            // Pre-set Waza-ari for white.
+            var f = ctx.Fights.Single(x => x.Id == fightId);
+            f.WhiteWazaAriCount = 1;
+            await ctx.SaveChangesAsync();
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            f = ctx.Fights.Single(x => x.Id == fightId);
+            f.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-10);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctx2 = CreateDbContext(db);
+        var updated = await ctx2.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        // Second Waza-ari at 10 s → converted to Ippon.
+        Assert.Equal(1, updated.WhiteIpponCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_CustomIpponThreshold_AwardsIpponAtCustomTime()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            // Use custom 15 s Ippon threshold.
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx, osaeKomiIpponSeconds: 15);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            var f = ctx.Fights.Single(x => x.Id == fightId);
+            f.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-15);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctx2 = CreateDbContext(db);
+        var updated = await ctx2.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Equal(1, updated.WhiteIpponCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_ClearsOsaeKomiFields()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "blue", "t", CancellationToken.None);
+        }
+
+        await using (var ctx = CreateDbContext(db))
+            await CreateService(ctx).StopOsaeKomiAsync(fightId, "t", CancellationToken.None);
+
+        await using var ctx2 = CreateDbContext(db);
+        var updated = await ctx2.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Null(updated.OsaeKomiSide);
+        Assert.Null(updated.OsaeKomiStartedAtUtc);
     }
 }

@@ -30,9 +30,11 @@ public sealed class CategoryGenerationServiceTests
             .Setup(x => x.GetDetailedAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(registrations);
 
+        var mockPresets = new Mock<ICategoryPresetsStore>();
         var service = new CategoryGenerationService(
             categoriesStore.Object,
             registrationsStore.Object,
+            mockPresets.Object,
             NullLogger<CategoryGenerationService>.Instance);
 
         var request = new GenerateCategoriesRequest
@@ -85,9 +87,11 @@ public sealed class CategoryGenerationServiceTests
             .Setup(x => x.GetDetailedAsync(tournamentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RegistrationDetail>());
 
+        var mockPresets = new Mock<ICategoryPresetsStore>();
         var service = new CategoryGenerationService(
             categoriesStore.Object,
             registrationsStore.Object,
+            mockPresets.Object,
             NullLogger<CategoryGenerationService>.Instance);
 
         var request = new GenerateCategoriesRequest

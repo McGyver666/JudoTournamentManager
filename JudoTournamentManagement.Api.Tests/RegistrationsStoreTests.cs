@@ -24,11 +24,14 @@ public sealed class RegistrationsStoreTests
 
     private static async Task<(Guid TournamentId, Guid AthleteId, Guid CategoryId)> SeedAsync(AppDbContext ctx)
     {
-        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var mockPresets = new Mock<ICategoryPresetsStore>();
+        mockPresets.Setup(p => p.SeedDefaultsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance, mockPresets.Object);
         var t = await tStore.CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var club = await clubStore.CreateAsync(t.Id, "JC Test", CancellationToken.None);
+        var club = await clubStore.CreateAsync(t.Id, "JC Test", null, null, null, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         var athlete = await athleteStore.CreateAsync(
@@ -73,6 +76,39 @@ public sealed class RegistrationsStoreTests
         var duplicate = await store.CreateAsync(tid, aid, 25.0m, null, false, CancellationToken.None);
 
         Assert.Null(duplicate);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task CreateWithLicenseCheckAsync_PersistsQrLicenseNumberWithoutUpdatingAthleteLicense()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tournamentId, athleteId, _) = await SeedAsync(ctx);
+        var athlete = await ctx.Athletes.SingleAsync(a => a.Id == athleteId);
+        athlete.LicenseId = "legacy-license";
+        await ctx.SaveChangesAsync();
+
+        var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        var created = await store.CreateWithLicenseCheckAsync(
+            tournamentId,
+            athleteId,
+            25.0m,
+            true,
+            "https://qr.dokume.net?d=l&s=token",
+            null,
+            new TestDokumePassParser(),
+            new DateOnly(2026, 1, 1),
+            "operator",
+            CancellationToken.None);
+
+        await ctx.Entry(athlete).ReloadAsync();
+        var registration = await ctx.Registrations.SingleAsync(r => r.Id == created!.Id);
+
+        Assert.NotNull(created);
+        Assert.Equal("qr-license", registration.LicenseNumber);
+        Assert.Equal("legacy-license", athlete.LicenseId);
     }
 
     [Fact]
@@ -150,5 +186,24 @@ public sealed class RegistrationsStoreTests
         var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
 
         Assert.False(await store.DeleteAsync(Guid.NewGuid(), CancellationToken.None));
+    }
+
+    private sealed class TestDokumePassParser : IDokumePassParser
+    {
+        public DokumePassCheckResult? ParseQrUrl(string? qrUrl) => new()
+        {
+            PassNumber = "qr-license",
+            ExpiryDate = new DateOnly(2027, 1, 1)
+        };
+
+        public DokumePassValidationResult ValidatePass(
+            DokumePassCheckResult parsed,
+            DateOnly tournamentDate,
+            string athleteFirstName,
+            string athleteLastName,
+            int athleteBirthYear) => new()
+            {
+                IsValid = true
+            };
     }
 }

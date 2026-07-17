@@ -12,6 +12,7 @@ export type CategoryGenerationWeightMode = 'StandardClasses' | 'AthletesByTarget
 /** Bracket generation format. */
 export type BracketFormat =
   | 'SingleElimination'
+  | 'DoubleElimination'
   | 'SingleEliminationWithRepechage'
   | 'RoundRobin'
   | 'RoundRobinWithKnockout';
@@ -31,6 +32,9 @@ export type FightSide = 'white' | 'blue';
 /** Whether a fight belongs to the main bracket, the repechage, or a round-robin group stage. */
 export type FightBracketType = 'Main' | 'Repechage' | 'GroupStage';
 
+/** Outcome selected from a source fight to fill a derived slot. */
+export type FightSlotSourceOutcome = 'Winner' | 'Loser';
+
 export interface Tournament {
   id: string;
   name: string;
@@ -39,6 +43,10 @@ export interface Tournament {
   venue: string;
   organizer: string;
   accentSideColor: AccentSideColor;
+  osaeKomiIpponSeconds: number;
+  osaeKomiWazaAriSeconds: number;
+  osaeKomiYukoSeconds: number;
+  osaeKomiYukoEnabled: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -49,6 +57,10 @@ export interface CreateTournamentRequest {
   venue: string;
   organizer: string;
   accentSideColor: AccentSideColor;
+  osaeKomiIpponSeconds: number;
+  osaeKomiWazaAriSeconds: number;
+  osaeKomiYukoSeconds: number;
+  osaeKomiYukoEnabled: boolean;
 }
 
 export type UpdateTournamentRequest = CreateTournamentRequest;
@@ -162,12 +174,18 @@ export interface Club {
   id: string;
   tournamentId: string;
   name: string;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
 
 export interface CreateClubRequest {
   name: string;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
 }
 
 export type UpdateClubRequest = CreateClubRequest;
@@ -238,7 +256,6 @@ export interface RegistrationDetail {
   athleteBirthYear: number;
   athleteGender: Gender;
   athleteClubName: string;
-  athleteLicenseId: string | null;
   athleteWeightKg: number | null;
   categoryId: string | null;
   categoryName: string | null;
@@ -257,7 +274,6 @@ export interface RegistrationDetail {
 export interface CreateRegistrationRequest {
   athleteId: string;
   weightKg: number;
-  licenseId: string | null;
   licenseConfirmed: boolean;
   dokumeQrUrl?: string;
   licenseCheckOverrideReason?: string;
@@ -300,6 +316,10 @@ export interface Fight {
   round: number;
   fightNumber: number;
   poolNumber: number | null;
+  whiteSourceFightId: string | null;
+  whiteSourceOutcome: FightSlotSourceOutcome | null;
+  blueSourceFightId: string | null;
+  blueSourceOutcome: FightSlotSourceOutcome | null;
   whiteAthleteId: string | null;
   blueAthleteId: string | null;
   winnerId: string | null;

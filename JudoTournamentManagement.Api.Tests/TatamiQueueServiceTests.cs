@@ -44,11 +44,14 @@ public sealed class TatamiQueueServiceTests
     private static async Task<(Guid TournamentId, Guid CategoryId, Guid TatamiId)>
         SeedAsync(AppDbContext ctx, int athleteCount)
     {
-        var t = await new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance)
+        var mockPresets = new Mock<ICategoryPresetsStore>();
+        mockPresets.Setup(p => p.SeedDefaultsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var t = await new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance, mockPresets.Object)
             .CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var club = await new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance)
-            .CreateAsync(t.Id, "JC Test", CancellationToken.None);
+            .CreateAsync(t.Id, "JC Test", null, null, null, CancellationToken.None);
 
         var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         for (int i = 0; i < athleteCount; i++)
