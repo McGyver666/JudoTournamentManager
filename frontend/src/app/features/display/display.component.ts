@@ -67,7 +67,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   protected readonly nowEpochMs = signal<number>(Date.now());
   protected readonly hubConnected = computed(() => this.hub.connected());
   protected readonly isTatamiMode = computed(() => this.tatamiModeTatamiId() !== null);
-  private readonly frozenOsaeKomiMap = new Map<string, { seconds: number; side: FightSide }>();
+  private readonly persistedOsaeKomiMap = new Map<string, { seconds: number; side: FightSide; clearOnResume: boolean }>();
 
   protected readonly tatamiDisplay = computed(() => {
     const tatamiId = this.tatamiModeTatamiId();
@@ -853,6 +853,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
         this.api.getTatamiQueue(tid, selectedTatami.id).subscribe({
           next: q => {
+            if (q.current) {
+              this.syncOsaeKomiSnapshot(q.current);
+            }
+
             const currentId = q.current?.id;
             const nextFights = [q.next, q.onDeck, ...q.upcoming]
               .filter((fight): fight is Fight => !!fight && fight.id !== currentId)
@@ -875,6 +879,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
       sortedTatamis.forEach(tatami => {
         this.api.getTatamiQueue(tid, tatami.id).subscribe({
           next: q => {
+            if (q.current) {
+              this.syncOsaeKomiSnapshot(q.current);
+            }
+
             const currentId = q.current?.id;
             const nextFights = [q.next, q.onDeck, ...q.upcoming].filter((fight): fight is Fight => !!fight && fight.id !== currentId).slice(0, 3);
             updates.push({ tatami, current: q.current, nextFights });
@@ -896,21 +904,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   }
 
   private updateDisplayedFight(fight: Fight): void {
-    const previousFight = this.displays()
-      .map(display => display.current)
-      .find(current => current?.id === fight.id);
-
-    if (previousFight && this.isOsaeKomiRunning(previousFight) && fight.status === 'Paused') {
-      const side = previousFight.osaeKomiSide === 'White' ? 'white' : 'blue';
-      const cap = this.getOsaeKomiCapForFight(previousFight, side);
-      const startedAtMs = new Date(previousFight.osaeKomiStartedAtUtc!).getTime();
-      const seconds = Math.min(cap, Math.ceil((Date.now() - startedAtMs) / 1000));
-      this.frozenOsaeKomiMap.set(fight.id, { seconds, side });
-    }
-
-    if (fight.status === 'InProgress') {
-      this.frozenOsaeKomiMap.delete(fight.id);
-    }
+    this.syncOsaeKomiSnapshot(fight);
 
     this.displays.update(displays => displays.map(display => ({
       ...display,
@@ -957,8 +951,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
   }
 
-  protected hasFrozenOsaeKomi(fight: Fight): boolean {
-    return fight.status === 'Paused' && this.frozenOsaeKomiMap.has(fight.id);
+  protected hasPersistedOsaeKomi(fight: Fight): boolean {
+    return this.persistedOsaeKomiMap.has(fight.id);
   }
 
   protected osaeKomiSideLabel(fight: Fight): FightSide | null {
@@ -966,7 +960,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       return fight.osaeKomiSide === 'White' ? 'white' : 'blue';
     }
 
-    return this.frozenOsaeKomiMap.get(fight.id)?.side ?? null;
+    return this.persistedOsaeKomiMap.get(fight.id)?.side ?? null;
   }
 
   protected osaeKomiSecondsLabel(fight: Fight): string {
@@ -982,9 +976,9 @@ export class DisplayComponent implements OnInit, OnDestroy {
       return `${runningSeconds}s`;
     }
 
-    const frozen = this.frozenOsaeKomiMap.get(fight.id);
-    if (frozen) {
-      return `${frozen.seconds}s`;
+    const persisted = this.persistedOsaeKomiMap.get(fight.id);
+    if (persisted) {
+      return `${persisted.seconds}s`;
     }
 
     return '--';
@@ -1009,6 +1003,38 @@ export class DisplayComponent implements OnInit, OnDestroy {
       return t?.osaeKomiWazaAriSeconds ?? 10;
     }
     return t?.osaeKomiIpponSeconds ?? 20;
+  }
+
+  // Osae-komi display state matrix for the tatami screen:
+  // - Start: active backend fields win and refresh the persisted snapshot.
+  // - Stop: keep the last snapshot visible until a new osae-komi starts.
+  // - Pause: keep the last snapshot visible while the fight remains paused and mark it for resume clearing.
+  // - Resume: clear a snapshot that was marked during pause when the fight returns to normal InProgress without active osae-komi.
+  // - Pending/Completed: always clear the snapshot because the fight is no longer active.
+  private syncOsaeKomiSnapshot(fight: Fight): void {
+    if (this.isOsaeKomiRunning(fight)) {
+      const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
+      const cap = this.getOsaeKomiCapForFight(fight, side);
+      const startedAtMs = new Date(fight.osaeKomiStartedAtUtc!).getTime();
+      const seconds = Math.min(cap, Math.max(0, Math.ceil((Date.now() - startedAtMs) / 1000)));
+      this.persistedOsaeKomiMap.set(fight.id, { seconds, side, clearOnResume: false });
+    } else if (fight.status === 'Pending' || fight.status === 'Completed') {
+      this.persistedOsaeKomiMap.delete(fight.id);
+    } else {
+      const persisted = this.persistedOsaeKomiMap.get(fight.id);
+      if (!persisted) {
+        return;
+      }
+
+      if (fight.status === 'Paused') {
+        this.persistedOsaeKomiMap.set(fight.id, { ...persisted, clearOnResume: true });
+        return;
+      }
+
+      if (fight.status === 'InProgress' && persisted.clearOnResume) {
+        this.persistedOsaeKomiMap.delete(fight.id);
+      }
+    }
   }
 
   protected tatamiDisplayLink(tatamiId: string): string {
