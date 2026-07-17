@@ -35,6 +35,18 @@ public sealed class TournamentRecord
     /// </summary>
     public string AccentSideColor { get; set; } = "Blue";
 
+    /// <summary>Hold duration in seconds required for Ippon.</summary>
+    public int OsaeKomiIpponSeconds { get; set; } = 20;
+
+    /// <summary>Hold duration in seconds required for Waza-ari.</summary>
+    public int OsaeKomiWazaAriSeconds { get; set; } = 10;
+
+    /// <summary>Hold duration in seconds required for Yuko.</summary>
+    public int OsaeKomiYukoSeconds { get; set; } = 5;
+
+    /// <summary>Whether Yuko is awarded for a hold between Yuko and Waza-ari thresholds.</summary>
+    public bool OsaeKomiYukoEnabled { get; set; } = true;
+
     /// <summary>
     /// Creation timestamp in UTC.
     /// </summary>

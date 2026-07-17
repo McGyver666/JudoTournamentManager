@@ -10,6 +10,10 @@ namespace JudoTournamentManagement.Api.Models;
 /// <param name="Round">Round number (1 = first round, highest = final).</param>
 /// <param name="FightNumber">1-based position within the round.</param>
 /// <param name="PoolNumber">Pool/group number for round-robin group-stage fights; null for all other fight types.</param>
+/// <param name="WhiteSourceFightId">Source fight for the White slot; null for directly assigned slots.</param>
+/// <param name="WhiteSourceOutcome">Outcome selected from the White slot source fight.</param>
+/// <param name="BlueSourceFightId">Source fight for the Blue slot; null for directly assigned slots.</param>
+/// <param name="BlueSourceOutcome">Outcome selected from the Blue slot source fight.</param>
 /// <param name="WhiteAthleteId">Athlete in the White role; null when TBD.</param>
 /// <param name="BlueAthleteId">Athlete in the Blue role; null for a bye or TBD.</param>
 /// <param name="WinnerId">Winner identifier; null until fight is completed.</param>
@@ -46,6 +50,10 @@ public sealed record Fight(
     int Round,
     int FightNumber,
     int? PoolNumber,
+    Guid? WhiteSourceFightId,
+    FightSlotSourceOutcome? WhiteSourceOutcome,
+    Guid? BlueSourceFightId,
+    FightSlotSourceOutcome? BlueSourceOutcome,
     Guid? WhiteAthleteId,
     Guid? BlueAthleteId,
     Guid? WinnerId,

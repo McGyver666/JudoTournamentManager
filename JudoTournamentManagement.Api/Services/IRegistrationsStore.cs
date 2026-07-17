@@ -29,7 +29,6 @@ public interface IRegistrationsStore
         Guid tournamentId,
         Guid athleteId,
         decimal weightKg,
-        string? licenseId,
         bool licenseConfirmed,
         CancellationToken cancellationToken);
 

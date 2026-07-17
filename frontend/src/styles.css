@@ -347,6 +347,7 @@ app-display .slot.winner {font-weight:700;color:#1e7d4d;background:#effbf4}
 app-display .rounds-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.7rem}
 app-display :is(.round-title,.slot-name) {line-height:1.2}
 app-display .slot-name {font-size:.84rem;font-weight:600}
+app-display .slot.placeholder .slot-name {color:#728198;font-weight:500;opacity:.78}
 app-display .slot-club {font-size:.72rem;color:#728198}
 app-display .standings-wrap {margin-bottom:.8rem}
 

@@ -34,3 +34,44 @@ p.muted {
 .checkbox-label input {
   width: auto;
 }
+
+.category-group {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--c-border);
+}
+
+.category-group:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.category-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.category-group-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.category-bulk-assignment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .category-group-header {
+    flex-direction: column;
+  }
+
+  .category-bulk-assignment {
+    width: 100%;
+  }
+}

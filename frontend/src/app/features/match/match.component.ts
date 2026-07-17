@@ -29,6 +29,12 @@ import {
 
 const OPERATOR_NAME_KEY = 'judo.operatorName';
 
+interface WinnerConfirmationState {
+  fight: Fight;
+  winnerId: string;
+  nextFight: Fight | null;
+}
+
 @Component({
   selector: 'app-match',
   standalone: true,
@@ -54,6 +60,8 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly operatorName = signal<string>(this.restoreOperatorName());
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly loading = signal(false);
+  protected readonly winnerConfirmation = signal<WinnerConfirmationState | null>(null);
+  protected readonly confirmingWinner = signal(false);
 
   /** Remaining seconds in the current fight's countdown. */
   protected readonly timerSeconds = signal<number | null>(null);
@@ -63,6 +71,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly osaeKomiSide = signal<FightSide | null>(null);
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private autoPauseInFlightFightId: string | null = null;
+  private autoStopOsaeKomiInFlightFightId: string | null = null;
 
   /** Track the previous fight to detect osae-komi transitions and cleanup. */
   private previousFight: Fight | null = null;
@@ -229,13 +238,9 @@ export class MatchComponent implements OnInit, OnDestroy {
       // Use fight.isGoldenScore from server (reload-safe, score-aware).
       if (fight.isGoldenScore) {
         this.timerIsGoldenScore.set(true);
-        if (fight.status === 'Paused') {
-          this.timerSeconds.set(goldenScoreDuration);
-        } else {
-          const goldenElapsed = Math.max(0, elapsed - duration);
-          const goldenRemaining = Math.max(0, goldenScoreDuration - goldenElapsed);
-          this.timerSeconds.set(Math.ceil(goldenRemaining));
-        }
+        const goldenElapsed = Math.max(0, elapsed - duration);
+        const goldenRemaining = Math.max(0, goldenScoreDuration - goldenElapsed);
+        this.timerSeconds.set(Math.ceil(goldenRemaining));
       } else {
         // Regular time countdown.
         this.timerIsGoldenScore.set(false);
@@ -251,6 +256,11 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.osaeKomiCapSeconds.set(cap);
         this.osaeKomiSide.set(side);
         this.frozenOsaeKomiDisplay = null; // Active hold, no frozen display.
+
+        // Auto-stop when the hold reaches the cap (Ippon or second Waza-ari threshold).
+        if (holdSeconds >= cap) {
+          this.tryAutoStopOsaeKomi(fight);
+        }
       } else {
         // No active osae-komi: clear signals (display will use frozen fallback).
         // This allows start buttons to be re-enabled after stopping osae-komi.
@@ -323,6 +333,10 @@ export class MatchComponent implements OnInit, OnDestroy {
     if (!id) return '?';
     const a = this.athletes().get(id);
     return a ? `${a.lastName}, ${a.firstName}` : id.substring(0, 8);
+  }
+
+  protected categoryName(id: string): string {
+    return this.categories().find((category) => category.id === id)?.name ?? id;
   }
 
   protected startFight(fight: Fight): void {
@@ -416,12 +430,40 @@ export class MatchComponent implements OnInit, OnDestroy {
     }
 
   protected confirmWinner(fight: Fight, winnerId: string): void {
-    if (!this.canOperate()) return;
+    if (!this.canOperate() || this.confirmingWinner()) return;
+    this.winnerConfirmation.set({
+      fight,
+      winnerId,
+      nextFight: this.queue()?.next ?? null,
+    });
+  }
+
+  protected cancelWinnerConfirmation(): void {
+    if (this.confirmingWinner()) {
+      return;
+    }
+
+    this.winnerConfirmation.set(null);
+  }
+
+  protected confirmWinnerAndLoadNext(): void {
+    if (!this.canOperate() || this.confirmingWinner()) return;
     const tid = this.context.tournamentId();
-    if (!tid) return;
-    this.api.confirmResult(tid, fight.id, { winnerId }, this.operatorName()).subscribe({
-      next: () => { this.queue.set(null); this.refreshQueue(); },
-      error: () => this.errorMessage.set('Ergebnis konnte nicht bestätigt werden.'),
+    const confirmation = this.winnerConfirmation();
+    if (!tid || !confirmation) return;
+
+    this.confirmingWinner.set(true);
+    this.api.confirmResult(tid, confirmation.fight.id, { winnerId: confirmation.winnerId }, this.operatorName()).subscribe({
+      next: () => {
+        this.winnerConfirmation.set(null);
+        this.queue.set(null);
+        this.refreshQueue();
+        this.confirmingWinner.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Ergebnis konnte nicht bestätigt werden.');
+        this.confirmingWinner.set(false);
+      },
     });
   }
 
@@ -519,7 +561,31 @@ export class MatchComponent implements OnInit, OnDestroy {
   }
 
   private getOsaeKomiCap(fight: Fight, side: FightSide): number {
-    return this.hasWazaAri(fight, side) ? 20 : 25;
+    const t = this.context.tournament();
+    if (this.hasWazaAri(fight, side)) {
+      return t?.osaeKomiWazaAriSeconds ?? 10;
+    }
+    return t?.osaeKomiIpponSeconds ?? 20;
+  }
+
+  private tryAutoStopOsaeKomi(fight: Fight): void {
+    if (!this.canOperate() || fight.osaeKomiSide === null) return;
+    if (this.autoStopOsaeKomiInFlightFightId === fight.id) return;
+
+    const tid = this.context.tournamentId();
+    if (!tid) return;
+
+    this.autoStopOsaeKomiInFlightFightId = fight.id;
+    this.api.stopOsaeKomi(tid, fight.id, this.operatorName()).subscribe({
+      next: () => {
+        this.autoStopOsaeKomiInFlightFightId = null;
+        this.refreshQueue();
+      },
+      error: () => {
+        this.autoStopOsaeKomiInFlightFightId = null;
+        this.errorMessage.set('Osae-komi konnte nicht automatisch gestoppt werden.');
+      },
+    });
   }
 
   private restoreOperatorName(): string {

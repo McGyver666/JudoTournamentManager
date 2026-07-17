@@ -83,7 +83,12 @@ public sealed class RankingService : IRankingService
             return Array.Empty<RankingEntry>();
 
         // Build a lookup from athleteId -> (name, clubId) using Athletes + Clubs tables.
+        var bronzeCandidateFights = allFights
+            .Where(f => f.BracketType == RepechageType)
+            .ToList();
+
         var athleteIds = fights
+            .Concat(bronzeCandidateFights.Where(f => f.IsBye))
             .SelectMany(f => new[] { f.WhiteAthleteId, f.BlueAthleteId, f.WinnerId })
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
@@ -117,7 +122,7 @@ public sealed class RankingService : IRankingService
         }
 
         var mainFights = fights.Where(f => f.BracketType == MainType).ToList();
-        var repecFights = fights.Where(f => f.BracketType == RepechageType).ToList();
+        var repecFights = bronzeCandidateFights;
 
         var entries = new List<RankingEntry>();
 
@@ -136,7 +141,7 @@ public sealed class RankingService : IRankingService
             }
         }
 
-        // Bronze: winners of highest-round repechage fights.
+        // Bronze: winners of highest-round repechage fights, including auto-completed bye fights.
         if (repecFights.Count > 0)
         {
             var maxRepRound = repecFights.Max(f => f.Round);

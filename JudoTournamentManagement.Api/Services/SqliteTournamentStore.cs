@@ -119,6 +119,23 @@ public sealed class SqliteTournamentStore : ITournamentStore
         string accentSideColor,
         CancellationToken cancellationToken)
     {
+        return await UpdateAsync(tournamentId, name, date, venue, organizer, accentSideColor, 20, 10, 5, true, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> UpdateAsync(
+        Guid tournamentId,
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        int osaeKomiIpponSeconds,
+        int osaeKomiWazaAriSeconds,
+        int osaeKomiYukoSeconds,
+        bool osaeKomiYukoEnabled,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(venue);
         ArgumentNullException.ThrowIfNull(organizer);
@@ -137,6 +154,10 @@ public sealed class SqliteTournamentStore : ITournamentStore
         record.Venue = venue.Trim();
         record.Organizer = organizer.Trim();
         record.AccentSideColor = NormalizeAccentSideColor(accentSideColor);
+        record.OsaeKomiIpponSeconds = osaeKomiIpponSeconds;
+        record.OsaeKomiWazaAriSeconds = osaeKomiWazaAriSeconds;
+        record.OsaeKomiYukoSeconds = osaeKomiYukoSeconds;
+        record.OsaeKomiYukoEnabled = osaeKomiYukoEnabled;
         record.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -155,7 +176,11 @@ public sealed class SqliteTournamentStore : ITournamentStore
             record.CreatedAtUtc,
             record.UpdatedAtUtc)
         {
-            AccentSideColor = NormalizeAccentSideColor(record.AccentSideColor)
+            AccentSideColor = NormalizeAccentSideColor(record.AccentSideColor),
+            OsaeKomiIpponSeconds = record.OsaeKomiIpponSeconds,
+            OsaeKomiWazaAriSeconds = record.OsaeKomiWazaAriSeconds,
+            OsaeKomiYukoSeconds = record.OsaeKomiYukoSeconds,
+            OsaeKomiYukoEnabled = record.OsaeKomiYukoEnabled,
         };
     }
 

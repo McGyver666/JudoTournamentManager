@@ -108,6 +108,10 @@ public sealed class TournamentsController : ControllerBase
             request.Venue,
             request.Organizer,
             request.AccentSideColor,
+            request.OsaeKomiIpponSeconds,
+            request.OsaeKomiWazaAriSeconds,
+            request.OsaeKomiYukoSeconds,
+            request.OsaeKomiYukoEnabled,
             cancellationToken);
 
         return updated ? NoContent() : NotFound();

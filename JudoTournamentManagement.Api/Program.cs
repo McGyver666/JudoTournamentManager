@@ -165,7 +165,9 @@ static async Task InitializeDatabaseAsync(WebApplication application)
     await EnsureLegacyFightTatamiColumnAsync(dbContext, logger);
     await EnsureLegacyFightWhiteSideColumnsAsync(dbContext, logger);
     await EnsureLegacyTournamentAccentSideColorColumnAsync(dbContext, logger);
+        await EnsureLegacyTournamentOsaeKomiSettingsColumnsAsync(dbContext, logger);
     await EnsureCategoryPresetsTableAsync(dbContext, logger);
+    await EnsureClubContactColumnsAsync(dbContext, logger);
 }
 
 static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, ILogger logger)
@@ -173,6 +175,7 @@ static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, IL
     var appliedMigrations = (await dbContext.Database.GetAppliedMigrationsAsync()).ToList();
     if (appliedMigrations.Count > 0)
     {
+        await AdoptTournamentOsaeKomiSettingsMigrationAsync(dbContext, logger, appliedMigrations);
         return;
     }
 
@@ -220,6 +223,30 @@ static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, IL
             migrationId);
     }
 }
+
+    static async Task AdoptTournamentOsaeKomiSettingsMigrationAsync(
+        AppDbContext dbContext,
+        ILogger logger,
+        IReadOnlyCollection<string> appliedMigrations)
+    {
+        const string migrationId = "20260716131500_AddTournamentOsaeKomiSettings";
+
+        if (appliedMigrations.Contains(migrationId)
+            || !await ColumnExistsAsync(dbContext, "Tournaments", "OsaeKomiIpponSeconds")
+            || !await ColumnExistsAsync(dbContext, "Tournaments", "OsaeKomiWazaAriSeconds")
+            || !await ColumnExistsAsync(dbContext, "Tournaments", "OsaeKomiYukoSeconds")
+            || !await ColumnExistsAsync(dbContext, "Tournaments", "OsaeKomiYukoEnabled"))
+        {
+            return;
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ({0}, {1});",
+            migrationId,
+            ResolveEfProductVersion());
+
+        logger.LogWarning("Legacy migration baseline applied for {MigrationId}.", migrationId);
+    }
 
 static async Task<IReadOnlyList<string>> ResolveBaselineMigrationsAsync(
     AppDbContext dbContext,
@@ -431,6 +458,28 @@ static async Task EnsureLegacyTournamentAccentSideColorColumnAsync(AppDbContext 
     logger.LogWarning("Schema patch applied: added missing Tournaments.AccentSideColor column.");
 }
 
+    static async Task EnsureLegacyTournamentOsaeKomiSettingsColumnsAsync(AppDbContext dbContext, ILogger logger)
+    {
+        var settingsColumns = new (string Name, string Statement)[]
+        {
+            ("OsaeKomiIpponSeconds", "ALTER TABLE \"Tournaments\" ADD COLUMN \"OsaeKomiIpponSeconds\" INTEGER NOT NULL DEFAULT 20;"),
+            ("OsaeKomiWazaAriSeconds", "ALTER TABLE \"Tournaments\" ADD COLUMN \"OsaeKomiWazaAriSeconds\" INTEGER NOT NULL DEFAULT 10;"),
+            ("OsaeKomiYukoSeconds", "ALTER TABLE \"Tournaments\" ADD COLUMN \"OsaeKomiYukoSeconds\" INTEGER NOT NULL DEFAULT 5;"),
+            ("OsaeKomiYukoEnabled", "ALTER TABLE \"Tournaments\" ADD COLUMN \"OsaeKomiYukoEnabled\" INTEGER NOT NULL DEFAULT 1;")
+        };
+
+        foreach (var (name, statement) in settingsColumns)
+        {
+            if (await ColumnExistsAsync(dbContext, "Tournaments", name))
+            {
+                continue;
+            }
+
+            await dbContext.Database.ExecuteSqlRawAsync(statement);
+            logger.LogWarning("Schema patch applied: added missing Tournaments.{ColumnName} column.", name);
+        }
+    }
+
 static async Task EnsureCategoryPresetsTableAsync(AppDbContext dbContext, ILogger logger)
 {
     if (await TableExistsAsync(dbContext, "CategoryPresets"))
@@ -459,6 +508,25 @@ static async Task EnsureCategoryPresetsTableAsync(AppDbContext dbContext, ILogge
         "CREATE INDEX IF NOT EXISTS \"IX_CategoryPresets_TournamentId\" ON \"CategoryPresets\" (\"TournamentId\");");
 
     logger.LogWarning("Schema patch applied: created missing CategoryPresets table.");
+}
+
+static async Task EnsureClubContactColumnsAsync(AppDbContext dbContext, ILogger logger)
+{
+    var hasContactEmail = await ColumnExistsAsync(dbContext, "Clubs", "ContactEmail");
+    if (hasContactEmail)
+    {
+        logger.LogInformation("Schema check: Clubs contact columns already exist.");
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "ALTER TABLE \"Clubs\" ADD COLUMN \"ContactName\" TEXT NULL;");
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "ALTER TABLE \"Clubs\" ADD COLUMN \"ContactEmail\" TEXT NULL;");
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "ALTER TABLE \"Clubs\" ADD COLUMN \"ContactPhone\" TEXT NULL;");
+
+    logger.LogWarning("Schema patch applied: added ContactName, ContactEmail, ContactPhone columns to Clubs.");
 }
 
 /// <summary>

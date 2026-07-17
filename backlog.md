@@ -186,6 +186,7 @@ Story points are rough relative estimates.
 **Acceptance Criteria:**
 - Support single elimination.
 - Support repechage variant required by target tournament format (configurable preset).
+- Support NWJV Doppel-K.-o.-System for categories with up to 32 athletes; reject larger categories without omitting registrations.
 - Byes handled automatically.
 - Draw generation is deterministic for same seed input.
 
@@ -229,6 +230,20 @@ Story points are rough relative estimates.
 - Assignment is persisted and immediately reflected in queue and match views.
 
 ---
+
+### F-05 Synchronisierte Kampfzeit und Präzisionsanzeige (P1, 5 SP)
+**Story:** Als Turnierleitung möchte ich, dass Kampf- und Osae-komi-Zeiten auf allen Kampfrichter- und Anzeigeansichten präzise und einheitlich laufen, damit Zeitangaben trotz unterschiedlicher Endgeräte zuverlässig sind.
+**Acceptance Criteria:**
+- Der Server bleibt die autoritative Zeitquelle für Start-, Pause-, Fortsetz- und Osae-komi-Zeitpunkte sowie für regelrelevante Wertungen.
+- Ein gemeinsamer Frontend-Zeitdienst schätzt die Serverzeit über wenige Zeitabgleich-Messungen mit minimaler Round-Trip-Time und führt sie lokal monoton mit `performance.now()` fort.
+- Zeitsynchronisation erfolgt beim Öffnen einer Ansicht, nach SignalR-Reconnect, nach Rückkehr eines Tabs in den Vordergrund und höchstens einmal je fünf Minuten während einer aktiven Ansicht.
+- Der Zeitabgleich erzeugt keine periodischen Timer-API-Aufrufe; höchstens fünf Messungen beim initialen Abgleich bzw. Reconnect und anschließend eine Messung je fünf Minuten.
+- Laufende Kampfzeit und laufende Osae-komi-Zeit können in Zehntelsekunden angezeigt werden; pausierte und nicht gestartete Zeiten bleiben in ganzen Sekunden lesbar.
+- Die sichtbare Zehntelsekunde wird lokal aktualisiert und löst keinen Netzwerkzugriff aus.
+- Bei fehlender Serververbindung läuft die Darstellung mit der zuletzt bekannten Zeitbasis bzw. lokal weiter; sie darf dadurch keine Kampf- oder Wertungsentscheidung auslösen.
+- Der Kampfrichter-Dialog und die Display-Ansichten verwenden denselben Zeitdienst und dieselbe Zeitberechnung.
+- Osae-komi-Wertungen, automatisches Anhalten und sonstige Regelentscheidungen werden weiterhin ausschließlich vom Server entschieden.
+- Unit-Tests decken Serverzeit-Offset, lokale monotone Fortschreibung, Pause/Fortsetzen, Zehntelsekundenformatierung und den Offline-Fallback ab.
 
 ## Epic G - Public Display & Results
 

@@ -106,6 +106,10 @@ export class TournamentContextService {
       venue: x['venue'],
       organizer: x['organizer'],
       accentSideColor: x['accentSideColor'] === 'Red' ? 'Red' : 'Blue',
+      osaeKomiIpponSeconds: typeof x['osaeKomiIpponSeconds'] === 'number' ? x['osaeKomiIpponSeconds'] : 20,
+      osaeKomiWazaAriSeconds: typeof x['osaeKomiWazaAriSeconds'] === 'number' ? x['osaeKomiWazaAriSeconds'] : 10,
+      osaeKomiYukoSeconds: typeof x['osaeKomiYukoSeconds'] === 'number' ? x['osaeKomiYukoSeconds'] : 5,
+      osaeKomiYukoEnabled: typeof x['osaeKomiYukoEnabled'] === 'boolean' ? x['osaeKomiYukoEnabled'] : true,
       createdAtUtc: x['createdAtUtc'],
       updatedAtUtc: x['updatedAtUtc'],
     };

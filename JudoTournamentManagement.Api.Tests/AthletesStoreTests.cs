@@ -24,11 +24,14 @@ public sealed class AthletesStoreTests
 
     private static async Task<(Guid TournamentId, Guid ClubId)> SeedTournamentAndClubAsync(AppDbContext ctx)
     {
-        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var mockPresets = new Mock<ICategoryPresetsStore>();
+        mockPresets.Setup(p => p.SeedDefaultsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance, mockPresets.Object);
         var t = await tStore.CreateAsync("T", new DateOnly(2026, 1, 1), "V", "O", CancellationToken.None);
 
         var cStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var c = await cStore.CreateAsync(t.Id, "JC Test", CancellationToken.None);
+        var c = await cStore.CreateAsync(t.Id, "JC Test", null, null, null, CancellationToken.None);
 
         return (t.Id, c!.Id);
     }
@@ -150,8 +153,8 @@ public sealed class AthletesStoreTests
         var t2 = await tStore.CreateAsync("T2", new DateOnly(2026, 2, 1), "C", "D", CancellationToken.None);
 
         var cStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
-        var club1 = await cStore.CreateAsync(t1.Id, "JC 1", CancellationToken.None);
-        var club2 = await cStore.CreateAsync(t2.Id, "JC 2", CancellationToken.None);
+        var club1 = await cStore.CreateAsync(t1.Id, "JC 1", null, null, null, CancellationToken.None);
+        var club2 = await cStore.CreateAsync(t2.Id, "JC 2", null, null, null, CancellationToken.None);
 
         var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
         await store.CreateAsync(t1.Id, club1!.Id, "A", "A", 2000, Gender.Male, null, null, 1, true, CancellationToken.None);

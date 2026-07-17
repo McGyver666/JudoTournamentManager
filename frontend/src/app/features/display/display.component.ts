@@ -67,11 +67,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   protected readonly nowEpochMs = signal<number>(Date.now());
   protected readonly hubConnected = computed(() => this.hub.connected());
   protected readonly isTatamiMode = computed(() => this.tatamiModeTatamiId() !== null);
-
-  /** Map of fight IDs to frozen osae-komi display when the hold has stopped. */
-  private readonly frozenOsaeKomiMap = new Map<string, { seconds: number; cap: number; side: FightSide }>();
-  /** Track previous fight states to detect osae-komi transitions. */
-  private readonly previousFightMap = new Map<string, Fight>();
+  private readonly persistedOsaeKomiMap = new Map<string, { seconds: number; side: FightSide; clearOnResume: boolean }>();
 
   protected readonly tatamiDisplay = computed(() => {
     const tatamiId = this.tatamiModeTatamiId();
@@ -94,6 +90,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private readonly connectorRefreshVersion = signal(0);
   private connectorRefreshHandle: number | null = null;
+  private lastTatamiQueueRefreshAt = 0;
+  private tatamiQueueRefreshInFlight = false;
 
   ngOnInit(): void {
     this.querySub = combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([paramMap, queryParamMap]) => {
@@ -111,36 +109,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
     });
 
     this.fightSub = this.hub.fightUpdated$.subscribe((fight) => {
-      // Detect osae-komi transitions and update the frozen osae-komi map.
-      const prevFight = this.previousFightMap.get(fight.id);
-      this.previousFightMap.set(fight.id, fight);
-
-      if (prevFight !== undefined) {
-        const prevHadOsaeKomi = prevFight.osaeKomiSide !== null && prevFight.osaeKomiStartedAtUtc !== null;
-        const newHasOsaeKomi = fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
-        const wasPausedNowRunning = prevFight.status === 'Paused' && fight.status === 'InProgress';
-        const isNowPaused = fight.status === 'Paused';
-
-        // Osae-komi was active and is now stopped: freeze the display (but not if being paused or just resumed).
-        if (prevHadOsaeKomi && !newHasOsaeKomi && !isNowPaused && !wasPausedNowRunning) {
-          const side = prevFight.osaeKomiSide === 'White' ? 'white' : 'blue';
-          const cap = this.getOsaeKomiCapForFight(prevFight, side);
-          const now = Date.now();
-          const osaeStartMs = new Date(prevFight.osaeKomiStartedAtUtc!).getTime();
-          const seconds = Math.min(cap, Math.ceil((now - osaeStartMs) / 1000));
-          this.frozenOsaeKomiMap.set(fight.id, { seconds, cap, side });
-        }
-
-        // New osae-komi started: clear frozen display.
-        if (!prevHadOsaeKomi && newHasOsaeKomi) {
-          this.frozenOsaeKomiMap.delete(fight.id);
-        }
-
-        // Fight was resumed: clear frozen display.
-        if (wasPausedNowRunning) {
-          this.frozenOsaeKomiMap.delete(fight.id);
-        }
-      }
+      this.updateDisplayedFight(fight);
 
       const tid = this.tournamentId();
       if (tid) {
@@ -154,7 +123,14 @@ export class DisplayComponent implements OnInit, OnDestroy {
     });
 
     this.timerHandle = setInterval(() => {
-      this.nowEpochMs.set(Date.now());
+      const now = Date.now();
+      this.nowEpochMs.set(now);
+
+      const tid = this.tournamentId();
+      if (tid && this.isTatamiMode() && now - this.lastTatamiQueueRefreshAt >= 2_000) {
+        this.lastTatamiQueueRefreshAt = now;
+        this.refreshCurrentTatamiQueue(tid);
+      }
     }, 1000);
   }
 
@@ -438,6 +414,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
     }
 
     const bracketRect = bracket.getBoundingClientRect();
+    if (this.categories().get(categoryId)?.drawFormat === 'DoubleElimination') {
+      return this.sourceConnectorPaths(fights, bracket, bracketRect);
+    }
+
     const byRoundAndFight = new Map<string, Fight>();
     for (const fight of fights) {
       byRoundAndFight.set(this.roundFightKey(fight.round, fight.fightNumber), fight);
@@ -459,12 +439,13 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
       const sourceRect = sourceElement.getBoundingClientRect();
       const targetRect = targetElement.getBoundingClientRect();
+      const sourceAnchorRect = this.sourceAnchorRect(sourceElement, sourceRect);
       const targetSlot = fight.fightNumber % 2 === 1 ? '.slot.white' : '.slot.blue';
       const targetSlotElement = targetElement.querySelector(targetSlot) as HTMLElement | null;
       const targetAnchorRect = targetSlotElement?.getBoundingClientRect() ?? targetRect;
 
       const x1 = sourceRect.right - bracketRect.left + bracket.scrollLeft;
-      const y1 = sourceRect.top + sourceRect.height / 2 - bracketRect.top + bracket.scrollTop;
+      const y1 = sourceAnchorRect.top + sourceAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
       const x2 = targetRect.left - bracketRect.left + bracket.scrollLeft;
       const y2 = targetAnchorRect.top + targetAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
 
@@ -480,11 +461,77 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return paths;
   }
 
+  private sourceConnectorPaths(
+    fights: Fight[],
+    bracket: HTMLElement,
+    bracketRect: DOMRect,
+  ): ConnectorPath[] {
+    const fightsById = new Map(fights.map((fight) => [fight.id, fight]));
+    const paths: ConnectorPath[] = [];
+
+    for (const target of fights) {
+      const sources = [
+        { id: target.whiteSourceFightId, slot: '.slot.white' },
+        { id: target.blueSourceFightId, slot: '.slot.blue' },
+      ];
+
+      for (const sourceReference of sources) {
+        const source = sourceReference.id ? fightsById.get(sourceReference.id) : undefined;
+        if (!source) {
+          continue;
+        }
+
+        const path = this.connectorPathBetween(bracket, bracketRect, source, target, sourceReference.slot);
+        if (path) {
+          paths.push(path);
+        }
+      }
+    }
+
+    return paths;
+  }
+
+  private connectorPathBetween(
+    bracket: HTMLElement,
+    bracketRect: DOMRect,
+    source: Fight,
+    target: Fight,
+    targetSlot: string,
+  ): ConnectorPath | null {
+    const sourceElement = bracket.querySelector(`.fight[data-fight-id="${source.id}"]`) as HTMLElement | null;
+    const targetElement = bracket.querySelector(`.fight[data-fight-id="${target.id}"]`) as HTMLElement | null;
+    if (!sourceElement || !targetElement) {
+      return null;
+    }
+
+    const sourceRect = sourceElement.getBoundingClientRect();
+    const targetRect = targetElement.getBoundingClientRect();
+  const sourceAnchorRect = this.sourceAnchorRect(sourceElement, sourceRect);
+    const targetSlotElement = targetElement.querySelector(targetSlot) as HTMLElement | null;
+    const targetAnchorRect = targetSlotElement?.getBoundingClientRect() ?? targetRect;
+    const x1 = sourceRect.right - bracketRect.left + bracket.scrollLeft;
+  const y1 = sourceAnchorRect.top + sourceAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
+    const x2 = targetRect.left - bracketRect.left + bracket.scrollLeft;
+    const y2 = targetAnchorRect.top + targetAnchorRect.height / 2 - bracketRect.top + bracket.scrollTop;
+    const midX = x1 + Math.max(12, Math.min(46, (x2 - x1) * 0.5));
+
+    return {
+      id: `${source.id}-${target.id}-${targetSlot}`,
+      d: `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`,
+    };
+  }
+
+  private sourceAnchorRect(sourceElement: HTMLElement, fallbackRect: DOMRect): DOMRect {
+    const sourceHeaderElement = sourceElement.querySelector('.fight-no') as HTMLElement | null;
+    return sourceHeaderElement?.getBoundingClientRect() ?? fallbackRect;
+  }
+
   private roundFightKey(round: number, fightNumber: number): string {
     return `${round}:${fightNumber}`;
   }
 
   private applyRoundVerticalAlignment(bracket: HTMLElement): void {
+    const context = this.bracketContext(bracket.id);
     const rounds = Array.from(bracket.querySelectorAll('.round')) as HTMLElement[];
     if (rounds.length <= 1) {
       return;
@@ -524,11 +571,106 @@ export class DisplayComponent implements OnInit, OnDestroy {
       const desiredTopOffset = ((2 ** roundIndex) - 1) * baselineCenterDistance / 2;
       const desiredInterFightGap = Math.max(0, desiredCenterDistance - baselineHeight);
 
-      fights[0].style.marginTop = `${desiredTopOffset}px`;
-      for (let fightIndex = 1; fightIndex < fights.length; fightIndex += 1) {
-        fights[fightIndex].style.marginTop = `${desiredInterFightGap}px`;
+      const fallbackTopOffsets = fights.map((_, fightIndex) => fightIndex === 0 ? desiredTopOffset : desiredInterFightGap);
+      const aligned = context
+        ? this.alignRoundToVisibleSources(bracket, context.categoryId, fights, fallbackTopOffsets)
+        : false;
+
+      if (!aligned) {
+        fights[0].style.marginTop = `${desiredTopOffset}px`;
+        for (let fightIndex = 1; fightIndex < fights.length; fightIndex += 1) {
+          fights[fightIndex].style.marginTop = `${desiredInterFightGap}px`;
+        }
       }
     }
+  }
+
+  private alignRoundToVisibleSources(
+    bracket: HTMLElement,
+    categoryId: string,
+    fights: HTMLElement[],
+    fallbackTopOffsets: number[],
+  ): boolean {
+    const fightsById = new Map(this.fightsForCategory(categoryId).map((fight) => [fight.id, fight]));
+    let usedVisibleSources = false;
+
+    for (let fightIndex = 0; fightIndex < fights.length; fightIndex += 1) {
+      const fightElement = fights[fightIndex];
+      const fightId = fightElement.dataset['fightId'];
+      const fightModel = fightId ? fightsById.get(fightId) : undefined;
+      const sourceTop = fightModel
+        ? this.desiredFightTopFromVisibleSources(bracket, fightElement, fightModel)
+        : null;
+
+      if (sourceTop === null) {
+        fightElement.style.marginTop = `${fallbackTopOffsets[fightIndex]}px`;
+        continue;
+      }
+
+      usedVisibleSources = true;
+      const currentTop = fightElement.getBoundingClientRect().top;
+      const nextMarginTop = Math.max(0, sourceTop - currentTop);
+      fightElement.style.marginTop = `${nextMarginTop}px`;
+    }
+
+    return usedVisibleSources;
+  }
+
+  private desiredFightTopFromVisibleSources(
+    bracket: HTMLElement,
+    fightElement: HTMLElement,
+    fight: Fight,
+  ): number | null {
+    const references = [
+      { sourceId: fight.whiteSourceFightId, targetSlot: '.slot.white' },
+      { sourceId: fight.blueSourceFightId, targetSlot: '.slot.blue' },
+    ];
+
+    const desiredTops: number[] = [];
+    for (const reference of references) {
+      if (!reference.sourceId) {
+        continue;
+      }
+
+      const sourceElement = bracket.querySelector(`.fight[data-fight-id="${reference.sourceId}"]`) as HTMLElement | null;
+      const targetSlotElement = fightElement.querySelector(reference.targetSlot) as HTMLElement | null;
+      if (!sourceElement || !targetSlotElement) {
+        continue;
+      }
+
+      const sourceRect = sourceElement.getBoundingClientRect();
+      const slotRect = targetSlotElement.getBoundingClientRect();
+      const fightRect = fightElement.getBoundingClientRect();
+      const slotCenterOffset = slotRect.top + slotRect.height / 2 - fightRect.top;
+      desiredTops.push(sourceRect.top + sourceRect.height / 2 - slotCenterOffset);
+    }
+
+    if (desiredTops.length === 0) {
+      return null;
+    }
+
+    return desiredTops.reduce((sum, top) => sum + top, 0) / desiredTops.length;
+  }
+
+  private bracketContext(bracketId: string): { categoryId: string; bracketType: 'Main' | 'Repechage' } | null {
+    const bracketPrefix = 'display-bracket-';
+    const repechageSuffix = '-repechage';
+    if (bracketId.startsWith(bracketPrefix) && bracketId.endsWith(repechageSuffix)) {
+      return {
+        categoryId: bracketId.slice(bracketPrefix.length, -repechageSuffix.length),
+        bracketType: 'Repechage',
+      };
+    }
+
+    const mainSuffix = '-main';
+    if (bracketId.startsWith(bracketPrefix) && bracketId.endsWith(mainSuffix)) {
+      return {
+        categoryId: bracketId.slice(bracketPrefix.length, -mainSuffix.length),
+        bracketType: 'Main',
+      };
+    }
+
+    return null;
   }
 
   private averageFightHeight(fights: HTMLElement[]): number {
@@ -583,14 +725,97 @@ export class DisplayComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected drawAthleteName(athleteId: string | null, isBye: boolean): string {
+  protected drawAthleteName(
+    athleteId: string | null,
+    isBye: boolean,
+    categoryId?: string,
+    fight?: Fight,
+    side?: 'white' | 'blue',
+  ): string {
     if (isBye && !athleteId) {
       return this.i18n.translate('draw.bye');
     }
     if (!athleteId) {
+      const source = categoryId && fight && side
+        ? this.slotSource(categoryId, fight, side)
+        : null;
+      if (source?.isBye) {
+        return this.i18n.translate('draw.bye');
+      }
+      if (source) {
+        return this.i18n.translate(
+          source.outcome === 'Winner' ? 'draw.sourceWinner' : 'draw.sourceLoser',
+          { n: source.fightNumber },
+        );
+      }
       return this.i18n.translate('draw.tbd');
     }
     return this.athleteName(athleteId);
+  }
+
+  protected isPlaceholderSlot(
+    athleteId: string | null,
+    isBye: boolean,
+    categoryId?: string,
+    fight?: Fight,
+    side?: 'white' | 'blue',
+  ): boolean {
+    if (athleteId || (isBye && !athleteId)) {
+      return false;
+    }
+
+    const source = categoryId && fight && side
+      ? this.slotSource(categoryId, fight, side)
+      : null;
+    return !source?.isBye;
+  }
+
+  private slotSource(
+    categoryId: string,
+    fight: Fight,
+    side: 'white' | 'blue',
+  ): { fightNumber: number; outcome: 'Winner' | 'Loser'; isBye: boolean } | null {
+    const sourceId = side === 'white' ? fight.whiteSourceFightId : fight.blueSourceFightId;
+    const sourceOutcome = side === 'white' ? fight.whiteSourceOutcome : fight.blueSourceOutcome;
+    const fights = this.fightsForCategory(categoryId);
+
+    if (sourceId && sourceOutcome) {
+      const sourceFight = fights.find((candidate) => candidate.id === sourceId);
+      return sourceFight ? this.sourceReference(sourceFight, sourceOutcome) : null;
+    }
+
+    if (fight.bracketType === 'Main' && fight.round > 1) {
+      const sourceFightNumber = fight.fightNumber * 2 - (side === 'white' ? 1 : 0);
+      const sourceFight = fights.find((candidate) => candidate.bracketType === 'Main'
+        && candidate.round === fight.round - 1
+        && candidate.fightNumber === sourceFightNumber);
+      return sourceFight ? this.sourceReference(sourceFight, 'Winner') : null;
+    }
+
+    if (fight.bracketType === 'Repechage') {
+      const mainFights = fights.filter((candidate) => candidate.bracketType === 'Main');
+      const maxRound = Math.max(...mainFights.map((candidate) => candidate.round));
+      const semifinal = mainFights.find((candidate) => candidate.round === maxRound - 1
+        && candidate.fightNumber === (side === 'white' ? 1 : 2));
+      return semifinal ? this.sourceReference(semifinal, 'Loser') : null;
+    }
+
+    return null;
+  }
+
+  private sourceReference(
+    fight: Fight,
+    outcome: 'Winner' | 'Loser',
+  ): { fightNumber: number; outcome: 'Winner' | 'Loser'; isBye: boolean } {
+    const athleteId = outcome === 'Winner'
+      ? fight.winnerId
+      : fight.winnerId === fight.whiteAthleteId ? fight.blueAthleteId : fight.whiteAthleteId;
+
+    return {
+      fightNumber: fight.fightNumber,
+      outcome,
+      isBye: fight.status === 'Completed' && athleteId === null,
+    };
   }
 
   protected drawAthleteClubName(athleteId: string | null, isBye: boolean): string | null {
@@ -628,6 +853,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
         this.api.getTatamiQueue(tid, selectedTatami.id).subscribe({
           next: q => {
+            if (q.current) {
+              this.syncOsaeKomiSnapshot(q.current);
+            }
+
             const currentId = q.current?.id;
             const nextFights = [q.next, q.onDeck, ...q.upcoming]
               .filter((fight): fight is Fight => !!fight && fight.id !== currentId)
@@ -650,23 +879,67 @@ export class DisplayComponent implements OnInit, OnDestroy {
       sortedTatamis.forEach(tatami => {
         this.api.getTatamiQueue(tid, tatami.id).subscribe({
           next: q => {
+            if (q.current) {
+              this.syncOsaeKomiSnapshot(q.current);
+            }
+
             const currentId = q.current?.id;
             const nextFights = [q.next, q.onDeck, ...q.upcoming].filter((fight): fight is Fight => !!fight && fight.id !== currentId).slice(0, 3);
             updates.push({ tatami, current: q.current, nextFights });
             pending--;
             if (pending === 0) {
-              this.displays.set([...updates]);
+              this.displays.set(updates.sort((a, b) => a.tatami.displayOrder - b.tatami.displayOrder || a.tatami.name.localeCompare(b.tatami.name)));
             }
           },
           error: () => {
             updates.push({ tatami, current: null, nextFights: [] });
             pending--;
             if (pending === 0) {
-              this.displays.set([...updates]);
+              this.displays.set(updates.sort((a, b) => a.tatami.displayOrder - b.tatami.displayOrder || a.tatami.name.localeCompare(b.tatami.name)));
             }
           },
         });
       });
+    });
+  }
+
+  private updateDisplayedFight(fight: Fight): void {
+    this.syncOsaeKomiSnapshot(fight);
+
+    this.displays.update(displays => displays.map(display => ({
+      ...display,
+      current: display.current?.id === fight.id ? fight : display.current,
+      nextFights: display.nextFights.map(nextFight => nextFight.id === fight.id ? fight : nextFight),
+    })));
+  }
+
+  private refreshCurrentTatamiQueue(tournamentId: string): void {
+    const tatamiId = this.tatamiModeTatamiId();
+    if (!tatamiId || this.tatamiQueueRefreshInFlight) {
+      return;
+    }
+
+    this.tatamiQueueRefreshInFlight = true;
+    this.api.getTatamiQueue(tournamentId, tatamiId).subscribe({
+      next: queue => {
+        if (queue.current) {
+          this.updateDisplayedFight(queue.current);
+        }
+
+        const currentId = queue.current?.id;
+        const nextFights = [queue.next, queue.onDeck, ...queue.upcoming]
+          .filter((fight): fight is Fight => !!fight && fight.id !== currentId)
+          .slice(0, 3);
+
+        this.displays.update(displays => displays.map(display =>
+          display.tatami.id === tatamiId
+            ? { ...display, current: queue.current, nextFights }
+            : display));
+        this.tatamiQueueRefreshInFlight = false;
+      },
+      error: () => {
+        this.tatamiQueueRefreshInFlight = false;
+      },
     });
   }
 
@@ -678,44 +951,34 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
   }
 
-  protected hasFrozenOsaeKomi(fight: Fight): boolean {
-    // Never show frozen if osae-komi is currently active.
-    if (fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null) {
-      return false;
-    }
-    // Show frozen during running or paused states (until fight resumes).
-    return this.frozenOsaeKomiMap.has(fight.id);
+  protected hasPersistedOsaeKomi(fight: Fight): boolean {
+    return this.persistedOsaeKomiMap.has(fight.id);
   }
 
   protected osaeKomiSideLabel(fight: Fight): FightSide | null {
-    // First check if osae-komi is active.
     if (fight.osaeKomiSide) {
       return fight.osaeKomiSide === 'White' ? 'white' : 'blue';
     }
 
-    // Fall back to frozen display if available.
-    const frozen = this.frozenOsaeKomiMap.get(fight.id);
-    return frozen?.side ?? null;
+    return this.persistedOsaeKomiMap.get(fight.id)?.side ?? null;
   }
 
   protected osaeKomiSecondsLabel(fight: Fight): string {
-    // Check if osae-komi is currently active.
     if (fight.osaeKomiSide && fight.osaeKomiStartedAtUtc) {
       const side = this.osaeKomiSideLabel(fight);
       if (!side) {
         return '--';
       }
 
-      const capSeconds = this.hasWazaAri(fight, side) ? 20 : 25;
+      const capSeconds = this.getOsaeKomiCapForFight(fight, side);
       const elapsedSeconds = Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000);
       const runningSeconds = Math.min(capSeconds, Math.max(0, elapsedSeconds));
       return `${runningSeconds}s`;
     }
 
-    // Fall back to frozen display if available.
-    const frozen = this.frozenOsaeKomiMap.get(fight.id);
-    if (frozen) {
-      return `${frozen.seconds}s`;
+    const persisted = this.persistedOsaeKomiMap.get(fight.id);
+    if (persisted) {
+      return `${persisted.seconds}s`;
     }
 
     return '--';
@@ -727,7 +990,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       return '--';
     }
 
-    return `${this.hasWazaAri(fight, side) ? 20 : 25}s`;
+    return `${this.getOsaeKomiCapForFight(fight, side)}s`;
   }
 
   private hasWazaAri(fight: Fight, side: FightSide): boolean {
@@ -735,7 +998,43 @@ export class DisplayComponent implements OnInit, OnDestroy {
   }
 
   private getOsaeKomiCapForFight(fight: Fight, side: FightSide): number {
-    return this.hasWazaAri(fight, side) ? 20 : 25;
+    const t = this.tournament();
+    if (this.hasWazaAri(fight, side)) {
+      return t?.osaeKomiWazaAriSeconds ?? 10;
+    }
+    return t?.osaeKomiIpponSeconds ?? 20;
+  }
+
+  // Osae-komi display state matrix for the tatami screen:
+  // - Start: active backend fields win and refresh the persisted snapshot.
+  // - Stop: keep the last snapshot visible until a new osae-komi starts.
+  // - Pause: keep the last snapshot visible while the fight remains paused and mark it for resume clearing.
+  // - Resume: clear a snapshot that was marked during pause when the fight returns to normal InProgress without active osae-komi.
+  // - Pending/Completed: always clear the snapshot because the fight is no longer active.
+  private syncOsaeKomiSnapshot(fight: Fight): void {
+    if (this.isOsaeKomiRunning(fight)) {
+      const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
+      const cap = this.getOsaeKomiCapForFight(fight, side);
+      const startedAtMs = new Date(fight.osaeKomiStartedAtUtc!).getTime();
+      const seconds = Math.min(cap, Math.max(0, Math.ceil((Date.now() - startedAtMs) / 1000)));
+      this.persistedOsaeKomiMap.set(fight.id, { seconds, side, clearOnResume: false });
+    } else if (fight.status === 'Pending' || fight.status === 'Completed') {
+      this.persistedOsaeKomiMap.delete(fight.id);
+    } else {
+      const persisted = this.persistedOsaeKomiMap.get(fight.id);
+      if (!persisted) {
+        return;
+      }
+
+      if (fight.status === 'Paused') {
+        this.persistedOsaeKomiMap.set(fight.id, { ...persisted, clearOnResume: true });
+        return;
+      }
+
+      if (fight.status === 'InProgress' && persisted.clearOnResume) {
+        this.persistedOsaeKomiMap.delete(fight.id);
+      }
+    }
   }
 
   protected tatamiDisplayLink(tatamiId: string): string {

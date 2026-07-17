@@ -158,6 +158,8 @@ public sealed class MatchService : IMatchService
         fight.Status = InProgress;
         fight.StartedAtUtc = now - elapsedBeforePause;
         fight.PausedAtUtc = null;
+        fight.OsaeKomiSide = null;
+        fight.OsaeKomiStartedAtUtc = null;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -261,9 +263,53 @@ public sealed class MatchService : IMatchService
 
         if (fight.OsaeKomiStartedAtUtc is null || fight.OsaeKomiSide is null) return MatchActionResult.InvalidState;
 
+        // Capture hold duration and side before clearing the timer fields.
+        var holdSeconds = (int)Math.Ceiling((DateTimeOffset.UtcNow - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds);
+        var holderIsWhite = fight.OsaeKomiSide == "White";
+
+        // Load tournament Osae-komi rule settings.
+        var tournament = await _dbContext.Tournaments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == fight.TournamentId, cancellationToken);
+
+        var ipponSeconds    = tournament?.OsaeKomiIpponSeconds    ?? 20;
+        var wazaAriSeconds  = tournament?.OsaeKomiWazaAriSeconds  ?? 10;
+        var yukoSeconds     = tournament?.OsaeKomiYukoSeconds     ?? 5;
+        var yukoEnabled     = tournament?.OsaeKomiYukoEnabled     ?? true;
+
+        var holderHasWazaAri = holderIsWhite
+            ? fight.WhiteWazaAriCount > 0
+            : fight.BlueWazaAriCount > 0;
+
+        // Determine which score to award based on DJB hold-down rules.
+        ScoreType? scoreToAward = null;
+        if (holdSeconds >= ipponSeconds)
+        {
+            scoreToAward = ScoreType.Ippon;
+        }
+        else if (holderHasWazaAri && holdSeconds >= wazaAriSeconds)
+        {
+            // Second Waza-ari converts to Ippon per DJB rules.
+            scoreToAward = ScoreType.Ippon;
+        }
+        else if (holdSeconds >= wazaAriSeconds)
+        {
+            scoreToAward = ScoreType.WazaAri;
+        }
+        else if (yukoEnabled && holdSeconds >= yukoSeconds)
+        {
+            scoreToAward = ScoreType.Yuko;
+        }
+
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
         fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        if (scoreToAward is not null)
+        {
+            ApplyScoreDelta(fight, holderIsWhite, scoreToAward.Value, 1);
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _ = _hub.Clients.Group(fight.TournamentId.ToString())
@@ -363,6 +409,18 @@ public sealed class MatchService : IMatchService
             .Where(f => f.CategoryId == categoryId)
             .ToListAsync(cancellationToken);
 
+        var drawFormat = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(category => category.Id == categoryId)
+            .Select(category => category.DrawFormat)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (drawFormat == BracketFormat.DoubleElimination.ToString())
+        {
+            RecalculateDoubleEliminationProgression(fights);
+            return;
+        }
+
         var main = fights.Where(f => f.BracketType == MainType).ToList();
         if (main.Count == 0) return;
 
@@ -396,6 +454,116 @@ public sealed class MatchService : IMatchService
         }
     }
 
+    private static void RecalculateDoubleEliminationProgression(List<FightRecord> fights)
+    {
+        var byId = fights.ToDictionary(fight => fight.Id);
+
+        foreach (var fight in fights
+                     .Where(fight => fight.WhiteSourceFightId.HasValue || fight.BlueSourceFightId.HasValue)
+                     .OrderBy(fight => fight.FightNumber))
+        {
+            bool whiteResolved = TryResolveDoubleEliminationSlot(
+                byId, fight.WhiteSourceFightId, fight.WhiteSourceOutcome, out var whiteAthleteId);
+            bool blueResolved = TryResolveDoubleEliminationSlot(
+                byId, fight.BlueSourceFightId, fight.BlueSourceOutcome, out var blueAthleteId);
+
+            if (!whiteResolved || !blueResolved)
+            {
+                ResetDerivedFight(fight);
+                continue;
+            }
+
+            bool slotsChanged = fight.WhiteAthleteId != whiteAthleteId
+                || fight.BlueAthleteId != blueAthleteId;
+            if (slotsChanged)
+            {
+                ResetDerivedFight(fight);
+                fight.WhiteAthleteId = whiteAthleteId;
+                fight.BlueAthleteId = blueAthleteId;
+            }
+
+            if (whiteAthleteId is null || blueAthleteId is null)
+            {
+                CompleteBye(fight, whiteAthleteId ?? blueAthleteId);
+            }
+        }
+    }
+
+    private static bool TryResolveDoubleEliminationSlot(
+        IReadOnlyDictionary<Guid, FightRecord> fights,
+        Guid? sourceFightId,
+        string? sourceOutcome,
+        out Guid? athleteId)
+    {
+        athleteId = null;
+        if (sourceFightId is not { } sourceId
+            || sourceOutcome is null
+            || !fights.TryGetValue(sourceId, out var sourceFight)
+            || sourceFight.Status != Completed)
+        {
+            return false;
+        }
+
+        if (!Enum.TryParse<FightSlotSourceOutcome>(sourceOutcome, out var outcome))
+        {
+            return false;
+        }
+
+        athleteId = outcome switch
+        {
+            FightSlotSourceOutcome.Winner => sourceFight.WinnerId,
+            FightSlotSourceOutcome.Loser when sourceFight.WinnerId == sourceFight.WhiteAthleteId
+                => sourceFight.BlueAthleteId,
+            FightSlotSourceOutcome.Loser => sourceFight.WhiteAthleteId,
+            _ => null
+        };
+        return true;
+    }
+
+    private static void ResetDerivedFight(FightRecord fight)
+    {
+        if (fight.Status == Pending
+            && !fight.IsBye
+            && fight.WhiteAthleteId is null
+            && fight.BlueAthleteId is null
+            && fight.WinnerId is null)
+        {
+            return;
+        }
+
+        fight.WhiteAthleteId = null;
+        fight.BlueAthleteId = null;
+        fight.WinnerId = null;
+        fight.IsBye = false;
+        fight.Status = Pending;
+        fight.TatamiId = null;
+        fight.WhiteScore = 0;
+        fight.BlueScore = 0;
+        fight.WhitePenalties = 0;
+        fight.BluePenalties = 0;
+        fight.WhiteIpponCount = 0;
+        fight.WhiteWazaAriCount = 0;
+        fight.WhiteYukoCount = 0;
+        fight.BlueIpponCount = 0;
+        fight.BlueWazaAriCount = 0;
+        fight.BlueYukoCount = 0;
+        fight.PausedAtUtc = null;
+        fight.OsaeKomiSide = null;
+        fight.OsaeKomiStartedAtUtc = null;
+        fight.StartedAtUtc = null;
+        fight.CompletedAtUtc = null;
+        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    private static void CompleteBye(FightRecord fight, Guid? winnerId)
+    {
+        fight.IsBye = true;
+        fight.Status = Completed;
+        fight.WinnerId = winnerId;
+        fight.CompletedAtUtc = null;
+        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
     /// <summary>Returns the winner of a completed source fight, or null when the outcome is unknown.</summary>
     private static Guid? WinnerOf(FightRecord? source) =>
         source is { Status: var s, WinnerId: { } w } && s == Completed ? w : null;
@@ -412,6 +580,10 @@ public sealed class MatchService : IMatchService
         r.Id, r.TournamentId, r.CategoryId,
         Enum.Parse<FightBracketType>(r.BracketType),
         r.Round, r.FightNumber, r.PoolNumber,
+        r.WhiteSourceFightId,
+        r.WhiteSourceOutcome is null ? null : Enum.Parse<FightSlotSourceOutcome>(r.WhiteSourceOutcome),
+        r.BlueSourceFightId,
+        r.BlueSourceOutcome is null ? null : Enum.Parse<FightSlotSourceOutcome>(r.BlueSourceOutcome),
         r.WhiteAthleteId, r.BlueAthleteId, r.WinnerId,
         r.IsBye,
         Enum.Parse<FightStatus>(r.Status),

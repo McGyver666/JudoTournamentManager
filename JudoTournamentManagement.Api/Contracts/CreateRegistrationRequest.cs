@@ -23,12 +23,6 @@ public sealed record CreateRegistrationRequest
     public decimal WeightKg { get; init; }
 
     /// <summary>
-    /// The athlete's license ID (verified/entered at registration).
-    /// </summary>
-    [StringLength(40, ErrorMessage = "Die Lizenznummer darf maximal 40 Zeichen lang sein.")]
-    public string? LicenseId { get; init; }
-
-    /// <summary>
     /// Whether the athlete's license was confirmed/verified at registration.
     /// Derived from DokuMe QR code validation result on the server side.
     /// </summary>
