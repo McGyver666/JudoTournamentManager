@@ -36,6 +36,7 @@ Already available:
 ## Architecture
 
 ## Target Vision
+
 - **Offline-first**
 - **Single host laptop** as default mode
 - **Optional LAN clients** on the same local network

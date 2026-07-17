@@ -12,6 +12,7 @@ namespace JudoTournamentManagement.Api.Models;
 /// <param name="AthleteBirthYear">Athlete's year of birth.</param>
 /// <param name="AthleteGender">Athlete's gender.</param>
 /// <param name="AthleteClubName">Athlete's club name.</param>
+/// <param name="AthleteLicenseId">Optional athlete license identifier.</param>
 /// <param name="CategoryId">Category identifier (null if not yet assigned).</param>
 /// <param name="CategoryName">Category display name.</param>
 /// <param name="CategoryAgeGroup">Category age group code.</param>

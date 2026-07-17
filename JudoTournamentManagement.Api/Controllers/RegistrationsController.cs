@@ -195,6 +195,7 @@ public sealed class RegistrationsController : ControllerBase
                 tournamentId,
                 request.AthleteId,
                 request.WeightKg,
+                request.LicenseId,
                 request.LicenseConfirmed,
                 request.DokumeQrUrl,
                 request.LicenseCheckOverrideReason,
