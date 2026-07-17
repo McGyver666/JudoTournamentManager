@@ -30,6 +30,28 @@ if ($null -eq $dotnetExecutable) {
 }
 
 $frontendRoot = Join-Path $projectRoot "frontend"
+$frontendOutputRoot = Join-Path $projectRoot "JudoTournamentManagement.Api\wwwroot"
+$frontendIndexPath = Join-Path $frontendOutputRoot "index.html"
+
+function Invoke-FrontendBuild {
+    param(
+        [string]$FrontendRoot,
+        [string]$NpmExecutable
+    )
+
+    Write-Host "Baue Frontend (Angular) nach wwwroot ..." -ForegroundColor Cyan
+    Push-Location $FrontendRoot
+    try {
+        & $NpmExecutable run build
+        if ($LASTEXITCODE -ne 0) {
+            throw "Frontend-Build fehlgeschlagen (ExitCode $LASTEXITCODE)."
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 if (-not $SkipFrontendBuild) {
     if (-not (Test-Path (Join-Path $frontendRoot "package.json"))) {
         throw "Frontend-Ordner nicht gefunden: '$frontendRoot'. Start mit -SkipFrontendBuild ausfuehren, wenn nur das API gestartet werden soll."
@@ -40,17 +62,25 @@ if (-not $SkipFrontendBuild) {
         throw "npm wurde nicht gefunden. Node.js installieren oder mit -SkipFrontendBuild nur das API starten."
     }
 
-    Write-Host "Baue Frontend (Angular) nach wwwroot ..." -ForegroundColor Cyan
-    Push-Location $frontendRoot
-    try {
-        & $npmCommand.Source run build
-    }
-    finally {
-        Pop-Location
-    }
+    Invoke-FrontendBuild -FrontendRoot $frontendRoot -NpmExecutable $npmCommand.Source
 }
 else {
-    Write-Host "Frontend-Build uebersprungen (-SkipFrontendBuild)." -ForegroundColor Yellow
+    if (Test-Path $frontendIndexPath) {
+        Write-Host "Frontend-Build uebersprungen (-SkipFrontendBuild). Vorhandene UI-Artefakte werden verwendet." -ForegroundColor Yellow
+    }
+    else {
+        if (-not (Test-Path (Join-Path $frontendRoot "package.json"))) {
+            throw "Frontend-Build wurde uebersprungen, aber '$frontendIndexPath' fehlt und der Frontend-Ordner wurde nicht gefunden. Erst das Frontend bauen oder ohne -SkipFrontendBuild starten."
+        }
+
+        $npmCommand = Get-Command npm -ErrorAction SilentlyContinue
+        if ($null -eq $npmCommand) {
+            throw "Frontend-Build wurde uebersprungen, aber '$frontendIndexPath' fehlt. npm wurde nicht gefunden. Frontend zuerst bauen oder ohne -SkipFrontendBuild auf einem Rechner mit Node.js starten."
+        }
+
+        Write-Host "Frontend-Build wurde uebersprungen, aber es sind noch keine UI-Artefakte vorhanden. Fuehre einmalig einen Frontend-Build aus ..." -ForegroundColor Yellow
+        Invoke-FrontendBuild -FrontendRoot $frontendRoot -NpmExecutable $npmCommand.Source
+    }
 }
 
 Write-Host "Starte JudoTournamentManagement API lokal..." -ForegroundColor Green

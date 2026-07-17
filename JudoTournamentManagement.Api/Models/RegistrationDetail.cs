@@ -47,4 +47,54 @@ public sealed record RegistrationDetail(
     DateOnly? PassExpiryDate = null,
     bool? LicenseCheckPassed = null,
     DateTimeOffset? LicenseVerifiedAtUtc = null,
-    string? LicenseVerifiedByUser = null);
+    string? LicenseVerifiedByUser = null)
+{
+    /// <summary>
+    /// Optional athlete license identifier.
+    /// Kept as non-positional property for backward-compatible object initialization.
+    /// </summary>
+    public string? AthleteLicenseId { get; init; }
+
+    /// <summary>
+    /// Backward-compatible constructor supporting the historical parameter order
+    /// that included athlete license id before category fields.
+    /// </summary>
+    public RegistrationDetail(
+        Guid id,
+        Guid tournamentId,
+        Guid athleteId,
+        string athleteLastName,
+        string athleteFirstName,
+        int athleteBirthYear,
+        Gender athleteGender,
+        string athleteClubName,
+        string? athleteLicenseId,
+        Guid? categoryId,
+        string? categoryName,
+        string? categoryAgeGroup,
+        Gender? categoryGender,
+        decimal? categoryWeightClassKg,
+        decimal? athleteWeightKg,
+        bool licenseConfirmed,
+        DateTimeOffset createdAtUtc)
+        : this(
+            id,
+            tournamentId,
+            athleteId,
+            athleteLastName,
+            athleteFirstName,
+            athleteBirthYear,
+            athleteGender,
+            athleteClubName,
+            categoryId,
+            categoryName,
+            categoryAgeGroup,
+            categoryGender,
+            categoryWeightClassKg,
+            athleteWeightKg,
+            licenseConfirmed,
+            createdAtUtc)
+    {
+        AthleteLicenseId = athleteLicenseId;
+    }
+}

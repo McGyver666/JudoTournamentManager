@@ -106,6 +106,31 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         return MapToModel(record);
     }
 
+    /// <summary>
+    /// Backward-compatible overload that accepts a license id parameter.
+    /// </summary>
+    public async Task<Registration?> CreateAsync(
+        Guid tournamentId,
+        Guid athleteId,
+        decimal weightKg,
+        string? licenseId,
+        bool licenseConfirmed,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(licenseId))
+        {
+            var athlete = await _dbContext.Athletes
+                .FirstOrDefaultAsync(a => a.Id == athleteId && a.TournamentId == tournamentId, cancellationToken);
+
+            if (athlete is not null)
+            {
+                athlete.LicenseId = licenseId;
+            }
+        }
+
+        return await CreateAsync(tournamentId, athleteId, weightKg, licenseConfirmed, cancellationToken);
+    }
+
     /// <inheritdoc />
     public async Task<Registration?> CreateWithLicenseCheckAsync(
         Guid tournamentId,
@@ -196,6 +221,64 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             athleteId, weightKg, licenseCheckPassed);
 
         return MapToModel(record);
+    }
+
+    /// <summary>
+    /// Backward-compatible overload for callers that omitted cancellation token.
+    /// </summary>
+    public Task<Registration?> CreateWithLicenseCheckAsync(
+        Guid tournamentId,
+        Guid athleteId,
+        decimal weightKg,
+        string? licenseId,
+        bool licenseConfirmed,
+        string? dokumeQrUrl,
+        string? licenseCheckOverrideReason,
+        IDokumePassParser dokumePassParser,
+        DateOnly tournamentDate,
+        string operatorName)
+    {
+        return CreateWithLicenseCheckAsync(
+            tournamentId,
+            athleteId,
+            weightKg,
+            licenseId,
+            licenseConfirmed,
+            dokumeQrUrl,
+            licenseCheckOverrideReason,
+            dokumePassParser,
+            tournamentDate,
+            operatorName,
+            CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Backward-compatible overload for historical parameter order without license id.
+    /// </summary>
+    public Task<Registration?> CreateWithLicenseCheckAsync(
+        Guid tournamentId,
+        Guid athleteId,
+        decimal weightKg,
+        bool licenseConfirmed,
+        string? dokumeQrUrl,
+        string? licenseCheckOverrideReason,
+        IDokumePassParser dokumePassParser,
+        DateOnly tournamentDate,
+        string operatorName,
+        CancellationToken cancellationToken)
+    {
+        return CreateWithLicenseCheckAsync(
+            tournamentId,
+            athleteId,
+            weightKg,
+            null,
+            licenseConfirmed,
+            dokumeQrUrl,
+            licenseCheckOverrideReason,
+            dokumePassParser,
+            tournamentDate,
+            operatorName,
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -348,5 +431,10 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             r.PassExpiryDate,
             r.LicenseCheckPassed,
             r.LicenseVerifiedAtUtc,
-            r.LicenseVerifiedByUser);
+            r.LicenseVerifiedByUser)
+        {
+#pragma warning disable CS8602 // Athlete and Club are loaded via Include() in calling queries.
+            AthleteLicenseId = r.Athlete!.LicenseId
+#pragma warning restore CS8602
+        };
 }

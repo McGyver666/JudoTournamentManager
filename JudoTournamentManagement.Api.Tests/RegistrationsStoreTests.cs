@@ -87,7 +87,7 @@ public sealed class RegistrationsStoreTests
         await ctx.Database.EnsureCreatedAsync();
         var (tournamentId, athleteId, _) = await SeedAsync(ctx);
         var athlete = await ctx.Athletes.SingleAsync(a => a.Id == athleteId);
-        athlete.LicenseId = "legacy-license";
+        athlete.LicenseId = "legacy-license-test";
         await ctx.SaveChangesAsync();
 
         var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
@@ -107,8 +107,8 @@ public sealed class RegistrationsStoreTests
         var registration = await ctx.Registrations.SingleAsync(r => r.Id == created!.Id);
 
         Assert.NotNull(created);
-        Assert.Equal("qr-license", registration.LicenseNumber);
-        Assert.Equal("legacy-license", athlete.LicenseId);
+        Assert.Equal("qr-license-test", registration.LicenseNumber);
+        Assert.Equal("legacy-license-test", athlete.LicenseId);
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public sealed class RegistrationsStoreTests
     {
         public DokumePassCheckResult? ParseQrUrl(string? qrUrl) => new()
         {
-            PassNumber = "qr-license",
+            PassNumber = "qr-license-test",
             ExpiryDate = new DateOnly(2027, 1, 1)
         };
 
@@ -207,3 +207,4 @@ public sealed class RegistrationsStoreTests
             };
     }
 }
+
