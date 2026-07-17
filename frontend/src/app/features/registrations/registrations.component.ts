@@ -37,6 +37,7 @@ export class RegistrationsComponent implements OnInit {
   protected form = {
     athleteId: '',
     weightKg: 0 as number,
+    licenseId: '',
     licenseConfirmed: true,
     dokumeQrUrl: '',
     licenseCheckOverrideReason: ''
@@ -121,6 +122,9 @@ export class RegistrationsComponent implements OnInit {
 
   protected onQrScanned(event: { qrUrl: string; passNumber: string | null }): void {
     this.form.dokumeQrUrl = event.qrUrl;
+    if (event.passNumber) {
+      this.form.licenseId = event.passNumber;
+    }
     this.showQrScanner.set(false);
   }
 
@@ -132,6 +136,7 @@ export class RegistrationsComponent implements OnInit {
     const selected = this.athletes().find((a) => a.id === this.form.athleteId);
     if (selected) {
       this.form.weightKg = selected.weightKg ?? 0;
+      this.form.licenseId = selected.licenseId ?? '';
       // Preserve QR URL and override reason across athlete selection
     }
   }
@@ -157,6 +162,7 @@ export class RegistrationsComponent implements OnInit {
     const request = {
       athleteId: this.form.athleteId,
       weightKg: this.form.weightKg,
+      licenseId: this.form.licenseId || null,
       licenseConfirmed: this.form.licenseConfirmed,
       dokumeQrUrl: this.form.dokumeQrUrl || undefined,
       licenseCheckOverrideReason: this.form.licenseCheckOverrideReason || undefined
@@ -167,8 +173,9 @@ export class RegistrationsComponent implements OnInit {
         // Update athlete if weight or license changed during registration
         const selected = this.athletes().find((a) => a.id === this.form.athleteId);
         const weightChanged = selected && this.form.weightKg && selected.weightKg !== this.form.weightKg;
+        const licenseChanged = selected && this.form.licenseId && selected.licenseId !== this.form.licenseId;
 
-        if (weightChanged) {
+        if (weightChanged || licenseChanged) {
           const updateRequest = {
             clubId: selected!.clubId,
             firstName: selected!.firstName,

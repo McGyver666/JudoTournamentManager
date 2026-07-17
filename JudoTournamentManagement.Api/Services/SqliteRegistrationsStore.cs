@@ -111,6 +111,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         Guid tournamentId,
         Guid athleteId,
         decimal weightKg,
+        string? licenseId,
         bool licenseConfirmed,
         string? dokumeQrUrl,
         string? licenseCheckOverrideReason,
@@ -140,6 +141,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         }
 
         athlete.WeightKg = weightKg;
+        if (!string.IsNullOrEmpty(licenseId))
+            athlete.LicenseId = licenseId;
 
         bool licenseCheckPassed = false;
         DateOnly? passExpiryDate = null;
