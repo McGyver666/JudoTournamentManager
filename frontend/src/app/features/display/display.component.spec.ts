@@ -11,6 +11,8 @@ import { DisplayComponent } from './display.component';
 
 describe('DisplayComponent', () => {
   let fightUpdates: Subject<Fight>;
+  let serverTimeSync: Subject<string>;
+  let reconnected: Subject<void>;
 
   function createFight(overrides: Partial<Fight> = {}): Fight {
     return {
@@ -67,12 +69,15 @@ describe('DisplayComponent', () => {
 
   beforeEach(() => {
     fightUpdates = new Subject<Fight>();
+    serverTimeSync = new Subject<string>();
+    reconnected = new Subject<void>();
 
     TestBed.configureTestingModule({
       providers: [
         {
           provide: ApiService,
           useValue: {
+            getServerTime: () => of({ serverTimeUtc: new Date().toISOString() }),
             getTournament: () => of({ name: 'Testturnier' }),
             getAthletes: () => of([]),
             getClubs: () => of([]),
@@ -94,6 +99,8 @@ describe('DisplayComponent', () => {
             connected: signal(false),
             connect: () => Promise.resolve(),
             fightUpdated$: fightUpdates.asObservable(),
+            serverTimeSync$: serverTimeSync.asObservable(),
+            reconnected$: reconnected.asObservable(),
             categoryFightsUpdated$: new Subject().asObservable(),
           },
         },

@@ -37,6 +37,7 @@ import {
   RegistrationDetail,
   RoundRobinStanding,
   SetUserActiveRequest,
+  ServerTimeResponse,
   SwapAthletesRequest,
   Tatami,
   TatamiQueue,
@@ -57,6 +58,10 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   constructor(private readonly http: HttpClient) {}
+
+  getServerTime(): Observable<ServerTimeResponse> {
+    return this.http.get<ServerTimeResponse>('api/time');
+  }
 
   // Tournaments ------------------------------------------------------------
   getTournaments(): Observable<Tournament[]> {
