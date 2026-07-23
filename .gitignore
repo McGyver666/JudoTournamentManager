@@ -56,6 +56,10 @@ appsettings*.Development.json
 lan-validation-report-*.json
 *.log
 
+# Frontend Artifacts
+JudoTournamentManagement.Api/artifacts/*
+JudoTournamentManagement.Api.Tests/artifacts/*
+
 # =========================
 # Editor / OS files
 # =========================
@@ -75,3 +79,4 @@ release/
 release.zip
 JTMt.7z
 node_modules
+

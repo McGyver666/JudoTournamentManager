@@ -414,6 +414,13 @@ public sealed class MatchService : IMatchService
             .Select(category => category.DrawFormat)
             .FirstOrDefaultAsync(cancellationToken);
 
+        // Round-robin fights are fully pre-seeded and must never be re-wired as
+        // winner-progression brackets.
+        if (drawFormat == BracketFormat.RoundRobin.ToString())
+        {
+            return;
+        }
+
         if (drawFormat == BracketFormat.DoubleElimination.ToString())
         {
             RecalculateDoubleEliminationProgression(fights);
