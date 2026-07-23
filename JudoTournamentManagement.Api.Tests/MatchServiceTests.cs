@@ -773,6 +773,8 @@ public sealed class MatchServiceTests
         var updated = await ctxRead1.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
         Assert.Equal(1, updated.WhiteIpponCount);
         Assert.Equal(0, updated.WhiteWazaAriCount);
+        Assert.Equal(FightStatus.Paused.ToString(), updated.Status);
+        Assert.NotNull(updated.PausedAtUtc);
     }
 
     [Fact]

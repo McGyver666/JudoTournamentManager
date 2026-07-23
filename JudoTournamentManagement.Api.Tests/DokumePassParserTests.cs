@@ -16,11 +16,11 @@ public sealed class DokumePassParserTests
         var result = _parser.ParseQrUrl(validQrUrl);
 
         Assert.NotNull(result);
-        Assert.Equal("L-TEST-9001", result.PassNumber);
-        Assert.Equal("Alex", result.FirstName);
-        Assert.Equal("Muster", result.LastName);
+        Assert.Equal("J-0080659", result.PassNumber);
+        Assert.Equal("Jonas", result.FirstName);
+        Assert.Equal("Winkler", result.LastName);
         Assert.Equal(new DateOnly(1985, 3, 18), result.DateOfBirth);
-        Assert.Equal("LizenzTest", result.LicenseTypeName);
+        Assert.Equal("Judopass", result.LicenseTypeName);
         Assert.Equal("DokuMe", result.Issuer);
         Assert.True(result.IsRs384Claimed);
         Assert.False(result.SignatureVerified); // Signature is deliberately not verified
