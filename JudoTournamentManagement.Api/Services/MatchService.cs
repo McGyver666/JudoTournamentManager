@@ -301,6 +301,13 @@ public sealed class MatchService : IMatchService
         if (scoreToAward is not null)
         {
             ApplyScoreDelta(fight, holderIsWhite, scoreToAward.Value, 1);
+
+            // A hold-down that results in Ippon must immediately stop the match clock.
+            if (scoreToAward == ScoreType.Ippon)
+            {
+                fight.Status = Paused;
+                fight.PausedAtUtc = DateTimeOffset.UtcNow;
+            }
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
