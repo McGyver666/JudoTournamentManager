@@ -346,6 +346,15 @@ export interface Fight {
   updatedAtUtc: string;
 }
 
+export interface FightUpdatedMessage {
+  fight: Fight;
+  serverNowUtc: string;
+}
+
+export interface ServerTimeResponse {
+  serverTimeUtc: string;
+}
+
 export interface GenerateDrawRequest {
   format: BracketFormat;
 }
