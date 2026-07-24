@@ -76,8 +76,7 @@ public sealed class MatchService : IMatchService
             fight.TournamentId, user, "FightAssignedToTatami", "Fight", fight.Id,
             $"TatamiId={tatamiId?.ToString() ?? "none"}", cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -116,8 +115,7 @@ public sealed class MatchService : IMatchService
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -138,8 +136,7 @@ public sealed class MatchService : IMatchService
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -163,8 +160,7 @@ public sealed class MatchService : IMatchService
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -194,8 +190,7 @@ public sealed class MatchService : IMatchService
         fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -225,8 +220,7 @@ public sealed class MatchService : IMatchService
         fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -249,8 +243,7 @@ public sealed class MatchService : IMatchService
         fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -308,12 +301,18 @@ public sealed class MatchService : IMatchService
         if (scoreToAward is not null)
         {
             ApplyScoreDelta(fight, holderIsWhite, scoreToAward.Value, 1);
+
+            // A hold-down that results in Ippon must immediately stop the match clock.
+            if (scoreToAward == ScoreType.Ippon)
+            {
+                fight.Status = Paused;
+                fight.PausedAtUtc = DateTimeOffset.UtcNow;
+            }
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("FightUpdated", MapToFight(fight), CancellationToken.None);
+        await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
     }
@@ -414,6 +413,13 @@ public sealed class MatchService : IMatchService
             .Where(category => category.Id == categoryId)
             .Select(category => category.DrawFormat)
             .FirstOrDefaultAsync(cancellationToken);
+
+        // Round-robin fights are fully pre-seeded and must never be re-wired as
+        // winner-progression brackets.
+        if (drawFormat == BracketFormat.RoundRobin.ToString())
+        {
+            return;
+        }
 
         if (drawFormat == BracketFormat.DoubleElimination.ToString())
         {
@@ -575,6 +581,12 @@ public sealed class MatchService : IMatchService
         if (source.WhiteAthleteId is null || source.BlueAthleteId is null) return null;
         return source.WinnerId == source.WhiteAthleteId ? source.BlueAthleteId : source.WhiteAthleteId;
     }
+
+    private Task BroadcastFightUpdatedAsync(FightRecord fight) =>
+        _hub.Clients.Group(fight.TournamentId.ToString()).SendAsync(
+            "FightUpdated",
+            new FightUpdatedMessage(MapToFight(fight), DateTimeOffset.UtcNow),
+            CancellationToken.None);
 
     private static Fight MapToFight(FightRecord r) => new(
         r.Id, r.TournamentId, r.CategoryId,

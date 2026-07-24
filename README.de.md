@@ -19,6 +19,8 @@ Bereits verfuegbar:
   - athletengesteuerte Klassen nach Zielzahl von Athleten je Klasse und maximaler Gewichtsdifferenz
 - Ablauf zur Tatami-Zuordnung (automatisch und manuell)
 - oeffentliche Anzeigeansicht mit Echtzeitaktualisierungen (SignalR)
+- serverautorisierte synchronisierte Kampf- und Osae-komi-Zeit in Bedien- und Anzeigeansichten
+- lokale Zehntelsekundenanzeige fuer laufende Schlusssekunden des Kampfes und aktive Osae-komi-Zeiten
 - Ergebnis- und Medaillenspiegelansichten
 - lokale Authentifizierung (Anmelden/Abmelden, Sitzungspersistenz, Benutzerverwaltung fuer Administratoren)
 - authentifizierter SignalR-Hub-Zugriff (Echtzeitaktualisierungen erfordern ein gueltiges Bearer-Token)
@@ -30,7 +32,10 @@ Bereits verfuegbar:
 - Angular-19-Frontend (Administration, Betrieb sowie Anzeige/Ergebnisse), das von der API bereitgestellt wird
 - gehaertete lokale Skripte fuer Test- und Seed-Daten (`JUDO_TEST_PASSWORD`, Produktionsschutz)
 - Sicherungs- und Wiederherstellungsablauf fuer Administratoren in der Turnieransicht (Sicherung herunterladen und Wiederherstellung hochladen)
-- Unit-Test-Projekt (192 erfolgreiche Tests, Category=UnitTest)
+- authentifizierter Serverzeit-Endpunkt fuer die Frontend-Zeitsynchronisation (`GET /api/time`)
+- serverseitiger Kampfzeit-Auswerter fuer zeitbasierte Kampf- und Osae-komi-Entscheidungen
+- Osae-komi-Ippon haelt die Kampfzeit auf dem Server sofort an
+- Unit-Test-Projekt (247 erfolgreiche Tests, Category=UnitTest)
 - TLS/LAN-Betriebsstabilisierung und wiederholte Feldvalidierung
 
 ## Architektur
@@ -379,6 +384,7 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `GET /api/time`
 - `GET /api/auth/users`
 - `POST /api/auth/users`
 - `PATCH /api/auth/users/{userId}/active`
@@ -428,6 +434,7 @@ Aktuelle Kultureinstellung des Backends:
 - Alle kuenftigen Funktionen fuer Authentifizierung, Audit-Logging und Sicherungen muessen dem Backlog folgen
 - Geheimnisse duerfen bei spaeteren externen Integrationen niemals hartcodiert sein
 - SignalR-Hub-Zugriff erfordert Authentifizierung; das Frontend uebergibt fuer den Echtzeitkanal ein Bearer-Token
+- Die Kampfzeit bleibt serverautoritativ; die Frontend-Zeitsynchronisation dient nur der Anzeige und darf offline keine Regelentscheidung ausloesen
 - Hilfsskripte brechen ab, wenn `ASPNETCORE_ENVIRONMENT=Production` gesetzt ist
 
 ## Copilot-Einrichtung

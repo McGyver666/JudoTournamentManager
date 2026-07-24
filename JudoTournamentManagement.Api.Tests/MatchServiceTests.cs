@@ -525,6 +525,46 @@ public sealed class MatchServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task Confirm_RoundRobin_DoesNotRewireFutureRounds()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 5, BracketFormat.RoundRobin);
+        }
+
+        var before = await ReadFightsAsync(db, cid);
+        var fightToConfirm = before.First(f => f.Round == 1 && !f.IsBye);
+        var winner = fightToConfirm.WhiteAthleteId!.Value;
+
+        var expectedFutureRounds = before
+            .Where(f => f.Round > 1)
+            .ToDictionary(
+                f => f.Id,
+                f => new { f.WhiteAthleteId, f.BlueAthleteId, f.IsBye });
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(fightToConfirm.Id, "T1", CancellationToken.None);
+            var result = await svc.ConfirmResultAsync(fightToConfirm.Id, winner, "T1", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        var after = await ReadFightsAsync(db, cid);
+        foreach (var fight in after.Where(f => f.Round > 1))
+        {
+            var expected = expectedFutureRounds[fight.Id];
+            Assert.Equal(expected.WhiteAthleteId, fight.WhiteAthleteId);
+            Assert.Equal(expected.BlueAthleteId, fight.BlueAthleteId);
+            Assert.Equal(expected.IsBye, fight.IsBye);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task Confirm_Semifinals_PopulatesRepechageWithLosers()
     {
         var db = CreateDatabasePath();
@@ -773,6 +813,8 @@ public sealed class MatchServiceTests
         var updated = await ctxRead1.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
         Assert.Equal(1, updated.WhiteIpponCount);
         Assert.Equal(0, updated.WhiteWazaAriCount);
+        Assert.Equal(FightStatus.Paused.ToString(), updated.Status);
+        Assert.NotNull(updated.PausedAtUtc);
     }
 
     [Fact]

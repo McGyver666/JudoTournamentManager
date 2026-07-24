@@ -88,6 +88,38 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
     }
 
     [Fact]
+    public async Task GetServerTime_WithoutToken_Returns401()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/time");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetServerTime_WithToken_Returns200()
+    {
+        using var client = _factory.CreateClient();
+        var bootstrapResponse = await client.PostAsJsonAsync("/api/auth/bootstrap-admin", new BootstrapAdminRequest
+        {
+            UserName = "admin",
+            Password = "Admin!123456"
+        });
+
+        Assert.True(
+            bootstrapResponse.StatusCode is HttpStatusCode.Created or HttpStatusCode.Conflict,
+            $"Unexpected bootstrap status: {bootstrapResponse.StatusCode}");
+
+        var token = await LoginAndGetTokenAsync(client, "admin", "Admin!123456");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync("/api/time");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetTournaments_WithDisplayRole_Returns200()
     {
         using var client = _factory.CreateClient();

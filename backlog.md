@@ -231,7 +231,7 @@ Story points are rough relative estimates.
 
 ---
 
-### F-05 Synchronisierte Kampfzeit und Präzisionsanzeige (P1, 5 SP)
+### F-05 Synchronisierte Kampfzeit und Präzisionsanzeige (P1, 5 SP) — ✅ Done
 **Story:** Als Turnierleitung möchte ich, dass Kampf- und Osae-komi-Zeiten auf allen Kampfrichter- und Anzeigeansichten präzise und einheitlich laufen, damit Zeitangaben trotz unterschiedlicher Endgeräte zuverlässig sind.
 **Acceptance Criteria:**
 - Der Server bleibt die autoritative Zeitquelle für Start-, Pause-, Fortsetz- und Osae-komi-Zeitpunkte sowie für regelrelevante Wertungen.
@@ -243,7 +243,10 @@ Story points are rough relative estimates.
 - Bei fehlender Serververbindung läuft die Darstellung mit der zuletzt bekannten Zeitbasis bzw. lokal weiter; sie darf dadurch keine Kampf- oder Wertungsentscheidung auslösen.
 - Der Kampfrichter-Dialog und die Display-Ansichten verwenden denselben Zeitdienst und dieselbe Zeitberechnung.
 - Osae-komi-Wertungen, automatisches Anhalten und sonstige Regelentscheidungen werden weiterhin ausschließlich vom Server entschieden.
+- Wird durch ein abgelaufenes Osae-komi Ippon vergeben, hält der Server den Kampf unmittelbar an.
 - Unit-Tests decken Serverzeit-Offset, lokale monotone Fortschreibung, Pause/Fortsetzen, Zehntelsekundenformatierung und den Offline-Fallback ab.
+
+**Implementation note:** Umgesetzt mit gemeinsamem Frontend-Zeitdienst, authentifiziertem `GET /api/time`, SignalR-Nachrichten mit Serverzeitstempel und serverseitigem `MatchClockEvaluator` fuer regelrelevante Timing-Entscheidungen.
 
 ## Epic G - Public Display & Results
 

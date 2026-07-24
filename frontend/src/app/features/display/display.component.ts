@@ -12,6 +12,7 @@ import { catchError, combineLatest, forkJoin, of, Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { I18nService } from '../../core/i18n.service';
 import { SideThemeService } from '../../core/side-theme.service';
+import { TimeService } from '../../core/time.service';
 import { CategoryFightsUpdatedEvent, TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 import { Athlete, Category, Club, Fight, FightSide, RoundRobinStanding, Tatami, Tournament } from '../../core/models';
@@ -49,6 +50,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private readonly i18n = inject(I18nService);
   protected readonly sideTheme = inject(SideThemeService);
   private readonly hub = inject(TournamentHubService);
+  private readonly time = inject(TimeService);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly tournamentId = signal<string | null>(null);
@@ -85,15 +87,20 @@ export class DisplayComponent implements OnInit, OnDestroy {
   });
 
   private fightSub?: Subscription;
+  private serverTimeSub?: Subscription;
+  private reconnectSub?: Subscription;
   private categoryFightsSub?: Subscription;
   private querySub?: Subscription;
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private readonly connectorRefreshVersion = signal(0);
   private connectorRefreshHandle: number | null = null;
   private lastTatamiQueueRefreshAt = 0;
+  private lastClockResyncCheckAtMs = 0;
   private tatamiQueueRefreshInFlight = false;
 
   ngOnInit(): void {
+    void this.time.synchronize(5);
+
     this.querySub = combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([paramMap, queryParamMap]) => {
       const tid = queryParamMap.get('tournamentId') ?? undefined;
       this.tatamiModeTatamiId.set(paramMap.get('tatamiId'));
@@ -122,8 +129,22 @@ export class DisplayComponent implements OnInit, OnDestroy {
       this.handleCategoryFightsUpdated(evt);
     });
 
+    this.serverTimeSub = this.hub.serverTimeSync$.subscribe((serverNowUtc) => {
+      this.time.ingestServerNowUtc(serverNowUtc);
+    });
+
+    this.reconnectSub = this.hub.reconnected$.subscribe(() => {
+      void this.time.synchronize(5);
+    });
+
     this.timerHandle = setInterval(() => {
-      const now = Date.now();
+      const localNowMs = Date.now();
+      if (localNowMs - this.lastClockResyncCheckAtMs >= 10_000) {
+        this.lastClockResyncCheckAtMs = localNowMs;
+        void this.time.synchronizeIfStale();
+      }
+
+      const now = this.time.nowMs();
       this.nowEpochMs.set(now);
 
       const tid = this.tournamentId();
@@ -131,12 +152,14 @@ export class DisplayComponent implements OnInit, OnDestroy {
         this.lastTatamiQueueRefreshAt = now;
         this.refreshCurrentTatamiQueue(tid);
       }
-    }, 1000);
+    }, 100);
   }
 
   ngOnDestroy(): void {
     this.querySub?.unsubscribe();
     this.fightSub?.unsubscribe();
+    this.serverTimeSub?.unsubscribe();
+    this.reconnectSub?.unsubscribe();
     this.categoryFightsSub?.unsubscribe();
     if (this.timerHandle !== null) {
       clearInterval(this.timerHandle);
@@ -168,6 +191,13 @@ export class DisplayComponent implements OnInit, OnDestroy {
   @HostListener('window:resize')
   protected onWindowResize(): void {
     this.refreshConnectors();
+  }
+
+  @HostListener('document:visibilitychange')
+  protected onVisibilityChange(): void {
+    if (document.visibilityState === 'visible') {
+      void this.time.synchronizeIfStale();
+    }
   }
 
   protected onBracketScrolled(): void {
@@ -971,9 +1001,11 @@ export class DisplayComponent implements OnInit, OnDestroy {
       }
 
       const capSeconds = this.getOsaeKomiCapForFight(fight, side);
-      const elapsedSeconds = Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000);
-      const runningSeconds = Math.min(capSeconds, Math.max(0, elapsedSeconds));
-      return `${runningSeconds}s`;
+      const elapsedExactSeconds = Math.max(0, Math.min(capSeconds, (this.nowEpochMs() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000));
+      const runningSeconds = Math.min(capSeconds, Math.max(0, Math.ceil(elapsedExactSeconds)));
+      const remainingToCap = Math.max(0, capSeconds - elapsedExactSeconds);
+      const showTenths = remainingToCap <= 10;
+      return showTenths ? `${elapsedExactSeconds.toFixed(1)}s` : `${runningSeconds}s`;
     }
 
     const persisted = this.persistedOsaeKomiMap.get(fight.id);
@@ -1016,7 +1048,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
       const cap = this.getOsaeKomiCapForFight(fight, side);
       const startedAtMs = new Date(fight.osaeKomiStartedAtUtc!).getTime();
-      const seconds = Math.min(cap, Math.max(0, Math.ceil((Date.now() - startedAtMs) / 1000)));
+      const seconds = Math.min(cap, Math.max(0, Math.ceil((this.nowEpochMs() - startedAtMs) / 1000)));
       this.persistedOsaeKomiMap.set(fight.id, { seconds, side, clearOnResume: false });
     } else if (fight.status === 'Pending' || fight.status === 'Completed') {
       this.persistedOsaeKomiMap.delete(fight.id);
@@ -1089,7 +1121,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
       // Fight not yet started: show configured match duration.
       const cat = this.categories().get(fight.categoryId);
       const matchDuration = cat?.matchDurationSeconds ?? 300;
-      return this.formatTimer(matchDuration);
+      return this.formatWholeSeconds(matchDuration);
     }
 
     const cat = this.categories().get(fight.categoryId);
@@ -1098,24 +1130,40 @@ export class DisplayComponent implements OnInit, OnDestroy {
 
     const timerReference = fight.status === 'Paused' && fight.pausedAtUtc
       ? new Date(fight.pausedAtUtc).getTime()
-      : Date.now();
+      : this.nowEpochMs();
     const elapsedSeconds = (timerReference - new Date(fight.startedAtUtc).getTime()) / 1000;
 
     // Use fight.isGoldenScore from server (reload-safe, score-aware).
     if (fight.isGoldenScore) {
       const gsElapsed = elapsedSeconds - matchDuration;
-      const gsRemaining = Math.max(0, Math.ceil(goldenScoreDuration - gsElapsed));
-      return this.formatTimer(gsRemaining);
+      const gsRemaining = Math.max(0, goldenScoreDuration - gsElapsed);
+      const showTenths = fight.status === 'InProgress' && gsRemaining <= 10;
+      return showTenths
+        ? this.formatTenthsCountdown(gsRemaining)
+        : this.formatWholeSeconds(gsRemaining);
     }
 
-    const remainingSeconds = Math.max(0, Math.ceil(matchDuration - elapsedSeconds));
-    return this.formatTimer(remainingSeconds);
+    const remainingSeconds = Math.max(0, matchDuration - elapsedSeconds);
+    const showTenths = fight.status === 'InProgress' && remainingSeconds <= 10;
+    return showTenths
+      ? this.formatTenthsCountdown(remainingSeconds)
+      : this.formatWholeSeconds(remainingSeconds);
   }
 
-  private formatTimer(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+  private formatWholeSeconds(seconds: number): string {
+    const rounded = Math.max(0, Math.ceil(seconds));
+    const m = Math.floor(rounded / 60);
+    const s = rounded % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  private formatTenthsCountdown(seconds: number): string {
+    const clamped = Math.max(0, seconds);
+    const wholeSeconds = Math.floor(clamped);
+    const tenths = Math.floor((clamped - wholeSeconds) * 10);
+    const m = Math.floor(wholeSeconds / 60);
+    const s = wholeSeconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${tenths}`;
   }
 
   protected athleteName(id: string | null): string {

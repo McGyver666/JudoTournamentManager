@@ -88,7 +88,18 @@ public sealed class ControllerUnitTests
     {
         var tournamentId = Guid.NewGuid();
         var mockStore = new Mock<ITournamentStore>();
-        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        mockStore.Setup(s => s.UpdateAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<string>(),
+            It.IsAny<DateOnly>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<bool>(),
+            It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var controller = new TournamentsController(mockStore.Object);
         var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org", AccentSideColor = "Red" };
@@ -97,14 +108,36 @@ public sealed class ControllerUnitTests
 
         var noContentResult = Assert.IsType<NoContentResult>(result);
         Assert.Equal(StatusCodes.Status204NoContent, noContentResult.StatusCode);
-        mockStore.Verify(s => s.UpdateAsync(tournamentId, "Updated", new DateOnly(2026, 8, 15), "Venue", "Org", "Red", It.IsAny<CancellationToken>()), Times.Once);
+        mockStore.Verify(s => s.UpdateAsync(
+            tournamentId,
+            "Updated",
+            new DateOnly(2026, 8, 15),
+            "Venue",
+            "Org",
+            "Red",
+            request.OsaeKomiIpponSeconds,
+            request.OsaeKomiWazaAriSeconds,
+            request.OsaeKomiYukoSeconds,
+            request.OsaeKomiYukoEnabled,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task TournamentsController_UpdateAsync_WithInvalidId_ReturnsNotFound()
     {
         var mockStore = new Mock<ITournamentStore>();
-        mockStore.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        mockStore.Setup(s => s.UpdateAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<string>(),
+            It.IsAny<DateOnly>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<bool>(),
+            It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var controller = new TournamentsController(mockStore.Object);
         var request = new UpdateTournamentRequest { Name = "Updated", Date = new DateOnly(2026, 8, 15), Venue = "Venue", Organizer = "Org", AccentSideColor = "Blue" };

@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { Subject, Observable } from 'rxjs';
 import { AuthStateService } from './auth-state.service';
-import { Fight } from './models';
+import { Fight, FightUpdatedMessage } from './models';
 
 export interface CategoryFightsUpdatedEvent {
   tournamentId: string;
@@ -29,9 +29,13 @@ export class TournamentHubService {
 
   private readonly _fightUpdated = new Subject<Fight>();
   private readonly _categoryFightsUpdated = new Subject<CategoryFightsUpdatedEvent>();
+  private readonly _serverTimeSync = new Subject<string>();
+  private readonly _reconnected = new Subject<void>();
 
   /** Emits whenever a single fight's state changes (start / score / tatami assign). */
   readonly fightUpdated$: Observable<Fight> = this._fightUpdated.asObservable();
+  readonly serverTimeSync$: Observable<string> = this._serverTimeSync.asObservable();
+  readonly reconnected$: Observable<void> = this._reconnected.asObservable();
 
   /**
    * Emits whenever the full fights list for a category changed
@@ -56,12 +60,23 @@ export class TournamentHubService {
       .withAutomaticReconnect()
       .build();
 
-    this.connection.on('FightUpdated', (fight: Fight) => this._fightUpdated.next(fight));
+    this.connection.on('FightUpdated', (payload: Fight | FightUpdatedMessage) => {
+      if (payload && typeof payload === 'object' && 'fight' in payload) {
+        if (payload.serverNowUtc) {
+          this._serverTimeSync.next(payload.serverNowUtc);
+        }
+        this._fightUpdated.next(payload.fight);
+        return;
+      }
+
+      this._fightUpdated.next(payload as Fight);
+    });
     this.connection.on('CategoryFightsUpdated', (evt: CategoryFightsUpdatedEvent) =>
       this._categoryFightsUpdated.next(evt));
 
     this.connection.onreconnected(() => {
       this.connected.set(true);
+      this._reconnected.next();
       void this.connection?.invoke('JoinTournamentAsync', tournamentId);
     });
     this.connection.onclose(() => this.connected.set(false));
