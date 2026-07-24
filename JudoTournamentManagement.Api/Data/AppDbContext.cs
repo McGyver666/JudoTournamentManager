@@ -130,6 +130,8 @@ public sealed class AppDbContext : DbContext
         athlete.Property(x => x.LicenseId).HasMaxLength(40);
         athlete.Property(x => x.WeightKg);
         athlete.Property(x => x.Grade).IsRequired().HasDefaultValue(1);
+        athlete.Property(x => x.LastFightDurationSeconds);
+        athlete.Property(x => x.LastFightEndedAtUtc);
         athlete.HasOne(x => x.Tournament)
                .WithMany()
                .HasForeignKey(x => x.TournamentId)

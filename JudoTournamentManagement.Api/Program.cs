@@ -169,6 +169,7 @@ static async Task InitializeDatabaseAsync(WebApplication application)
         await EnsureLegacyTournamentOsaeKomiSettingsColumnsAsync(dbContext, logger);
     await EnsureCategoryPresetsTableAsync(dbContext, logger);
     await EnsureClubContactColumnsAsync(dbContext, logger);
+    await EnsureAthleteLastFightColumnsAsync(dbContext, logger);
 }
 
 static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, ILogger logger)
@@ -528,6 +529,39 @@ static async Task EnsureClubContactColumnsAsync(AppDbContext dbContext, ILogger 
         "ALTER TABLE \"Clubs\" ADD COLUMN \"ContactPhone\" TEXT NULL;");
 
     logger.LogWarning("Schema patch applied: added ContactName, ContactEmail, ContactPhone columns to Clubs.");
+}
+
+static async Task EnsureAthleteLastFightColumnsAsync(AppDbContext dbContext, ILogger logger)
+{
+    var hasLastFightDurationSeconds = await ColumnExistsAsync(dbContext, "Athletes", "LastFightDurationSeconds");
+    var hasLastFightEndedAtUtc = await ColumnExistsAsync(dbContext, "Athletes", "LastFightEndedAtUtc");
+
+    if (hasLastFightDurationSeconds && hasLastFightEndedAtUtc)
+    {
+        return;
+    }
+
+    await using var connection = dbContext.Database.GetDbConnection();
+    if (connection.State != System.Data.ConnectionState.Open)
+    {
+        await connection.OpenAsync();
+    }
+
+    if (!hasLastFightDurationSeconds)
+    {
+        await using var addDuration = connection.CreateCommand();
+        addDuration.CommandText = "ALTER TABLE Athletes ADD COLUMN LastFightDurationSeconds INTEGER NULL;";
+        await addDuration.ExecuteNonQueryAsync();
+        logger.LogWarning("Legacy schema patch applied: added Athletes.LastFightDurationSeconds column.");
+    }
+
+    if (!hasLastFightEndedAtUtc)
+    {
+        await using var addEndedAt = connection.CreateCommand();
+        addEndedAt.CommandText = "ALTER TABLE Athletes ADD COLUMN LastFightEndedAtUtc TEXT NULL;";
+        await addEndedAt.ExecuteNonQueryAsync();
+        logger.LogWarning("Legacy schema patch applied: added Athletes.LastFightEndedAtUtc column.");
+    }
 }
 
 /// <summary>

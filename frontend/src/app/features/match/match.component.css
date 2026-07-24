@@ -340,6 +340,38 @@
   min-width: 0;
 }
 
+.fight-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.6rem;
+  color: #4b5563;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.fight-context--current {
+  justify-content: center;
+  text-align: center;
+}
+
+.fight-context--upcoming {
+  justify-content: flex-end;
+  text-align: right;
+  margin-left: auto;
+}
+
+.fight-context__category {
+  color: #111827;
+  font-weight: 700;
+}
+
+.fight-context__meta {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .fight-vs {
   display: grid;
   place-items: center;
@@ -438,6 +470,14 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #6b7280;
+  margin-bottom: 0;
+}
+
+.fight-card__topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.45rem;
 }
 
