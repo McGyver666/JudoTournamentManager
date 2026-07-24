@@ -130,7 +130,7 @@ public sealed class SqliteTournamentStore : ITournamentStore
         string accentSideColor,
         CancellationToken cancellationToken)
     {
-        return await UpdateAsync(tournamentId, name, date, venue, organizer, accentSideColor, 20, 10, 5, true, cancellationToken);
+        return await UpdateAsync(tournamentId, name, date, venue, organizer, accentSideColor, 20, 10, 5, true, 180, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -145,6 +145,7 @@ public sealed class SqliteTournamentStore : ITournamentStore
         int osaeKomiWazaAriSeconds,
         int osaeKomiYukoSeconds,
         bool osaeKomiYukoEnabled,
+        int minimumRestBetweenFightsSeconds,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -169,6 +170,7 @@ public sealed class SqliteTournamentStore : ITournamentStore
         record.OsaeKomiWazaAriSeconds = osaeKomiWazaAriSeconds;
         record.OsaeKomiYukoSeconds = osaeKomiYukoSeconds;
         record.OsaeKomiYukoEnabled = osaeKomiYukoEnabled;
+        record.MinimumRestBetweenFightsSeconds = minimumRestBetweenFightsSeconds;
         record.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -192,6 +194,7 @@ public sealed class SqliteTournamentStore : ITournamentStore
             OsaeKomiWazaAriSeconds = record.OsaeKomiWazaAriSeconds,
             OsaeKomiYukoSeconds = record.OsaeKomiYukoSeconds,
             OsaeKomiYukoEnabled = record.OsaeKomiYukoEnabled,
+            MinimumRestBetweenFightsSeconds = record.MinimumRestBetweenFightsSeconds,
         };
     }
 

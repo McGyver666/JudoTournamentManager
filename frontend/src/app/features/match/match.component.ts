@@ -373,6 +373,13 @@ export class MatchComponent implements OnInit, OnDestroy {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${tenths}`;
   }
 
+  private formatFightDuration(totalSeconds: number): string {
+    const normalized = Math.max(0, Math.floor(totalSeconds));
+    const minutes = Math.floor(normalized / 60);
+    const seconds = normalized % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
   protected athleteName(id: string | null): string {
     if (!id) return '?';
     const a = this.athletes().get(id);
@@ -384,6 +391,48 @@ export class MatchComponent implements OnInit, OnDestroy {
     const athlete = this.athletes().get(id);
     if (!athlete) return null;
     return this.clubs().get(athlete.clubId)?.name ?? null;
+  }
+
+  protected lastFightInfoLabel(id: string | null): string | null {
+    if (!id) return null;
+    const athlete = this.athletes().get(id);
+    if (!athlete?.lastFightEndedAtUtc || athlete.lastFightDurationSeconds === null) {
+      return null;
+    }
+
+    const endedAt = new Date(athlete.lastFightEndedAtUtc);
+    if (Number.isNaN(endedAt.getTime())) {
+      return null;
+    }
+
+    const timeLabel = new Intl.DateTimeFormat('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(endedAt);
+
+    return `${timeLabel} (${this.formatFightDuration(athlete.lastFightDurationSeconds)})`;
+  }
+
+  protected hasInsufficientRest(id: string | null): boolean {
+    if (!id) return false;
+
+    const athlete = this.athletes().get(id);
+    if (!athlete?.lastFightEndedAtUtc) {
+      return false;
+    }
+
+    const minimumGapSeconds = this.context.tournament()?.minimumRestBetweenFightsSeconds ?? 0;
+    if (minimumGapSeconds <= 0) {
+      return false;
+    }
+
+    const endedAtMs = new Date(athlete.lastFightEndedAtUtc).getTime();
+    if (Number.isNaN(endedAtMs)) {
+      return false;
+    }
+
+    const elapsedSeconds = Math.floor((this.nowEpochMs() - endedAtMs) / 1000);
+    return elapsedSeconds >= 0 && elapsedSeconds < minimumGapSeconds;
   }
 
   protected categoryName(id: string): string {

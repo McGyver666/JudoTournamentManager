@@ -99,6 +99,7 @@ public sealed class ControllerUnitTests
             It.IsAny<int>(),
             It.IsAny<int>(),
             It.IsAny<bool>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var controller = new TournamentsController(mockStore.Object);
@@ -119,6 +120,7 @@ public sealed class ControllerUnitTests
             request.OsaeKomiWazaAriSeconds,
             request.OsaeKomiYukoSeconds,
             request.OsaeKomiYukoEnabled,
+            request.MinimumRestBetweenFightsSeconds,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -137,6 +139,7 @@ public sealed class ControllerUnitTests
             It.IsAny<int>(),
             It.IsAny<int>(),
             It.IsAny<bool>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var controller = new TournamentsController(mockStore.Object);

@@ -110,6 +110,7 @@ export class TournamentContextService {
       osaeKomiWazaAriSeconds: typeof x['osaeKomiWazaAriSeconds'] === 'number' ? x['osaeKomiWazaAriSeconds'] : 10,
       osaeKomiYukoSeconds: typeof x['osaeKomiYukoSeconds'] === 'number' ? x['osaeKomiYukoSeconds'] : 5,
       osaeKomiYukoEnabled: typeof x['osaeKomiYukoEnabled'] === 'boolean' ? x['osaeKomiYukoEnabled'] : true,
+      minimumRestBetweenFightsSeconds: typeof x['minimumRestBetweenFightsSeconds'] === 'number' ? x['minimumRestBetweenFightsSeconds'] : 180,
       createdAtUtc: x['createdAtUtc'],
       updatedAtUtc: x['updatedAtUtc'],
     };

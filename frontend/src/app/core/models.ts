@@ -47,6 +47,7 @@ export interface Tournament {
   osaeKomiWazaAriSeconds: number;
   osaeKomiYukoSeconds: number;
   osaeKomiYukoEnabled: boolean;
+  minimumRestBetweenFightsSeconds: number;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -61,6 +62,7 @@ export interface CreateTournamentRequest {
   osaeKomiWazaAriSeconds: number;
   osaeKomiYukoSeconds: number;
   osaeKomiYukoEnabled: boolean;
+  minimumRestBetweenFightsSeconds: number;
 }
 
 export type UpdateTournamentRequest = CreateTournamentRequest;
@@ -201,6 +203,8 @@ export interface Athlete {
   licenseId: string | null;
   weightKg: number | null;
   grade: number;
+  lastFightDurationSeconds: number | null;
+  lastFightEndedAtUtc: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 }

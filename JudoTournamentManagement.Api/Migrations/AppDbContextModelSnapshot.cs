@@ -545,6 +545,11 @@ namespace JudoTournamentManagement.Api.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("MinimumRestBetweenFightsSeconds")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(180);
+
                     b.Property<int>("OsaeKomiIpponSeconds")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")

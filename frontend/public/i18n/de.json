@@ -62,6 +62,7 @@
   "tournaments.osaeKomiWazaAriSeconds": "Osae-komi Waza-ari (Sekunden)",
   "tournaments.osaeKomiYukoSeconds": "Osae-komi Yuko (Sekunden)",
   "tournaments.osaeKomiYukoEnabled": "Yuko aktiviert",
+  "tournaments.minimumRestBetweenFightsSeconds": "Mindestabstand zwischen zwei Kämpfen (Sekunden)",
 
   "config.title": "Konfiguration",
   "config.tatamis": "Matten",
