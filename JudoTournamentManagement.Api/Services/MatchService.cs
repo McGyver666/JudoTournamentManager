@@ -340,6 +340,8 @@ public sealed class MatchService : IMatchService
         fight.OsaeKomiStartedAtUtc = null;
         fight.UpdatedAtUtc = now;
 
+        await UpdateAthletesLastFightMetadataAsync(fight, now, cancellationToken);
+
         await RecalculateProgressionAsync(fight.CategoryId, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -394,6 +396,46 @@ public sealed class MatchService : IMatchService
         _logger.LogInformation(
             "Fight {FightId} corrected: {Previous} -> {New}.", fightId, previousWinnerId, newWinnerId);
         return MatchActionResult.Success;
+    }
+
+    private async Task UpdateAthletesLastFightMetadataAsync(
+        FightRecord fight,
+        DateTimeOffset completedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        if (fight.WhiteAthleteId is null && fight.BlueAthleteId is null)
+        {
+            return;
+        }
+
+        var participantIds = new[] { fight.WhiteAthleteId, fight.BlueAthleteId }
+            .OfType<Guid>()
+            .Distinct()
+            .ToArray();
+
+        if (participantIds.Length == 0)
+        {
+            return;
+        }
+
+        int? durationSeconds = null;
+        if (fight.StartedAtUtc is not null)
+        {
+            var duration = completedAtUtc - fight.StartedAtUtc.Value;
+            var clampedDuration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration;
+            durationSeconds = (int)Math.Round(clampedDuration.TotalSeconds, MidpointRounding.AwayFromZero);
+        }
+
+        var athletes = await _dbContext.Athletes
+            .Where(a => participantIds.Contains(a.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var athlete in athletes)
+        {
+            athlete.LastFightDurationSeconds = durationSeconds;
+            athlete.LastFightEndedAtUtc = completedAtUtc;
+            athlete.UpdatedAtUtc = completedAtUtc;
+        }
     }
 
     /// <summary>

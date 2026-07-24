@@ -125,6 +125,11 @@
             </article>
 
             <article class="center-column">
+              <div class="fight-context fight-context--current">
+                <span class="fight-context__category">{{ categoryName(fight.categoryId) }}</span>
+                <span class="fight-context__meta">{{ 'draw.fight' | t: { n: fight.fightNumber } }}</span>
+                <span class="fight-context__meta">{{ 'draw.round' | t: { n: fight.round } }}</span>
+              </div>
               <div class="fight-vs">vs</div>
 
               <div class="fight-controls">
@@ -228,7 +233,14 @@
       <div class="upcoming-row">
         @if (queue()?.next; as next) {
           <div class="fight-card fight-card--upcoming">
-            <div class="fight-card__label">{{ 'match.nextFight' | t }}</div>
+            <div class="fight-card__topline">
+              <div class="fight-card__label">{{ 'match.nextFight' | t }}</div>
+              <div class="fight-context fight-context--upcoming">
+                <span class="fight-context__category">{{ categoryName(next.categoryId) }}</span>
+                <span class="fight-context__meta">{{ 'draw.fight' | t: { n: next.fightNumber } }}</span>
+                <span class="fight-context__meta">{{ 'draw.round' | t: { n: next.round } }}</span>
+              </div>
+            </div>
             <div class="fight-athletes-compact">
               <span class="fight-athlete-meta">
                 <span class="athlete--white">{{ athleteName(next.whiteAthleteId) }}</span>
@@ -248,7 +260,14 @@
         }
         @if (queue()?.onDeck; as onDeck) {
           <div class="fight-card fight-card--upcoming">
-            <div class="fight-card__label">{{ 'match.onDeck' | t }}</div>
+            <div class="fight-card__topline">
+              <div class="fight-card__label">{{ 'match.onDeck' | t }}</div>
+              <div class="fight-context fight-context--upcoming">
+                <span class="fight-context__category">{{ categoryName(onDeck.categoryId) }}</span>
+                <span class="fight-context__meta">{{ 'draw.fight' | t: { n: onDeck.fightNumber } }}</span>
+                <span class="fight-context__meta">{{ 'draw.round' | t: { n: onDeck.round } }}</span>
+              </div>
+            </div>
             <div class="fight-athletes-compact">
               <span class="fight-athlete-meta">
                 <span class="athlete--white">{{ athleteName(onDeck.whiteAthleteId) }}</span>

@@ -56,6 +56,12 @@ namespace JudoTournamentManagement.Api.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("LastFightDurationSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("LastFightEndedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("TournamentId")
                         .HasColumnType("TEXT");
 

@@ -472,6 +472,47 @@ public sealed class MatchServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task Confirm_StoresLastFightMetadata_ForBothAthletes()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var final = (await ReadFightsAsync(db, cid)).Single();
+        var whiteAthleteId = final.WhiteAthleteId!.Value;
+        var blueAthleteId = final.BlueAthleteId!.Value;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(final.Id, "Tisch1", CancellationToken.None);
+
+            var trackedFight = await ctx.Fights.SingleAsync(f => f.Id == final.Id);
+            trackedFight.StartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-95);
+            await ctx.SaveChangesAsync();
+
+            var result = await svc.ConfirmResultAsync(final.Id, whiteAthleteId, "Tisch1", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        await using var verify = CreateDbContext(db);
+        var whiteAthlete = await verify.Athletes.AsNoTracking().SingleAsync(a => a.Id == whiteAthleteId);
+        var blueAthlete = await verify.Athletes.AsNoTracking().SingleAsync(a => a.Id == blueAthleteId);
+
+        Assert.NotNull(whiteAthlete.LastFightEndedAtUtc);
+        Assert.NotNull(blueAthlete.LastFightEndedAtUtc);
+        Assert.NotNull(whiteAthlete.LastFightDurationSeconds);
+        Assert.NotNull(blueAthlete.LastFightDurationSeconds);
+        Assert.InRange(whiteAthlete.LastFightDurationSeconds!.Value, 90, 120);
+        Assert.InRange(blueAthlete.LastFightDurationSeconds!.Value, 90, 120);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task Confirm_WithNonParticipant_ReturnsWinnerNotParticipant()
     {
         var db = CreateDatabasePath();
