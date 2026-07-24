@@ -66,6 +66,7 @@ public sealed class SqliteFightsStore : IFightsStore
             r.IsBye,
             Enum.Parse<FightStatus>(r.Status),
             r.TatamiId,
+            r.QueueOrder,
             r.WhiteScore,
             r.BlueScore,
             r.WhitePenalties,

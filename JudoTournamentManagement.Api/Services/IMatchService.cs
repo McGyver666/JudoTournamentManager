@@ -1,3 +1,4 @@
+using JudoTournamentManagement.Api.Contracts;
 using JudoTournamentManagement.Api.Models;
 
 namespace JudoTournamentManagement.Api.Services;
@@ -32,6 +33,27 @@ public interface IMatchService
     Task<MatchActionResult> AssignTatamiAsync(
         Guid fightId,
         Guid? tatamiId,
+        string user,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Assigns many fights to tatamis in a single atomic operation (one database transaction).
+    /// Fights whose athletes are not yet known are included; already correctly assigned fights are skipped.
+    /// This avoids the concurrent-write contention that occurs when assigning one fight per request in parallel.
+    /// </summary>
+    Task<MatchActionResult> AssignTatamiBulkAsync(
+        Guid tournamentId,
+        IReadOnlyList<BulkTatamiAssignment> assignments,
+        string user,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Moves a pending fight one position earlier or later within its tatami's manual queue.
+    /// Only pending fights assigned to a tatami can be reordered; a move at the queue boundary is a no-op.
+    /// </summary>
+    Task<MatchActionResult> MoveInQueueAsync(
+        Guid fightId,
+        QueueMoveDirection direction,
         string user,
         CancellationToken cancellationToken);
 

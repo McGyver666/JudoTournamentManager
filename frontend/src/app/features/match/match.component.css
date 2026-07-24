@@ -476,10 +476,76 @@
   gap: 0.5rem;
 }
 
-.upcoming-row {
+.upcoming-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.upcoming-list__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.upcoming-list__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #374151;
+  margin: 0;
+}
+
+.upcoming-list__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.upcoming-item {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
   gap: 0.75rem;
+}
+
+.upcoming-item__position {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: #1565c0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.upcoming-item__body {
+  min-width: 0;
+}
+
+.upcoming-item__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.upcoming-item__move {
+  min-width: 2.4rem;
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 .fight-card__label {
@@ -596,7 +662,6 @@
     order: -1;
   }
 
-  .upcoming-row,
   .confirm-row {
     grid-template-columns: 1fr;
   }

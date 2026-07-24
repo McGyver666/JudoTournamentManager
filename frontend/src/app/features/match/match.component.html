@@ -230,74 +230,75 @@
         <p class="info-hint">{{ 'match.noCurrentFight' | t }}</p>
       }
 
-      <div class="upcoming-row">
-        @if (queue()?.next; as next) {
-          <div class="fight-card fight-card--upcoming">
-            <div class="fight-card__topline">
-              <div class="fight-card__label">{{ 'match.nextFight' | t }}</div>
-              <div class="fight-context fight-context--upcoming">
-                <span class="fight-context__category">{{ categoryName(next.categoryId) }}</span>
-                <span class="fight-context__meta">{{ 'draw.fight' | t: { n: next.fightNumber } }}</span>
-                <span class="fight-context__meta">{{ 'draw.round' | t: { n: next.round } }}</span>
+      <section class="upcoming-list">
+        <div class="upcoming-list__header">
+          <h2 class="upcoming-list__title">{{ 'match.upcomingFights' | t }}</h2>
+          <span class="upcoming-list__count">{{ upcomingFights().length }}</span>
+        </div>
+
+        @for (fight of upcomingFights(); track fight.id; let i = $index) {
+          <div class="fight-card fight-card--upcoming upcoming-item">
+            <div class="upcoming-item__position">{{ i + 1 }}</div>
+            <div class="upcoming-item__body">
+              <div class="fight-card__topline">
+                <div class="fight-card__label">
+                  @if (i === 0) {
+                    {{ 'match.nextFight' | t }}
+                  } @else if (i === 1) {
+                    {{ 'match.onDeck' | t }}
+                  } @else {
+                    {{ 'match.upcomingPosition' | t: { n: i + 1 } }}
+                  }
+                </div>
+                <div class="fight-context fight-context--upcoming">
+                  <span class="fight-context__category">{{ categoryName(fight.categoryId) }}</span>
+                  <span class="fight-context__meta">{{ 'draw.fight' | t: { n: fight.fightNumber } }}</span>
+                  <span class="fight-context__meta">{{ 'draw.round' | t: { n: fight.round } }}</span>
+                </div>
+              </div>
+              <div class="fight-athletes-compact">
+                <span class="fight-athlete-meta">
+                  <span class="athlete--white">{{ athleteName(fight.whiteAthleteId) }}</span>
+                  @if (athleteClubName(fight.whiteAthleteId); as clubName) {
+                    <span class="fight-athlete-meta__club">{{ clubName }}</span>
+                  }
+                  @if (lastFightInfoLabel(fight.whiteAthleteId); as info) {
+                    <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(fight.whiteAthleteId)">{{ info }}</span>
+                  }
+                </span>
+                <span> vs </span>
+                <span class="fight-athlete-meta">
+                  <span class="athlete--blue">{{ athleteName(fight.blueAthleteId) }}</span>
+                  @if (athleteClubName(fight.blueAthleteId); as clubName) {
+                    <span class="fight-athlete-meta__club">{{ clubName }}</span>
+                  }
+                  @if (lastFightInfoLabel(fight.blueAthleteId); as info) {
+                    <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(fight.blueAthleteId)">{{ info }}</span>
+                  }
+                </span>
               </div>
             </div>
-            <div class="fight-athletes-compact">
-              <span class="fight-athlete-meta">
-                <span class="athlete--white">{{ athleteName(next.whiteAthleteId) }}</span>
-                @if (athleteClubName(next.whiteAthleteId); as clubName) {
-                  <span class="fight-athlete-meta__club">{{ clubName }}</span>
-                }
-                @if (lastFightInfoLabel(next.whiteAthleteId); as info) {
-                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(next.whiteAthleteId)">{{ info }}</span>
-                }
-              </span>
-              <span> vs </span>
-              <span class="fight-athlete-meta">
-                <span class="athlete--blue">{{ athleteName(next.blueAthleteId) }}</span>
-                @if (athleteClubName(next.blueAthleteId); as clubName) {
-                  <span class="fight-athlete-meta__club">{{ clubName }}</span>
-                }
-                @if (lastFightInfoLabel(next.blueAthleteId); as info) {
-                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(next.blueAthleteId)">{{ info }}</span>
-                }
-              </span>
+            <div class="upcoming-item__actions">
+              <button
+                class="btn btn--tiny btn--secondary upcoming-item__move"
+                type="button"
+                [disabled]="!canMoveUp(i)"
+                [attr.aria-label]="'match.moveUp' | t"
+                [title]="'match.moveUp' | t"
+                (click)="moveFightUp(fight, i)">▲</button>
+              <button
+                class="btn btn--tiny btn--secondary upcoming-item__move"
+                type="button"
+                [disabled]="!canMoveDown(i)"
+                [attr.aria-label]="'match.moveDown' | t"
+                [title]="'match.moveDown' | t"
+                (click)="moveFightDown(fight, i)">▼</button>
             </div>
           </div>
+        } @empty {
+          <p class="info-hint">{{ 'match.noUpcomingFights' | t }}</p>
         }
-        @if (queue()?.onDeck; as onDeck) {
-          <div class="fight-card fight-card--upcoming">
-            <div class="fight-card__topline">
-              <div class="fight-card__label">{{ 'match.onDeck' | t }}</div>
-              <div class="fight-context fight-context--upcoming">
-                <span class="fight-context__category">{{ categoryName(onDeck.categoryId) }}</span>
-                <span class="fight-context__meta">{{ 'draw.fight' | t: { n: onDeck.fightNumber } }}</span>
-                <span class="fight-context__meta">{{ 'draw.round' | t: { n: onDeck.round } }}</span>
-              </div>
-            </div>
-            <div class="fight-athletes-compact">
-              <span class="fight-athlete-meta">
-                <span class="athlete--white">{{ athleteName(onDeck.whiteAthleteId) }}</span>
-                @if (athleteClubName(onDeck.whiteAthleteId); as clubName) {
-                  <span class="fight-athlete-meta__club">{{ clubName }}</span>
-                }
-                @if (lastFightInfoLabel(onDeck.whiteAthleteId); as info) {
-                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(onDeck.whiteAthleteId)">{{ info }}</span>
-                }
-              </span>
-              <span> vs </span>
-              <span class="fight-athlete-meta">
-                <span class="athlete--blue">{{ athleteName(onDeck.blueAthleteId) }}</span>
-                @if (athleteClubName(onDeck.blueAthleteId); as clubName) {
-                  <span class="fight-athlete-meta__club">{{ clubName }}</span>
-                }
-                @if (lastFightInfoLabel(onDeck.blueAthleteId); as info) {
-                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(onDeck.blueAthleteId)">{{ info }}</span>
-                }
-              </span>
-            </div>
-          </div>
-        }
-      </div>
+      </section>
     </div>
   } @else {
     <p class="info-hint">{{ 'common.select' | t }}: {{ 'tatamiAssignment.tatami' | t }}</p>

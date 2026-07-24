@@ -204,6 +204,7 @@ Story points are rough relative estimates.
 **Story:** Als Tischbediener möchte ich die nächsten Kämpfe je Tatami sehen, damit der Ablauf flüssig bleibt.  
 **Acceptance Criteria:**
 - "Current", "Next", "On deck" for each tatami.
+- Full list of assigned pending fights with manual up/down reordering (persisted, live-synced).
 - Queue updates automatically after result confirmation.
 - Manual reassignment to another tatami (admin only).
 
