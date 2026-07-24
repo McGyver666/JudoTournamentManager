@@ -3,6 +3,7 @@
         ".\\.dotnet\\dotnet.exe": true,
         "npx --prefix ./frontend": true,
         "npm --prefix ./frontend": true,
-        "dotnet test": true
+        "dotnet test": true,
+        "npm --prefix frontend": true
     }
 }
