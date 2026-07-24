@@ -40,10 +40,12 @@ public sealed class TatamiQueueService : ITatamiQueueService
             .Where(f => f.TournamentId == tournamentId && f.TatamiId == tatamiId)
             .ToListAsync(cancellationToken);
 
-        // In-progress fights first, then ready pending fights in bracket order.
+        // In-progress fights first, then ready pending fights. Pending fights honor a manual
+        // queue order (QueueOrder) when set, falling back to bracket order (Round, FightNumber).
         var playable = records
             .Where(IsPlayable)
             .OrderBy(f => f.Status == InProgress ? 0 : f.Status == Paused ? 1 : 2)
+            .ThenBy(f => f.QueueOrder ?? int.MaxValue)
             .ThenBy(f => f.Round)
             .ThenBy(f => f.FightNumber)
             .Select(MapToModel)
@@ -108,6 +110,7 @@ public sealed class TatamiQueueService : ITatamiQueueService
             r.IsBye,
             Enum.Parse<FightStatus>(r.Status),
             r.TatamiId,
+            r.QueueOrder,
             r.WhiteScore,
             r.BlueScore,
             r.WhitePenalties,

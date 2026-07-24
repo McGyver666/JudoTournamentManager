@@ -89,6 +89,13 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   protected readonly hubConnected = computed(() => this.hub.connected());
   protected readonly currentFight = computed(() => this.queue()?.current ?? null);
+  /** All pending fights assigned to the tatami, excluding the current fight, in queue order. */
+  protected readonly upcomingFights = computed(() => {
+    const q = this.queue();
+    if (!q) return [] as Fight[];
+    const currentId = q.current?.id;
+    return q.upcoming.filter((fight) => fight.id !== currentId);
+  });
   protected readonly currentTimeLabel = computed(() => this.formatCurrentTime(this.nowEpochMs()));
 
   private fightSub?: Subscription;
@@ -169,8 +176,10 @@ export class MatchComponent implements OnInit, OnDestroy {
     this.fightSub = this.hub.fightUpdated$.subscribe(fight => {
       const q = this.queue();
       if (!q) return;
-      // If the updated fight is the current fight, refresh the queue.
-      if (q.current?.id === fight.id || q.next?.id === fight.id || q.onDeck?.id === fight.id) {
+      // Refresh whenever an updated fight belongs to the selected tatami so queue reordering,
+      // current/next/on-deck changes and score updates stay in sync across clients.
+      if (fight.tatamiId === this.selectedTatamiId()
+        || q.current?.id === fight.id || q.next?.id === fight.id || q.onDeck?.id === fight.id) {
         this.refreshQueue();
       }
     });
@@ -437,6 +446,33 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   protected categoryName(id: string): string {
     return this.categories().find((category) => category.id === id)?.name ?? id;
+  }
+
+  protected canMoveUp(index: number): boolean {
+    return this.canOperate() && index > 0;
+  }
+
+  protected canMoveDown(index: number): boolean {
+    return this.canOperate() && index < this.upcomingFights().length - 1;
+  }
+
+  protected moveFightUp(fight: Fight, index: number): void {
+    if (!this.canMoveUp(index)) return;
+    this.moveFight(fight, 'Up');
+  }
+
+  protected moveFightDown(fight: Fight, index: number): void {
+    if (!this.canMoveDown(index)) return;
+    this.moveFight(fight, 'Down');
+  }
+
+  private moveFight(fight: Fight, direction: 'Up' | 'Down'): void {
+    const tid = this.context.tournamentId();
+    if (!tid) return;
+    this.api.moveFightInQueue(tid, fight.id, direction).subscribe({
+      next: () => this.refreshQueue(),
+      error: () => this.errorMessage.set('Kampfreihenfolge konnte nicht geändert werden.'),
+    });
   }
 
   protected startFight(fight: Fight): void {

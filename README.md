@@ -372,6 +372,8 @@ are served at `/i18n/{lang}.json`.
 
 - `GET /api/tournaments/{tournamentId}/tatamis/{tatamiId}/queue`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/assign-tatami`
+- `POST /api/tournaments/{tournamentId}/fights/assign-tatami-bulk` (assign many fights to tatamis atomically)
+- `POST /api/tournaments/{tournamentId}/fights/{fightId}/queue-move`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/resume`

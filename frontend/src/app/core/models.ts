@@ -330,6 +330,7 @@ export interface Fight {
   isBye: boolean;
   status: FightStatus;
   tatamiId: string | null;
+  queueOrder: number | null;
   whiteScore: number;
   blueScore: number;
   whitePenalties: number;
@@ -399,6 +400,24 @@ export interface ConfirmResultRequest {
 
 export interface AssignTatamiRequest {
   tatamiId: string | null;
+}
+
+/** A single fight-to-tatami assignment within a bulk request. */
+export interface BulkTatamiAssignment {
+  fightId: string;
+  tatamiId: string | null;
+}
+
+/** Assigns many fights to tatamis in one atomic request. */
+export interface BulkAssignTatamiRequest {
+  assignments: BulkTatamiAssignment[];
+}
+
+/** Direction to move a pending fight within its tatami queue. */
+export type QueueMoveDirection = 'Up' | 'Down';
+
+export interface MoveFightInQueueRequest {
+  direction: QueueMoveDirection;
 }
 
 /** A provisional ranking placement in a category. */

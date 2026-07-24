@@ -71,6 +71,17 @@ public sealed class AppDbContext : DbContext
     public DbSet<CategoryPresetRecord> CategoryPresets => Set<CategoryPresetRecord>();
 
     /// <inheritdoc />
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+        base.OnConfiguring(optionsBuilder);
+
+        // Enable WAL + busy_timeout on every SQLite connection so concurrent access does not
+        // fail with "database is locked". Applied here so it also covers test contexts.
+        optionsBuilder.AddInterceptors(SqliteConcurrencyInterceptor.Instance);
+    }
+
+    /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
