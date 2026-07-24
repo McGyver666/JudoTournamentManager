@@ -3,6 +3,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  padding-bottom: 0.3rem;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
 }
 
 .page-header h1 {
@@ -11,8 +14,18 @@
 
 .page-header__status {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
   justify-content: flex-end;
   min-width: 0;
+}
+
+.page-header__clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #474b52;
+  white-space: nowrap;
 }
 
 .modal-backdrop {
@@ -63,6 +76,19 @@
   gap: 0.4rem;
   align-items: center;
   color: #111827;
+}
+
+.fight-athlete-meta {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.fight-athlete-meta__club,
+.athlete-card__club {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 500;
 }
 
 .modal-next-fight__empty {
@@ -203,33 +229,76 @@
   color: var(--side-accent);
 }
 
-.athlete-card--blue .athlete-card__score {
-  color: var(--side-accent);
-}
-
-.athlete-card--blue .athlete-card__stats {
-  color: var(--side-accent);
-}
-
 .athlete-card__name {
   font-size: 1rem;
   font-weight: 700;
   color: #111827;
 }
 
-.athlete-card__score {
-  font-size: 3rem;
-  font-weight: 800;
+.athlete-card--blue .athlete-card__club {
+  color: color-mix(in srgb, var(--side-accent) 35%, white);
+}
+
+.athlete-card__counters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.athlete-score-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 4.9rem;
+  padding: 0.7rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid #d8dee6;
+  background: #f8fafc;
+  color: #4b5563;
+}
+
+.athlete-score-counter span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.athlete-score-counter strong {
+  font-size: 1.9rem;
   line-height: 1;
   color: #111827;
 }
 
-.athlete-card__stats {
+.athlete-score-counter--ippon.athlete-score-counter--active {
+  background: linear-gradient(160deg, #fff8dc 0%, #f9d746 58%, #e6a700 100%);
+  border-color: rgba(255, 230, 140, 0.85);
+  color: #4a3000;
+}
+
+.athlete-score-counter--ippon.athlete-score-counter--active strong {
+  color: #4a3000;
+}
+
+.athlete-card--blue .athlete-score-counter {
+  border-color: color-mix(in srgb, var(--side-accent) 18%, #d8dee6);
+  color: var(--side-accent);
+}
+
+.athlete-card--blue .athlete-score-counter strong {
+  color: var(--side-accent);
+}
+
+.athlete-card__shido-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
-  color: #4b5563;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.85rem;
+  font-weight: 700;
+  color: #4b5563;
 }
 
 .score-stack {
@@ -258,11 +327,6 @@
   font-weight: 600;
 }
 
-.score-row__impact {
-  color: #6b7280;
-  font-weight: 700;
-}
-
 .score-row__actions {
   display: flex;
   gap: 0.35rem;
@@ -279,7 +343,7 @@
 .fight-vs {
   display: grid;
   place-items: center;
-  min-height: 96px;
+  min-height: 58px;
   border-radius: 18px;
   background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   color: #111827;
@@ -380,6 +444,10 @@
 .fight-athletes-compact {
   font-size: 0.92rem;
   color: #111827;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .btn {
@@ -403,13 +471,15 @@
 
 .btn--primary { background: #1565c0; color: #fff; }
 .btn--secondary { background: #e5e7eb; color: #111827; }
+.btn--fight-start-stop { border-color: #000000; min-height: 96px; }
 .btn--full { width: 100%; }
 .btn--white { background: #f3f4f6; color: #111827; border-color: #4b5563; }
 .btn--blue { background: var(--side-accent-soft); color: var(--side-accent); border-color: var(--side-accent); }
 .btn--confirm { padding: 0.65rem 0.8rem; }
 .btn--tiny { padding: 0.34rem 0.55rem; border-radius: 10px; font-size: 0.72rem; }
-.btn--positive { background: #f0fdf4; color: #166534; border-color: #ccead6; }
-.btn--negative { background: #fef2f2; color: #b91c1c; border-color: #f5c7c7; }
+.btn--tiny.btn--positive { padding-left: 2rem; padding-right: 2rem; }
+.btn--positive { background: #f0fdf4; color: #166534; border-color: #3fb968; }
+.btn--negative { background: #fef2f2; color: #b91c1c; border-color: #df8383; }
 
 .error-banner {
   display: flex;
