@@ -90,6 +90,7 @@ export class TournamentsComponent implements OnInit {
       osaeKomiWazaAriSeconds: t.osaeKomiWazaAriSeconds,
       osaeKomiYukoSeconds: t.osaeKomiYukoSeconds,
       osaeKomiYukoEnabled: t.osaeKomiYukoEnabled,
+      minimumRestBetweenFightsSeconds: t.minimumRestBetweenFightsSeconds,
     };
     this.showForm.set(true);
   }
@@ -221,7 +222,7 @@ export class TournamentsComponent implements OnInit {
   }
 
   private emptyForm(): CreateTournamentRequest {
-    return { name: '', date: '', venue: '', organizer: '', accentSideColor: 'Blue', osaeKomiIpponSeconds: 20, osaeKomiWazaAriSeconds: 10, osaeKomiYukoSeconds: 5, osaeKomiYukoEnabled: true };
+    return { name: '', date: '', venue: '', organizer: '', accentSideColor: 'Blue', osaeKomiIpponSeconds: 20, osaeKomiWazaAriSeconds: 10, osaeKomiYukoSeconds: 5, osaeKomiYukoEnabled: true, minimumRestBetweenFightsSeconds: 180 };
   }
 
   protected colorLabelKey(color: AccentSideColor): string {

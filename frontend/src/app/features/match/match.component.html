@@ -247,12 +247,18 @@
                 @if (athleteClubName(next.whiteAthleteId); as clubName) {
                   <span class="fight-athlete-meta__club">{{ clubName }}</span>
                 }
+                @if (lastFightInfoLabel(next.whiteAthleteId); as info) {
+                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(next.whiteAthleteId)">{{ info }}</span>
+                }
               </span>
               <span> vs </span>
               <span class="fight-athlete-meta">
                 <span class="athlete--blue">{{ athleteName(next.blueAthleteId) }}</span>
                 @if (athleteClubName(next.blueAthleteId); as clubName) {
                   <span class="fight-athlete-meta__club">{{ clubName }}</span>
+                }
+                @if (lastFightInfoLabel(next.blueAthleteId); as info) {
+                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(next.blueAthleteId)">{{ info }}</span>
                 }
               </span>
             </div>
@@ -274,12 +280,18 @@
                 @if (athleteClubName(onDeck.whiteAthleteId); as clubName) {
                   <span class="fight-athlete-meta__club">{{ clubName }}</span>
                 }
+                @if (lastFightInfoLabel(onDeck.whiteAthleteId); as info) {
+                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(onDeck.whiteAthleteId)">{{ info }}</span>
+                }
               </span>
               <span> vs </span>
               <span class="fight-athlete-meta">
                 <span class="athlete--blue">{{ athleteName(onDeck.blueAthleteId) }}</span>
                 @if (athleteClubName(onDeck.blueAthleteId); as clubName) {
                   <span class="fight-athlete-meta__club">{{ clubName }}</span>
+                }
+                @if (lastFightInfoLabel(onDeck.blueAthleteId); as info) {
+                  <span class="fight-athlete-meta__last-fight" [class.fight-athlete-meta__last-fight--warning]="hasInsufficientRest(onDeck.blueAthleteId)">{{ info }}</span>
                 }
               </span>
             </div>

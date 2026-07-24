@@ -75,6 +75,7 @@ public interface ITournamentStore
         int osaeKomiWazaAriSeconds,
         int osaeKomiYukoSeconds,
         bool osaeKomiYukoEnabled,
+        int minimumRestBetweenFightsSeconds,
         CancellationToken cancellationToken);
 
     /// <summary>

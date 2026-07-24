@@ -170,6 +170,8 @@ static async Task InitializeDatabaseAsync(WebApplication application)
     await EnsureCategoryPresetsTableAsync(dbContext, logger);
     await EnsureClubContactColumnsAsync(dbContext, logger);
     await EnsureAthleteLastFightColumnsAsync(dbContext, logger);
+    await EnsureTournamentMinimumRestBetweenFightsColumnAsync(dbContext, logger);
+    await BackfillAthleteLastFightMetadataAsync(dbContext, logger);
 }
 
 static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, ILogger logger)
@@ -562,6 +564,114 @@ static async Task EnsureAthleteLastFightColumnsAsync(AppDbContext dbContext, ILo
         await addEndedAt.ExecuteNonQueryAsync();
         logger.LogWarning("Legacy schema patch applied: added Athletes.LastFightEndedAtUtc column.");
     }
+}
+
+static async Task EnsureTournamentMinimumRestBetweenFightsColumnAsync(AppDbContext dbContext, ILogger logger)
+{
+    var hasMinimumRestBetweenFightsSeconds =
+        await ColumnExistsAsync(dbContext, "Tournaments", "MinimumRestBetweenFightsSeconds");
+
+    if (hasMinimumRestBetweenFightsSeconds)
+    {
+        return;
+    }
+
+    await using var connection = dbContext.Database.GetDbConnection();
+    if (connection.State != System.Data.ConnectionState.Open)
+    {
+        await connection.OpenAsync();
+    }
+
+    await using var addColumn = connection.CreateCommand();
+    addColumn.CommandText =
+        "ALTER TABLE Tournaments ADD COLUMN MinimumRestBetweenFightsSeconds INTEGER NOT NULL DEFAULT 180;";
+    await addColumn.ExecuteNonQueryAsync();
+    logger.LogWarning(
+        "Legacy schema patch applied: added Tournaments.MinimumRestBetweenFightsSeconds column.");
+}
+
+static async Task BackfillAthleteLastFightMetadataAsync(AppDbContext dbContext, ILogger logger)
+{
+    var athletesNeedingBackfill = await dbContext.Athletes
+        .Where(a => a.LastFightEndedAtUtc == null || a.LastFightDurationSeconds == null)
+        .ToListAsync();
+
+    if (athletesNeedingBackfill.Count == 0)
+    {
+        return;
+    }
+
+    var athleteIds = athletesNeedingBackfill.Select(a => a.Id).ToHashSet();
+
+    var completedFights = await dbContext.Fights
+        .AsNoTracking()
+        .Where(f => f.CompletedAtUtc != null && f.StartedAtUtc != null
+            && ((f.WhiteAthleteId != null && athleteIds.Contains(f.WhiteAthleteId.Value))
+                || (f.BlueAthleteId != null && athleteIds.Contains(f.BlueAthleteId.Value))))
+        .Select(f => new
+        {
+            f.WhiteAthleteId,
+            f.BlueAthleteId,
+            CompletedAtUtc = f.CompletedAtUtc!.Value,
+            StartedAtUtc = f.StartedAtUtc!.Value,
+        })
+        .ToListAsync();
+
+    if (completedFights.Count == 0)
+    {
+        return;
+    }
+
+    var latestByAthlete = new Dictionary<Guid, (DateTimeOffset CompletedAtUtc, int DurationSeconds)>();
+
+    foreach (var fight in completedFights)
+    {
+        var duration = fight.CompletedAtUtc - fight.StartedAtUtc;
+        var clampedDuration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration;
+        var durationSeconds = (int)Math.Round(clampedDuration.TotalSeconds, MidpointRounding.AwayFromZero);
+
+        if (fight.WhiteAthleteId is Guid whiteId)
+        {
+            if (!latestByAthlete.TryGetValue(whiteId, out var existing)
+                || fight.CompletedAtUtc > existing.CompletedAtUtc)
+            {
+                latestByAthlete[whiteId] = (fight.CompletedAtUtc, durationSeconds);
+            }
+        }
+
+        if (fight.BlueAthleteId is Guid blueId)
+        {
+            if (!latestByAthlete.TryGetValue(blueId, out var existing)
+                || fight.CompletedAtUtc > existing.CompletedAtUtc)
+            {
+                latestByAthlete[blueId] = (fight.CompletedAtUtc, durationSeconds);
+            }
+        }
+    }
+
+    var updatedCount = 0;
+    foreach (var athlete in athletesNeedingBackfill)
+    {
+        if (!latestByAthlete.TryGetValue(athlete.Id, out var lastFight))
+        {
+            continue;
+        }
+
+        athlete.LastFightEndedAtUtc = lastFight.CompletedAtUtc;
+        athlete.LastFightDurationSeconds = lastFight.DurationSeconds;
+        athlete.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        updatedCount++;
+    }
+
+    if (updatedCount == 0)
+    {
+        return;
+    }
+
+    await dbContext.SaveChangesAsync();
+    logger.LogInformation(
+        "Backfilled last fight metadata for {UpdatedCount} athletes from completed fights.",
+        updatedCount);
 }
 
 /// <summary>

@@ -86,6 +86,7 @@ public sealed class AppDbContext : DbContext
         tournament.Property(x => x.OsaeKomiWazaAriSeconds).IsRequired().HasDefaultValue(10);
         tournament.Property(x => x.OsaeKomiYukoSeconds).IsRequired().HasDefaultValue(5);
         tournament.Property(x => x.OsaeKomiYukoEnabled).IsRequired().HasDefaultValue(true);
+        tournament.Property(x => x.MinimumRestBetweenFightsSeconds).IsRequired().HasDefaultValue(180);
 
         var tatami = modelBuilder.Entity<TatamiRecord>();
         tatami.ToTable("Tatamis");
