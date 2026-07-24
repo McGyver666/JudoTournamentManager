@@ -1,5 +1,6 @@
 import {
   Component,
+  HostListener,
   OnDestroy,
   OnInit,
   computed,
@@ -12,6 +13,7 @@ import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
 import { SideThemeService } from '../../core/side-theme.service';
+import { TimeService } from '../../core/time.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -51,6 +53,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly canOperate = this.auth.canOperate;
+  private readonly time = inject(TimeService);
 
   protected readonly tatamis = signal<Tatami[]>([]);
   protected readonly categories = signal<Category[]>([]);
@@ -65,13 +68,14 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   /** Remaining seconds in the current fight's countdown. */
   protected readonly timerSeconds = signal<number | null>(null);
+  protected readonly timerRemainingExactSeconds = signal<number | null>(null);
   protected readonly timerIsGoldenScore = signal(false);
   protected readonly osaeKomiSeconds = signal<number | null>(null);
+  protected readonly osaeKomiElapsedExactSeconds = signal<number | null>(null);
   protected readonly osaeKomiCapSeconds = signal<number | null>(null);
   protected readonly osaeKomiSide = signal<FightSide | null>(null);
   private timerHandle: ReturnType<typeof setInterval> | null = null;
-  private autoPauseInFlightFightId: string | null = null;
-  private autoStopOsaeKomiInFlightFightId: string | null = null;
+  private lastClockResyncCheckAtMs = 0;
 
   /** Track the previous fight to detect osae-komi transitions and cleanup. */
   private previousFight: Fight | null = null;
@@ -84,6 +88,8 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly currentFight = computed(() => this.queue()?.current ?? null);
 
   private fightSub?: Subscription;
+  private serverTimeSub?: Subscription;
+  private reconnectSub?: Subscription;
   private querySub?: Subscription;
 
   private readonly selectedTatamiEffect = effect(() => {
@@ -104,6 +110,8 @@ export class MatchComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const tid = this.context.tournamentId();
     if (!tid) return;
+
+    void this.time.synchronize(5);
 
     this.querySub = this.route.queryParamMap.subscribe((params) => {
       const tatamiId = params.get('tatamiId');
@@ -156,12 +164,29 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.refreshQueue();
       }
     });
+
+    this.serverTimeSub = this.hub.serverTimeSync$.subscribe((serverNowUtc) => {
+      this.time.ingestServerNowUtc(serverNowUtc);
+    });
+
+    this.reconnectSub = this.hub.reconnected$.subscribe(() => {
+      void this.time.synchronize(5);
+    });
   }
 
   ngOnDestroy(): void {
     this.querySub?.unsubscribe();
     this.fightSub?.unsubscribe();
+    this.serverTimeSub?.unsubscribe();
+    this.reconnectSub?.unsubscribe();
     this.stopTimer();
+  }
+
+  @HostListener('document:visibilitychange')
+  protected onVisibilityChange(): void {
+    if (document.visibilityState === 'visible') {
+      void this.time.synchronizeIfStale();
+    }
   }
 
   protected refreshQueue(): void {
@@ -180,7 +205,6 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   private restartTimer(fight: Fight | null): void {
     this.stopTimer();
-    this.autoPauseInFlightFightId = null;
 
     // Detect osae-komi transitions before resetting state.
     if (this.previousFight !== null && fight !== null) {
@@ -218,8 +242,10 @@ export class MatchComponent implements OnInit, OnDestroy {
       const cat = categoryId ? this.categories().find(c => c.id === categoryId) : null;
       const duration = cat?.matchDurationSeconds ?? 300;
       this.timerSeconds.set(duration);
+      this.timerRemainingExactSeconds.set(duration);
       this.timerIsGoldenScore.set(false);
       this.osaeKomiSeconds.set(null);
+      this.osaeKomiElapsedExactSeconds.set(null);
       this.osaeKomiCapSeconds.set(null);
       this.osaeKomiSide.set(null);
       return;
@@ -231,8 +257,16 @@ export class MatchComponent implements OnInit, OnDestroy {
     const goldenScoreDuration = cat?.goldenScoreDurationSeconds ?? 180;
 
     const tick = () => {
-      const timerReference = fight.status === 'Paused' && fight.pausedAtUtc ? fight.pausedAtUtc : new Date();
-      const elapsed = (new Date(timerReference).getTime() - new Date(fight.startedAtUtc!).getTime()) / 1000;
+      const nowMs = Date.now();
+      if (nowMs - this.lastClockResyncCheckAtMs >= 10_000) {
+        this.lastClockResyncCheckAtMs = nowMs;
+        void this.time.synchronizeIfStale();
+      }
+
+      const timerReferenceMs = fight.status === 'Paused' && fight.pausedAtUtc
+        ? new Date(fight.pausedAtUtc).getTime()
+        : this.time.nowMs();
+      const elapsed = (timerReferenceMs - new Date(fight.startedAtUtc!).getTime()) / 1000;
       const regularRemaining = Math.max(0, duration - elapsed);
 
       // Use fight.isGoldenScore from server (reload-safe, score-aware).
@@ -240,10 +274,12 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.timerIsGoldenScore.set(true);
         const goldenElapsed = Math.max(0, elapsed - duration);
         const goldenRemaining = Math.max(0, goldenScoreDuration - goldenElapsed);
+        this.timerRemainingExactSeconds.set(goldenRemaining);
         this.timerSeconds.set(Math.ceil(goldenRemaining));
       } else {
         // Regular time countdown.
         this.timerIsGoldenScore.set(false);
+        this.timerRemainingExactSeconds.set(regularRemaining);
         this.timerSeconds.set(Math.ceil(regularRemaining));
       }
 
@@ -251,36 +287,25 @@ export class MatchComponent implements OnInit, OnDestroy {
       if (fight.osaeKomiSide && fight.osaeKomiStartedAtUtc) {
         const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
         const cap = this.getOsaeKomiCap(fight, side);
-        const holdSeconds = Math.min(cap, Math.ceil((Date.now() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000));
+        const holdExactSeconds = Math.max(0, Math.min(cap, (this.time.nowMs() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000));
+        const holdSeconds = Math.min(cap, Math.ceil(holdExactSeconds));
         this.osaeKomiSeconds.set(holdSeconds);
+        this.osaeKomiElapsedExactSeconds.set(holdExactSeconds);
         this.osaeKomiCapSeconds.set(cap);
         this.osaeKomiSide.set(side);
         this.frozenOsaeKomiDisplay = null; // Active hold, no frozen display.
-
-        // Auto-stop when the hold reaches the cap (Ippon or second Waza-ari threshold).
-        if (holdSeconds >= cap) {
-          this.tryAutoStopOsaeKomi(fight);
-        }
       } else {
         // No active osae-komi: clear signals (display will use frozen fallback).
         // This allows start buttons to be re-enabled after stopping osae-komi.
         this.osaeKomiSeconds.set(null);
+        this.osaeKomiElapsedExactSeconds.set(null);
         this.osaeKomiCapSeconds.set(null);
         this.osaeKomiSide.set(null);
-      }
-
-      // Auto-pause condition: only when time expired AND no osae-komi is active.
-      const timeExpired = (fight.isGoldenScore && this.timerSeconds() === 0) || (!fight.isGoldenScore && regularRemaining <= 0);
-      const shouldAutoPause = timeExpired && fight.status === 'InProgress' && fight.osaeKomiSide === null;
-
-      if (shouldAutoPause && this.timerHandle !== null) {
-        this.stopTimer();
-        this.tryAutoPauseAtLimit(fight);
       }
     };
 
     tick();
-    this.timerHandle = setInterval(tick, 250);
+    this.timerHandle = setInterval(tick, 100);
   }
 
   private stopTimer(): void {
@@ -290,43 +315,20 @@ export class MatchComponent implements OnInit, OnDestroy {
     }
   }
 
-  private tryAutoPauseAtLimit(fight: Fight): void {
-    // Do not auto-pause if osae-komi is active; let the hold continue.
-    if (fight.osaeKomiSide !== null) {
-      return;
-    }
-
-    if (!this.canOperate() || fight.status !== 'InProgress') {
-      return;
-    }
-
-    if (this.autoPauseInFlightFightId === fight.id) {
-      return;
-    }
-
-    const tid = this.context.tournamentId();
-    if (!tid) {
-      return;
-    }
-
-    this.autoPauseInFlightFightId = fight.id;
-    this.api.pauseFight(tid, fight.id, this.operatorName()).subscribe({
-      next: () => {
-        this.autoPauseInFlightFightId = null;
-        this.refreshQueue();
-      },
-      error: () => {
-        this.autoPauseInFlightFightId = null;
-        this.errorMessage.set('Kampf konnte nicht automatisch gestoppt werden.');
-      },
-    });
+  private formatWholeSeconds(seconds: number): string {
+    const rounded = Math.max(0, Math.ceil(seconds));
+    const m = Math.floor(rounded / 60);
+    const s = rounded % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }
 
-  protected formatTimer(seconds: number | null): string {
-    if (seconds === null) return '--:--';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  private formatTenthsCountdown(seconds: number): string {
+    const clamped = Math.max(0, seconds);
+    const wholeSeconds = Math.floor(clamped);
+    const tenths = Math.floor((clamped - wholeSeconds) * 10);
+    const m = Math.floor(wholeSeconds / 60);
+    const s = wholeSeconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${tenths}`;
   }
 
   protected athleteName(id: string | null): string {
@@ -523,13 +525,31 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   protected holdTimerLabel(): string {
     const seconds = this.osaeKomiSeconds() ?? this.frozenOsaeKomiDisplay?.seconds ?? null;
+    const exactSeconds = this.osaeKomiElapsedExactSeconds();
     const cap = this.osaeKomiCapSeconds() ?? this.frozenOsaeKomiDisplay?.cap ?? 25;
     if (seconds === null) return '--s';
-    return `${seconds}s / ${cap}s`;
+
+    const isRunning = this.osaeKomiSide() !== null && exactSeconds !== null;
+    const remainingToCap = exactSeconds !== null ? Math.max(0, cap - exactSeconds) : Number.MAX_VALUE;
+    const showTenths = isRunning && remainingToCap <= 10;
+    const primary = showTenths && exactSeconds !== null
+      ? `${exactSeconds.toFixed(1)}s`
+      : `${seconds}s`;
+
+    return `${primary} / ${cap}s`;
   }
 
   protected fightTimerLabel(): string {
-    return this.formatTimer(this.timerSeconds());
+    const fight = this.currentFight();
+    const remainingExact = this.timerRemainingExactSeconds();
+    if (!fight || remainingExact === null) {
+      return '--:--';
+    }
+
+    const showTenths = fight.status === 'InProgress' && remainingExact <= 10;
+    return showTenths
+      ? this.formatTenthsCountdown(remainingExact)
+      : this.formatWholeSeconds(remainingExact);
   }
 
   protected isPaused(fight: Fight): boolean {
@@ -566,26 +586,6 @@ export class MatchComponent implements OnInit, OnDestroy {
       return t?.osaeKomiWazaAriSeconds ?? 10;
     }
     return t?.osaeKomiIpponSeconds ?? 20;
-  }
-
-  private tryAutoStopOsaeKomi(fight: Fight): void {
-    if (!this.canOperate() || fight.osaeKomiSide === null) return;
-    if (this.autoStopOsaeKomiInFlightFightId === fight.id) return;
-
-    const tid = this.context.tournamentId();
-    if (!tid) return;
-
-    this.autoStopOsaeKomiInFlightFightId = fight.id;
-    this.api.stopOsaeKomi(tid, fight.id, this.operatorName()).subscribe({
-      next: () => {
-        this.autoStopOsaeKomiInFlightFightId = null;
-        this.refreshQueue();
-      },
-      error: () => {
-        this.autoStopOsaeKomiInFlightFightId = null;
-        this.errorMessage.set('Osae-komi konnte nicht automatisch gestoppt werden.');
-      },
-    });
   }
 
   private restoreOperatorName(): string {

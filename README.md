@@ -19,6 +19,8 @@ Already available:
   - athlete-driven classes by target athletes per class and max weight deviation
 - tatami assignment workflow (auto + manual)
 - public display view with realtime updates (SignalR)
+- server-authoritative synchronized fight and osae-komi timing across operator and display views
+- tenth-second local display for running final fight seconds and active osae-komi countdowns
 - results and medal table views
 - local authentication flow (login/logout, session persistence, admin user management)
 - authenticated SignalR hub access (realtime updates require valid bearer token)
@@ -30,7 +32,10 @@ Already available:
 - Angular 19 frontend (admin + operations + display/results UIs) served from the API
 - hardened local scripts for test/seed usage (`JUDO_TEST_PASSWORD`, production guard)
 - admin backup/restore UI flow in tournaments view (download backup + restore upload)
-- unit test project (192 passing tests, Category=UnitTest)
+- authenticated server time endpoint for frontend clock synchronization (`GET /api/time`)
+- server-side match clock evaluator for timing-based fight and osae-komi decisions
+- osae-komi ippon immediately pauses the fight clock on the server
+- unit test project (247 passing tests, Category=UnitTest)
 - TLS/LAN operational stabilization and repeated field validation runs
 
 ## Architecture
@@ -383,6 +388,7 @@ are served at `/i18n/{lang}.json`.
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `GET /api/time`
 - `GET /api/auth/users`
 - `POST /api/auth/users`
 - `PATCH /api/auth/users/{userId}/active`
@@ -432,6 +438,7 @@ Current backend culture setup:
 - all future auth, audit logging, and backup features must follow the backlog
 - secrets must never be hardcoded if external integrations are added later
 - SignalR hub access requires authentication; frontend passes bearer token for realtime channel setup
+- fight timing remains server-authoritative; frontend clock sync is display-only and must not make rules decisions offline
 - helper scripts abort when `ASPNETCORE_ENVIRONMENT=Production`
 
 ## Copilot Setup
