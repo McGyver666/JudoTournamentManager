@@ -74,6 +74,7 @@ JudoTournamentManagement.Api.Tests/artifacts/*
 Thumbs.db
 Desktop.ini
 *.dm4
+*.dmf
 artifacts/*
 release/
 release.zip
