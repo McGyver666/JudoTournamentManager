@@ -35,4 +35,7 @@ public sealed record Tournament(
 
     /// <summary>Whether a Yuko is awarded for a hold between Yuko and Waza-ari thresholds.</summary>
     public bool OsaeKomiYukoEnabled { get; init; } = true;
+
+    /// <summary>Minimum required rest gap in seconds before an athlete should fight again.</summary>
+    public int MinimumRestBetweenFightsSeconds { get; init; } = 180;
 }

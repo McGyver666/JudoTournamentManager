@@ -99,6 +99,7 @@ public sealed class ControllerUnitTests
             It.IsAny<int>(),
             It.IsAny<int>(),
             It.IsAny<bool>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var controller = new TournamentsController(mockStore.Object);
@@ -119,6 +120,7 @@ public sealed class ControllerUnitTests
             request.OsaeKomiWazaAriSeconds,
             request.OsaeKomiYukoSeconds,
             request.OsaeKomiYukoEnabled,
+            request.MinimumRestBetweenFightsSeconds,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -137,6 +139,7 @@ public sealed class ControllerUnitTests
             It.IsAny<int>(),
             It.IsAny<int>(),
             It.IsAny<bool>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         var controller = new TournamentsController(mockStore.Object);
@@ -432,7 +435,7 @@ public sealed class ControllerUnitTests
                 false,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([
-                new Athlete(Guid.NewGuid(), tournamentId, clubId, "Max", "Muster", 2010, Gender.Male, "L1", 30.5m, 3, now, now)
+                new Athlete(Guid.NewGuid(), tournamentId, clubId, "Max", "Muster", 2010, Gender.Male, "L1", 30.5m, 3, null, null, now, now)
             ]);
 
         var controller = new AthletesController(
@@ -507,7 +510,7 @@ public sealed class ControllerUnitTests
                 false,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync([
-                new Athlete(Guid.NewGuid(), tournamentId, clubId, "Max", "Muster", 2010, Gender.Male, null, 30.5m, 3, now, now)
+                new Athlete(Guid.NewGuid(), tournamentId, clubId, "Max", "Muster", 2010, Gender.Male, null, 30.5m, 3, null, null, now, now)
             ]);
 
         var controller = new AthletesController(

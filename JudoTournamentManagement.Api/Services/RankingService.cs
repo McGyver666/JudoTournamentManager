@@ -30,6 +30,12 @@ public sealed class RankingService : IRankingService
         Guid categoryId,
         CancellationToken cancellationToken)
     {
+        var drawFormat = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(c => c.TournamentId == tournamentId && c.Id == categoryId)
+            .Select(c => c.DrawFormat)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var allFights = await _dbContext.Fights
             .AsNoTracking()
             .Where(f => f.TournamentId == tournamentId && f.CategoryId == categoryId)
@@ -81,6 +87,22 @@ public sealed class RankingService : IRankingService
 
         if (fights.Count == 0)
             return Array.Empty<RankingEntry>();
+
+        if (string.Equals(drawFormat, BracketFormat.RoundRobin.ToString(), StringComparison.Ordinal))
+        {
+            var hasCompletedRealFight = fights.Any(f => f.Status == CompletedStatus);
+            if (!hasCompletedRealFight)
+                return Array.Empty<RankingEntry>();
+
+            var standings = await GetRoundRobinStandingsAsync(tournamentId, categoryId, cancellationToken);
+
+            return standings
+                .Where(s => s.PoolNumber == 0)
+                .OrderBy(s => s.Rank)
+                .Take(3)
+                .Select(s => new RankingEntry(s.Rank, s.AthleteId, s.AthleteName, s.ClubName))
+                .ToArray();
+        }
 
         // Build a lookup from athleteId -> (name, clubId) using Athletes + Clubs tables.
         var bronzeCandidateFights = allFights

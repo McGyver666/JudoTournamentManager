@@ -6,7 +6,7 @@ import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
 import { extractApiError } from '../../core/http-error';
 import { I18nService } from '../../core/i18n.service';
-import { Athlete, Category, Fight, Tatami } from '../../core/models';
+import { Athlete, BulkTatamiAssignment, Category, Fight, Tatami } from '../../core/models';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 
@@ -208,8 +208,12 @@ export class TatamiAssignmentComponent implements OnInit {
     this.assigning.set(true);
     this.clearMessages();
 
-    forkJoin(assignments.map((x) =>
-      this.api.assignTatami(id, x.fightId, { tatamiId: x.tatamiId }, this.operatorName()))).subscribe({
+    const payload: BulkTatamiAssignment[] = assignments.map((x) => ({
+      fightId: x.fightId,
+      tatamiId: x.tatamiId,
+    }));
+
+    this.api.assignTatamiBulk(id, payload, this.operatorName()).subscribe({
       next: () => {
         const assignmentMap = new Map(assignments.map((x) => [x.fightId, x.tatamiId]));
         this.fights.update((fights) =>
@@ -292,8 +296,12 @@ export class TatamiAssignmentComponent implements OnInit {
     this.assigning.set(true);
     this.clearMessages();
 
-    forkJoin(assignments.map((assignment) =>
-      this.api.assignTatami(id, assignment.fightId, { tatamiId }, this.operatorName()))).subscribe({
+    const payload: BulkTatamiAssignment[] = assignments.map((assignment) => ({
+      fightId: assignment.fightId,
+      tatamiId,
+    }));
+
+    this.api.assignTatamiBulk(id, payload, this.operatorName()).subscribe({
       next: () => {
         const assignmentMap = new Map(assignments.map((assignment) => [assignment.fightId, tatamiId]));
         this.fights.update((fights) =>

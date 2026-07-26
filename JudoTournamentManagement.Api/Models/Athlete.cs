@@ -13,6 +13,8 @@ namespace JudoTournamentManagement.Api.Models;
 /// <param name="LicenseId">Optional federation license identifier.</param>
 /// <param name="WeightKg">Optional athlete body weight in kilograms.</param>
 /// <param name="Grade">Belt grade as numeric scale (1=9. Kyu ... 9=1. Kyu, 10=1. Dan ... 14=5. Dan).</param>
+/// <param name="LastFightDurationSeconds">Duration in seconds of the athlete's most recent completed fight.</param>
+/// <param name="LastFightEndedAtUtc">UTC timestamp when the athlete's most recent completed fight ended.</param>
 /// <param name="CreatedAtUtc">Creation timestamp in UTC.</param>
 /// <param name="UpdatedAtUtc">Last update timestamp in UTC.</param>
 public sealed record Athlete(
@@ -26,5 +28,7 @@ public sealed record Athlete(
     string? LicenseId,
     decimal? WeightKg,
     int Grade,
+    int? LastFightDurationSeconds,
+    DateTimeOffset? LastFightEndedAtUtc,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);

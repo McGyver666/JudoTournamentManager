@@ -82,6 +82,139 @@ public sealed class MatchService : IMatchService
     }
 
     /// <inheritdoc />
+    public async Task<MatchActionResult> AssignTatamiBulkAsync(
+        Guid tournamentId,
+        IReadOnlyList<BulkTatamiAssignment> assignments,
+        string user,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(assignments);
+        if (assignments.Count == 0) return MatchActionResult.Success;
+
+        // Collapse duplicate fight entries, keeping the last assignment wins semantics.
+        var assignmentMap = new Dictionary<Guid, Guid?>();
+        foreach (var assignment in assignments)
+        {
+            assignmentMap[assignment.FightId] = assignment.TatamiId;
+        }
+
+        var fightIds = assignmentMap.Keys.ToList();
+        var fights = await _dbContext.Fights
+            .Where(f => f.TournamentId == tournamentId && fightIds.Contains(f.Id))
+            .ToListAsync(cancellationToken);
+
+        // Every referenced fight must exist and belong to the tournament.
+        if (fights.Count != fightIds.Count) return MatchActionResult.FightNotFound;
+
+        // Validate all distinct target tatamis belong to the tournament.
+        var targetTatamiIds = assignmentMap.Values
+            .Where(id => id is not null)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        if (targetTatamiIds.Count > 0)
+        {
+            var validCount = await _dbContext.Tatamis
+                .CountAsync(t => t.TournamentId == tournamentId && targetTatamiIds.Contains(t.Id), cancellationToken);
+            if (validCount != targetTatamiIds.Count) return MatchActionResult.InvalidState;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var changed = new List<FightRecord>();
+        foreach (var fight in fights)
+        {
+            var targetTatamiId = assignmentMap[fight.Id];
+            if (fight.TatamiId == targetTatamiId) continue; // Idempotent: skip already-correct assignments.
+
+            fight.TatamiId = targetTatamiId;
+            fight.UpdatedAtUtc = now;
+            changed.Add(fight);
+        }
+
+        if (changed.Count == 0) return MatchActionResult.Success;
+
+        // Single write keeps the operation atomic and avoids SQLite "database is locked" contention.
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            tournamentId, user, "FightsAssignedToTatami", "Fight", tournamentId,
+            $"Count={changed.Count}", cancellationToken);
+
+        foreach (var fight in changed)
+        {
+            await BroadcastFightUpdatedAsync(fight);
+        }
+
+        return MatchActionResult.Success;
+    }
+
+    /// <inheritdoc />
+    public async Task<MatchActionResult> MoveInQueueAsync(
+        Guid fightId,
+        QueueMoveDirection direction,
+        string user,
+        CancellationToken cancellationToken)
+    {
+        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
+        if (fight is null) return MatchActionResult.FightNotFound;
+
+        // Only pending fights that are assigned to a tatami participate in the manual queue.
+        if (fight.Status != Pending || fight.TatamiId is null) return MatchActionResult.InvalidState;
+
+        // Load the pending fights on this tatami in their current display order.
+        var pending = await _dbContext.Fights
+            .Where(f => f.TournamentId == fight.TournamentId
+                && f.TatamiId == fight.TatamiId
+                && f.Status == Pending
+                && !f.IsBye
+                && f.WhiteAthleteId != null
+                && f.BlueAthleteId != null)
+            .ToListAsync(cancellationToken);
+
+        var ordered = pending
+            .OrderBy(f => f.QueueOrder ?? int.MaxValue)
+            .ThenBy(f => f.Round)
+            .ThenBy(f => f.FightNumber)
+            .ToList();
+
+        var index = ordered.FindIndex(f => f.Id == fight.Id);
+        if (index < 0) return MatchActionResult.InvalidState;
+
+        var targetIndex = direction == QueueMoveDirection.Up ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= ordered.Count)
+        {
+            // Already at the boundary: nothing to do.
+            return MatchActionResult.Success;
+        }
+
+        // Swap positions and normalize QueueOrder sequentially so the order is stable and gap-free.
+        (ordered[index], ordered[targetIndex]) = (ordered[targetIndex], ordered[index]);
+
+        var now = DateTimeOffset.UtcNow;
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            if (ordered[i].QueueOrder != i)
+            {
+                ordered[i].QueueOrder = i;
+                ordered[i].UpdatedAtUtc = now;
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            fight.TournamentId, user, "FightQueueReordered", "Fight", fight.Id,
+            $"Direction={direction}", cancellationToken);
+
+        // Broadcast the two affected fights so all clients refresh their queue.
+        await BroadcastFightUpdatedAsync(ordered[index]);
+        await BroadcastFightUpdatedAsync(ordered[targetIndex]);
+
+        return MatchActionResult.Success;
+    }
+
+    /// <inheritdoc />
     public async Task<MatchActionResult> StartAsync(Guid fightId, string user, CancellationToken cancellationToken)
     {
         var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
@@ -340,6 +473,8 @@ public sealed class MatchService : IMatchService
         fight.OsaeKomiStartedAtUtc = null;
         fight.UpdatedAtUtc = now;
 
+        await UpdateAthletesLastFightMetadataAsync(fight, now, cancellationToken);
+
         await RecalculateProgressionAsync(fight.CategoryId, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -394,6 +529,46 @@ public sealed class MatchService : IMatchService
         _logger.LogInformation(
             "Fight {FightId} corrected: {Previous} -> {New}.", fightId, previousWinnerId, newWinnerId);
         return MatchActionResult.Success;
+    }
+
+    private async Task UpdateAthletesLastFightMetadataAsync(
+        FightRecord fight,
+        DateTimeOffset completedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        if (fight.WhiteAthleteId is null && fight.BlueAthleteId is null)
+        {
+            return;
+        }
+
+        var participantIds = new[] { fight.WhiteAthleteId, fight.BlueAthleteId }
+            .OfType<Guid>()
+            .Distinct()
+            .ToArray();
+
+        if (participantIds.Length == 0)
+        {
+            return;
+        }
+
+        int? durationSeconds = null;
+        if (fight.StartedAtUtc is not null)
+        {
+            var duration = completedAtUtc - fight.StartedAtUtc.Value;
+            var clampedDuration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration;
+            durationSeconds = (int)Math.Round(clampedDuration.TotalSeconds, MidpointRounding.AwayFromZero);
+        }
+
+        var athletes = await _dbContext.Athletes
+            .Where(a => participantIds.Contains(a.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var athlete in athletes)
+        {
+            athlete.LastFightDurationSeconds = durationSeconds;
+            athlete.LastFightEndedAtUtc = completedAtUtc;
+            athlete.UpdatedAtUtc = completedAtUtc;
+        }
     }
 
     /// <summary>
@@ -600,6 +775,7 @@ public sealed class MatchService : IMatchService
         r.IsBye,
         Enum.Parse<FightStatus>(r.Status),
         r.TatamiId,
+        r.QueueOrder,
         r.WhiteScore, r.BlueScore, r.WhitePenalties, r.BluePenalties,
         r.WhiteIpponCount, r.WhiteWazaAriCount, r.WhiteYukoCount,
         r.BlueIpponCount, r.BlueWazaAriCount, r.BlueYukoCount,

@@ -79,7 +79,23 @@ public sealed class TournamentsController : ControllerBase
             request.AccentSideColor,
             cancellationToken);
 
-        return Created($"/api/tournaments/{created.Id}", created);
+        _ = await _tournamentStore.UpdateAsync(
+            created.Id,
+            request.Name,
+            request.Date.Value,
+            request.Venue,
+            request.Organizer,
+            request.AccentSideColor,
+            request.OsaeKomiIpponSeconds,
+            request.OsaeKomiWazaAriSeconds,
+            request.OsaeKomiYukoSeconds,
+            request.OsaeKomiYukoEnabled,
+            request.MinimumRestBetweenFightsSeconds,
+            cancellationToken);
+
+        var hydrated = await _tournamentStore.GetByIdAsync(created.Id, cancellationToken) ?? created;
+
+        return Created($"/api/tournaments/{created.Id}", hydrated);
     }
 
     /// <summary>
@@ -112,6 +128,7 @@ public sealed class TournamentsController : ControllerBase
             request.OsaeKomiWazaAriSeconds,
             request.OsaeKomiYukoSeconds,
             request.OsaeKomiYukoEnabled,
+            request.MinimumRestBetweenFightsSeconds,
             cancellationToken);
 
         return updated ? NoContent() : NotFound();

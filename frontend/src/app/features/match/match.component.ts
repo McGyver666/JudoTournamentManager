@@ -21,6 +21,7 @@ import {
   AdjustScoreRequest,
   Athlete,
   Category,
+  Club,
   Fight,
   FightSide,
   ScoreType,
@@ -58,6 +59,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly tatamis = signal<Tatami[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly athletes = signal<Map<string, Athlete>>(new Map());
+  protected readonly clubs = signal<Map<string, Club>>(new Map());
   protected readonly selectedTatamiId = signal<string | null>(null);
   protected readonly queue = signal<TatamiQueue | null>(null);
   protected readonly operatorName = signal<string>(this.restoreOperatorName());
@@ -65,6 +67,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(false);
   protected readonly winnerConfirmation = signal<WinnerConfirmationState | null>(null);
   protected readonly confirmingWinner = signal(false);
+  protected readonly nowEpochMs = signal<number>(Date.now());
 
   /** Remaining seconds in the current fight's countdown. */
   protected readonly timerSeconds = signal<number | null>(null);
@@ -86,11 +89,20 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   protected readonly hubConnected = computed(() => this.hub.connected());
   protected readonly currentFight = computed(() => this.queue()?.current ?? null);
+  /** All pending fights assigned to the tatami, excluding the current fight, in queue order. */
+  protected readonly upcomingFights = computed(() => {
+    const q = this.queue();
+    if (!q) return [] as Fight[];
+    const currentId = q.current?.id;
+    return q.upcoming.filter((fight) => fight.id !== currentId);
+  });
+  protected readonly currentTimeLabel = computed(() => this.formatCurrentTime(this.nowEpochMs()));
 
   private fightSub?: Subscription;
   private serverTimeSub?: Subscription;
   private reconnectSub?: Subscription;
   private querySub?: Subscription;
+  private headerClockHandle: ReturnType<typeof setInterval> | null = null;
 
   private readonly selectedTatamiEffect = effect(() => {
     const tournamentId = this.context.tournamentId();
@@ -108,10 +120,11 @@ export class MatchComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    void this.time.synchronize(5);
+    this.startHeaderClock();
+
     const tid = this.context.tournamentId();
     if (!tid) return;
-
-    void this.time.synchronize(5);
 
     this.querySub = this.route.queryParamMap.subscribe((params) => {
       const tatamiId = params.get('tatamiId');
@@ -155,12 +168,18 @@ export class MatchComponent implements OnInit, OnDestroy {
       const map = new Map(athletes.map(a => [a.id, a]));
       this.athletes.set(map);
     });
+    this.api.getClubs(tid).subscribe(clubs => {
+      const map = new Map(clubs.map(club => [club.id, club]));
+      this.clubs.set(map);
+    });
 
     this.fightSub = this.hub.fightUpdated$.subscribe(fight => {
       const q = this.queue();
       if (!q) return;
-      // If the updated fight is the current fight, refresh the queue.
-      if (q.current?.id === fight.id || q.next?.id === fight.id || q.onDeck?.id === fight.id) {
+      // Refresh whenever an updated fight belongs to the selected tatami so queue reordering,
+      // current/next/on-deck changes and score updates stay in sync across clients.
+      if (fight.tatamiId === this.selectedTatamiId()
+        || q.current?.id === fight.id || q.next?.id === fight.id || q.onDeck?.id === fight.id) {
         this.refreshQueue();
       }
     });
@@ -180,6 +199,7 @@ export class MatchComponent implements OnInit, OnDestroy {
     this.serverTimeSub?.unsubscribe();
     this.reconnectSub?.unsubscribe();
     this.stopTimer();
+    this.stopHeaderClock();
   }
 
   @HostListener('document:visibilitychange')
@@ -315,6 +335,37 @@ export class MatchComponent implements OnInit, OnDestroy {
     }
   }
 
+  private startHeaderClock(): void {
+    this.refreshCurrentTime();
+    this.headerClockHandle = setInterval(() => {
+      this.refreshCurrentTime();
+    }, 1000);
+  }
+
+  private stopHeaderClock(): void {
+    if (this.headerClockHandle !== null) {
+      clearInterval(this.headerClockHandle);
+      this.headerClockHandle = null;
+    }
+  }
+
+  private refreshCurrentTime(): void {
+    const localNowMs = Date.now();
+    if (localNowMs - this.lastClockResyncCheckAtMs >= 10_000) {
+      this.lastClockResyncCheckAtMs = localNowMs;
+      void this.time.synchronizeIfStale();
+    }
+
+    this.nowEpochMs.set(this.time.nowMs());
+  }
+
+  private formatCurrentTime(epochMs: number): string {
+    return new Intl.DateTimeFormat('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(epochMs);
+  }
+
   private formatWholeSeconds(seconds: number): string {
     const rounded = Math.max(0, Math.ceil(seconds));
     const m = Math.floor(rounded / 60);
@@ -331,14 +382,97 @@ export class MatchComponent implements OnInit, OnDestroy {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${tenths}`;
   }
 
+  private formatFightDuration(totalSeconds: number): string {
+    const normalized = Math.max(0, Math.floor(totalSeconds));
+    const minutes = Math.floor(normalized / 60);
+    const seconds = normalized % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
   protected athleteName(id: string | null): string {
     if (!id) return '?';
     const a = this.athletes().get(id);
     return a ? `${a.lastName}, ${a.firstName}` : id.substring(0, 8);
   }
 
+  protected athleteClubName(id: string | null): string | null {
+    if (!id) return null;
+    const athlete = this.athletes().get(id);
+    if (!athlete) return null;
+    return this.clubs().get(athlete.clubId)?.name ?? null;
+  }
+
+  protected lastFightInfoLabel(id: string | null): string | null {
+    if (!id) return null;
+    const athlete = this.athletes().get(id);
+    if (!athlete?.lastFightEndedAtUtc || athlete.lastFightDurationSeconds === null) {
+      return null;
+    }
+
+    const endedAt = new Date(athlete.lastFightEndedAtUtc);
+    if (Number.isNaN(endedAt.getTime())) {
+      return null;
+    }
+
+    const timeLabel = new Intl.DateTimeFormat('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(endedAt);
+
+    return `${timeLabel} (${this.formatFightDuration(athlete.lastFightDurationSeconds)})`;
+  }
+
+  protected hasInsufficientRest(id: string | null): boolean {
+    if (!id) return false;
+
+    const athlete = this.athletes().get(id);
+    if (!athlete?.lastFightEndedAtUtc) {
+      return false;
+    }
+
+    const minimumGapSeconds = this.context.tournament()?.minimumRestBetweenFightsSeconds ?? 0;
+    if (minimumGapSeconds <= 0) {
+      return false;
+    }
+
+    const endedAtMs = new Date(athlete.lastFightEndedAtUtc).getTime();
+    if (Number.isNaN(endedAtMs)) {
+      return false;
+    }
+
+    const elapsedSeconds = Math.floor((this.nowEpochMs() - endedAtMs) / 1000);
+    return elapsedSeconds >= 0 && elapsedSeconds < minimumGapSeconds;
+  }
+
   protected categoryName(id: string): string {
     return this.categories().find((category) => category.id === id)?.name ?? id;
+  }
+
+  protected canMoveUp(index: number): boolean {
+    return this.canOperate() && index > 0;
+  }
+
+  protected canMoveDown(index: number): boolean {
+    return this.canOperate() && index < this.upcomingFights().length - 1;
+  }
+
+  protected moveFightUp(fight: Fight, index: number): void {
+    if (!this.canMoveUp(index)) return;
+    this.moveFight(fight, 'Up');
+  }
+
+  protected moveFightDown(fight: Fight, index: number): void {
+    if (!this.canMoveDown(index)) return;
+    this.moveFight(fight, 'Down');
+  }
+
+  private moveFight(fight: Fight, direction: 'Up' | 'Down'): void {
+    const tid = this.context.tournamentId();
+    if (!tid) return;
+    this.api.moveFightInQueue(tid, fight.id, direction).subscribe({
+      next: () => this.refreshQueue(),
+      error: () => this.errorMessage.set('Kampfreihenfolge konnte nicht geändert werden.'),
+    });
   }
 
   protected startFight(fight: Fight): void {
@@ -507,15 +641,6 @@ export class MatchComponent implements OnInit, OnDestroy {
       case 'WazaAri': return 'Waza-ari';
       case 'Yuko': return 'Yuko';
       case 'Shido': return 'Shido';
-    }
-  }
-
-  protected scoreImpact(scoreType: ScoreType): number {
-    switch (scoreType) {
-      case 'Ippon': return 10;
-      case 'WazaAri': return 7;
-      case 'Yuko': return 1;
-      case 'Shido': return 0;
     }
   }
 

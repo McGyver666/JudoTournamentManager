@@ -71,6 +71,17 @@ public sealed class AppDbContext : DbContext
     public DbSet<CategoryPresetRecord> CategoryPresets => Set<CategoryPresetRecord>();
 
     /// <inheritdoc />
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+        base.OnConfiguring(optionsBuilder);
+
+        // Enable WAL + busy_timeout on every SQLite connection so concurrent access does not
+        // fail with "database is locked". Applied here so it also covers test contexts.
+        optionsBuilder.AddInterceptors(SqliteConcurrencyInterceptor.Instance);
+    }
+
+    /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -86,6 +97,7 @@ public sealed class AppDbContext : DbContext
         tournament.Property(x => x.OsaeKomiWazaAriSeconds).IsRequired().HasDefaultValue(10);
         tournament.Property(x => x.OsaeKomiYukoSeconds).IsRequired().HasDefaultValue(5);
         tournament.Property(x => x.OsaeKomiYukoEnabled).IsRequired().HasDefaultValue(true);
+        tournament.Property(x => x.MinimumRestBetweenFightsSeconds).IsRequired().HasDefaultValue(180);
 
         var tatami = modelBuilder.Entity<TatamiRecord>();
         tatami.ToTable("Tatamis");
@@ -130,6 +142,8 @@ public sealed class AppDbContext : DbContext
         athlete.Property(x => x.LicenseId).HasMaxLength(40);
         athlete.Property(x => x.WeightKg);
         athlete.Property(x => x.Grade).IsRequired().HasDefaultValue(1);
+        athlete.Property(x => x.LastFightDurationSeconds);
+        athlete.Property(x => x.LastFightEndedAtUtc);
         athlete.HasOne(x => x.Tournament)
                .WithMany()
                .HasForeignKey(x => x.TournamentId)

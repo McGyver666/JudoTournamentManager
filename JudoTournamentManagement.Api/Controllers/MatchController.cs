@@ -49,6 +49,46 @@ public sealed class MatchController : ControllerBase
     }
 
     /// <summary>
+    /// Assigns many fights to tatamis in a single atomic request. Requires the Admin role.
+    /// Fights whose athletes are not yet known are included; fights already on the requested
+    /// tatami are skipped. Applying everything in one transaction avoids partial assignment.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("/api/tournaments/{tournamentId:guid}/fights/assign-tatami-bulk")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AssignTatamiBulkAsync(
+        Guid tournamentId,
+        [FromBody] BulkAssignTatamiRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _matchService.AssignTatamiBulkAsync(
+            tournamentId, request.Assignments, CurrentUser(), cancellationToken);
+        return MapResult(result);
+    }
+
+    /// <summary>
+    /// Moves a pending fight one position up or down within its tatami's queue.
+    /// </summary>
+    [HttpPost("queue-move")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> MoveInQueueAsync(
+        Guid tournamentId,
+        Guid fightId,
+        [FromBody] MoveFightInQueueRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!await FightBelongsToTournamentAsync(tournamentId, fightId, cancellationToken)) return NotFound();
+
+        var result = await _matchService.MoveInQueueAsync(fightId, request.Direction, CurrentUser(), cancellationToken);
+        return MapResult(result);
+    }
+
+    /// <summary>
     /// Starts the fight. Valid only for a pending, non-bye fight with both athletes assigned.
     /// </summary>
     [HttpPost("start")]

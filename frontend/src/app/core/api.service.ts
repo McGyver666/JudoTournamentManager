@@ -8,6 +8,8 @@ import {
   AssignCategoryRequest,
   AssignTatamiRequest,
   AutoAssignResult,
+  BulkAssignTatamiRequest,
+  BulkTatamiAssignment,
   Category,
   CategoryPreset,
   CategoryPresetItemRequest,
@@ -29,7 +31,9 @@ import {
   LoginRequest,
   LoginResponse,
   MedalEntry,
+  MoveFightInQueueRequest,
   OsaeKomiRequest,
+  QueueMoveDirection,
   RankingEntry,
   RecordScoreRequest,
   ResetUserPasswordRequest,
@@ -371,6 +375,27 @@ export class ApiService {
     void userName;
     return this.http.post<void>(
       `api/tournaments/${tournamentId}/fights/${fightId}/assign-tatami`, body);
+  }
+
+  assignTatamiBulk(
+    tournamentId: string,
+    assignments: BulkTatamiAssignment[],
+    userName: string,
+  ): Observable<void> {
+    void userName;
+    const body: BulkAssignTatamiRequest = { assignments };
+    return this.http.post<void>(
+      `api/tournaments/${tournamentId}/fights/assign-tatami-bulk`, body);
+  }
+
+  moveFightInQueue(
+    tournamentId: string,
+    fightId: string,
+    direction: QueueMoveDirection,
+  ): Observable<void> {
+    const body: MoveFightInQueueRequest = { direction };
+    return this.http.post<void>(
+      `api/tournaments/${tournamentId}/fights/${fightId}/queue-move`, body);
   }
 
   // Rankings & Results -----------------------------------------------------

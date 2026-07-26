@@ -368,6 +368,8 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 
 - `GET /api/tournaments/{tournamentId}/tatamis/{tatamiId}/queue`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/assign-tatami`
+- `POST /api/tournaments/{tournamentId}/fights/assign-tatami-bulk` (mehrere Kämpfe atomar Matten zuweisen)
+- `POST /api/tournaments/{tournamentId}/fights/{fightId}/queue-move`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/resume`

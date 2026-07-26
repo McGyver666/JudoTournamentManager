@@ -58,6 +58,12 @@ public sealed class FightRecord
     /// <summary>Tatami this fight is assigned to; null when unassigned.</summary>
     public Guid? TatamiId { get; set; }
 
+    /// <summary>
+    /// Manual position of the fight within its tatami's pending queue; null when the fight
+    /// has not been manually reordered and falls back to bracket order (Round, FightNumber).
+    /// </summary>
+    public int? QueueOrder { get; set; }
+
     /// <summary>Accumulated score for the White athlete.</summary>
     public int WhiteScore { get; set; }
 
