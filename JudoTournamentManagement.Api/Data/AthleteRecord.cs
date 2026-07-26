@@ -37,6 +37,12 @@ public sealed class AthleteRecord
     /// <summary>Belt grade as numeric scale (1=9. Kyu ... 9=1. Kyu, 10=1. Dan ... 14=5. Dan).</summary>
     public int Grade { get; set; }
 
+    /// <summary>Duration in seconds of the athlete's most recent completed fight.</summary>
+    public int? LastFightDurationSeconds { get; set; }
+
+    /// <summary>UTC timestamp when the athlete's most recent completed fight ended.</summary>
+    public DateTimeOffset? LastFightEndedAtUtc { get; set; }
+
     /// <summary>Creation timestamp in UTC.</summary>
     public DateTimeOffset CreatedAtUtc { get; set; }
 

@@ -57,11 +57,36 @@ function Get-RandomItem {
     return $Items[(Get-Random -Minimum 0 -Maximum $Items.Count)]
 }
 
+function Read-PlainTextPassword {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Prompt
+    )
+
+    $securePassword = Read-Host -Prompt $Prompt -AsSecureString
+    $credential = [System.Net.NetworkCredential]::new("", $securePassword)
+    return $credential.Password
+}
+
+function Get-RandomWeightKg {
+    param(
+        [Parameter(Mandatory = $true)]
+        [decimal]$Minimum,
+        [Parameter(Mandatory = $true)]
+        [decimal]$Maximum
+    )
+
+    $minimumTenths = [int]($Minimum * 10)
+    $maximumTenthsExclusive = [int]($Maximum * 10) + 1
+    return [math]::Round((Get-Random -Minimum $minimumTenths -Maximum $maximumTenthsExclusive) / 10.0, 1)
+}
+
 Write-Host "=== Seeding Judo Tournament Management test data ===" -ForegroundColor Cyan
 Write-Host "Base URL: $BaseUrl" -ForegroundColor DarkGray
 Write-Host "Admin-Passwort Quelle: $(if ([string]::IsNullOrWhiteSpace($env:JUDO_TEST_PASSWORD)) { 'zufaellig generiert' } else { 'JUDO_TEST_PASSWORD' })" -ForegroundColor DarkGray
 
-Write-Host "`n[0/6] Bootstrapping admin user..." -ForegroundColor Yellow
+Write-Host "`n[0/4] Bootstrapping admin user..." -ForegroundColor Yellow
+$adminPasswordWasPrompted = $false
 try {
     Invoke-RestMethod -Method POST -Uri "$apiBaseUrl/auth/bootstrap-admin" -Headers $headers -Body (@{
         userName = "admin"
@@ -73,8 +98,14 @@ catch {
     $statusCode = $_.Exception.Response.StatusCode.value__
     if ($statusCode -eq 409) {
         if ([string]::IsNullOrWhiteSpace($env:JUDO_TEST_PASSWORD)) {
-            Write-Error "Admin user exists. Bitte JUDO_TEST_PASSWORD setzen, damit der Login erfolgen kann."
-            exit 1
+            Write-Host "Admin user already exists and no JUDO_TEST_PASSWORD is set." -ForegroundColor DarkYellow
+            $adminPassword = Read-PlainTextPassword -Prompt "Bitte Admin-Passwort fuer Login eingeben"
+            if ([string]::IsNullOrWhiteSpace($adminPassword)) {
+                Write-Error "Kein Admin-Passwort eingegeben. Seed abgebrochen."
+                exit 1
+            }
+
+            $adminPasswordWasPrompted = $true
         }
 
         Write-Host "Admin user already exists. Continuing seed..." -ForegroundColor DarkYellow
@@ -96,11 +127,32 @@ try {
     Write-Host "Logged in successfully. Token acquired." -ForegroundColor Green
 }
 catch {
-    Write-Error "Login failed: $($_.Exception.Message)"
-    exit 1
+    if (-not $adminPasswordWasPrompted -and [string]::IsNullOrWhiteSpace($env:JUDO_TEST_PASSWORD)) {
+        Write-Host "Login with bootstrapped password failed. Please enter the existing admin password." -ForegroundColor DarkYellow
+        $adminPassword = Read-PlainTextPassword -Prompt "Bitte Admin-Passwort fuer Login eingeben"
+
+        try {
+            $loginResponse = Invoke-RestMethod -Method POST -Uri "$apiBaseUrl/auth/login" -Headers $headers -Body (@{
+                userName = "admin"
+                password = $adminPassword
+            } | ConvertTo-Json) -ErrorAction Stop
+            $bearerToken = $loginResponse.accessToken
+            $headers.Authorization = "Bearer $bearerToken"
+            $adminPasswordWasPrompted = $true
+            Write-Host "Logged in successfully. Token acquired." -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Login failed: $($_.Exception.Message)"
+            exit 1
+        }
+    }
+    else {
+        Write-Error "Login failed: $($_.Exception.Message)"
+        exit 1
+    }
 }
 
-Write-Host "`n[1/6] Creating tournament..." -ForegroundColor Yellow
+Write-Host "`n[1/4] Creating tournament..." -ForegroundColor Yellow
 $tournament = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments" -Body @{
     name = "UI Testturnier 2026"
     date = "2026-09-20"
@@ -111,7 +163,7 @@ $tournament = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments" -Body @{
 $tournamentId = $tournament.id
 Write-Host "Created tournament '$($tournament.name)' ($tournamentId)" -ForegroundColor Green
 
-Write-Host "`n[2/6] Creating tatamis..." -ForegroundColor Yellow
+Write-Host "`n[2/4] Creating tatamis..." -ForegroundColor Yellow
 $tatamis = @(
     @{ name = "Matte 1"; displayOrder = 0 }
     @{ name = "Matte 2"; displayOrder = 1 }
@@ -122,62 +174,118 @@ foreach ($tatamiData in $tatamis) {
     Write-Host "Created tatami '$($tatami.name)'" -ForegroundColor Green
 }
 
-Write-Host "`n[3/5] Creating clubs..." -ForegroundColor Yellow
+Write-Host "`n[3/4] Creating clubs..." -ForegroundColor Yellow
 $clubs = @(
     "JC Musterhausen",
     "Judo-Team Beispielstadt",
-    "PSV Testdorf"
+    "PSV Testdorf",
+    "Judo Akademie Neustadt"
 )
 
 $createdClubs = @()
 foreach ($clubName in $clubs) {
-    $club = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/clubs" -Body @{ name = $clubName }
+    $club = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/clubs" -Body @{
+        name = $clubName
+        contactName = "Kontakt $clubName"
+        contactEmail = ("kontakt@{0}.example" -f ($clubName.ToLowerInvariant() -replace '[^a-z0-9]+', '-').Trim('-'))
+        contactPhone = "+49 555 0100"
+    }
     $createdClubs += $club
     Write-Host "Created club '$($club.name)'" -ForegroundColor Green
 }
 
-Write-Host "`n[4/5] Creating athletes..." -ForegroundColor Yellow
-$firstNames = @(
+Write-Host "`n[4/4] Creating athletes..." -ForegroundColor Yellow
+$maleFirstNames = @(
     "Ben", "Elias", "Finn", "Jonas", "Leon", "Luca", "Mats", "Noah", "Nico", "Paul",
-    "Anton", "David", "Emil", "Felix", "Jan", "Karl", "Luis", "Milan", "Oskar", "Timo"
+    "Anton", "David", "Emil", "Felix", "Jan", "Karl", "Luis", "Milan", "Oskar", "Timo",
+    "Aron", "Bennet", "Hannes", "Jannis", "Levi", "Linus", "Mika", "Moritz", "Theo", "Yusuf"
+)
+$femaleFirstNames = @(
+    "Anna", "Clara", "Ella", "Emma", "Frieda", "Hannah", "Ida", "Lea", "Lena", "Lina",
+    "Maja", "Mia", "Nele", "Paula", "Sofia", "Zoe", "Amelie", "Greta", "Juna", "Mila",
+    "Charlotte", "Elif", "Helena", "Johanna", "Luisa", "Marie", "Nora", "Sara", "Thea", "Yara"
 )
 $lastNames = @(
     "Becker", "Bergmann", "Fischer", "Franke", "Hoffmann", "Kaiser", "Klein", "Koch", "Krause", "Krueger",
-    "Lehmann", "Mayer", "Neumann", "Richter", "Schmidt", "Schneider", "Scholz", "Schubert", "Vogel", "Wagner"
+    "Lehmann", "Mayer", "Neumann", "Richter", "Schmidt", "Schneider", "Scholz", "Schubert", "Vogel", "Wagner",
+    "Baumann", "Brandt", "Engel", "Friedrich", "Hartmann", "Jung", "Keller", "Koenig", "Lange", "Lorenz",
+    "Peters", "Roth", "Schreiber", "Simon", "Weber", "Weiss", "Werner", "Winkler", "Wolf", "Zimmermann"
 )
 
-$athleteBodies = @()
-
-for ($i = 0; $i -lt 40; $i++) {
-    $club = $createdClubs[$i % $createdClubs.Count]
-    $firstName = Get-RandomItem -Items $firstNames
-    $lastName = Get-RandomItem -Items $lastNames
-    $birthYear = Get-Random -Minimum 2014 -Maximum 2018
-    $grade = Get-Random -Minimum 3 -Maximum 8
-    # Generate unique license ID with timestamp and counter to avoid conflicts across runs
-    $licenseId = "LIZ-{0}-{1:D3}" -f (Get-Date -Format "yyyyMMddHHmm"), ($i + 1)
-
-    $athleteBody = @{
-        clubId = $club.id
-        firstName = $firstName
-        lastName = $lastName
-        birthYear = $birthYear
-        gender = "Male"
-        licenseId = $licenseId
-        grade = $grade
+$ageGroups = @(
+    @{
+        Name = "U11"
+        Count = 30
+        BirthYears = @(2016, 2017)
+        MinimumWeightKg = 22.0
+        MaximumWeightKg = 40.0
+    },
+    @{
+        Name = "U13"
+        Count = 68
+        BirthYears = @(2014, 2015)
+        MinimumWeightKg = 28.0
+        MaximumWeightKg = 48.0
+    },
+    @{
+        Name = "U15"
+        Count = 52
+        BirthYears = @(2012, 2013)
+        MinimumWeightKg = 35.0
+        MaximumWeightKg = 60.0
     }
+)
 
-    $weightTenth = Get-Random -Minimum 200 -Maximum 411
-    $athleteBody.weightKg = [math]::Round($weightTenth / 10.0, 1)
-
-    $athleteBodies += $athleteBody
+$genders = @()
+for ($i = 0; $i -lt 53; $i++) {
+    $genders += "Female"
 }
+for ($i = 0; $i -lt 97; $i++) {
+    $genders += "Male"
+}
+$genders = $genders | Sort-Object { Get-Random }
+
+$athleteBodies = @()
+$athleteNumber = 0
+
+foreach ($ageGroup in $ageGroups) {
+    for ($i = 0; $i -lt $ageGroup.Count; $i++) {
+        $club = $createdClubs[$athleteNumber % $createdClubs.Count]
+        $gender = $genders[$athleteNumber]
+        $firstName = if ($gender -eq "Female") {
+            Get-RandomItem -Items $femaleFirstNames
+        } else {
+            Get-RandomItem -Items $maleFirstNames
+        }
+        $lastName = Get-RandomItem -Items $lastNames
+        $birthYear = Get-RandomItem -Items $ageGroup.BirthYears
+        $grade = Get-Random -Minimum 2 -Maximum 9
+        $licenseId = "LIZ-{0}-{1:D3}" -f (Get-Date -Format "yyyyMMddHHmm"), ($athleteNumber + 1)
+
+        $athleteBody = @{
+            clubId = $club.id
+            firstName = $firstName
+            lastName = $lastName
+            birthYear = $birthYear
+            gender = $gender
+            licenseId = $licenseId
+            weightKg = Get-RandomWeightKg -Minimum $ageGroup.MinimumWeightKg -Maximum $ageGroup.MaximumWeightKg
+            grade = $grade
+        }
+
+        $athleteBodies += $athleteBody
+        $athleteNumber++
+    }
+}
+
+$athleteBodies = $athleteBodies | Sort-Object { Get-Random }
 
 $importedAthletes = Invoke-Api -Method POST -Url "$apiBaseUrl/tournaments/$tournamentId/athletes/import?allowDuplicate=true" -Body @{
     athletes = $athleteBodies
 }
 
 Write-Host "Imported $($importedAthletes.Count) athletes in one batch." -ForegroundColor Green
+Write-Host "Distribution: 30 U11, 68 U13, 52 U15; 53 female, 97 male; 4 clubs." -ForegroundColor DarkGray
 
 Write-Host "`nSeed complete." -ForegroundColor Cyan
 Write-Host "Tournament ID: $tournamentId" -ForegroundColor DarkGray
@@ -186,5 +294,9 @@ Write-Host "Open the UI and select 'UI Testturnier 2026'." -ForegroundColor Dark
 Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Yellow
 Write-Host "Admin Credentials:" -ForegroundColor Yellow
 Write-Host "  Username: admin" -ForegroundColor White
-Write-Host "  Password: $adminPassword" -ForegroundColor White
+if ($adminPasswordWasPrompted) {
+    Write-Host "  Password: existing password entered interactively" -ForegroundColor White
+} else {
+    Write-Host "  Password: $adminPassword" -ForegroundColor White
+}
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Yellow

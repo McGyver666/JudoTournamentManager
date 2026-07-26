@@ -20,6 +20,7 @@ namespace JudoTournamentManagement.Api.Models;
 /// <param name="IsBye">True when one slot is a bye and the other athlete auto-advances.</param>
 /// <param name="Status">Current lifecycle state of the fight.</param>
 /// <param name="TatamiId">Tatami this fight is assigned to; null when unassigned.</param>
+/// <param name="QueueOrder">Manual position within the tatami's pending queue; null when not manually reordered.</param>
 /// <param name="WhiteScore">Accumulated score for the White athlete.</param>
 /// <param name="BlueScore">Accumulated score for the Blue athlete.</param>
 /// <param name="WhitePenalties">Number of penalties (Shido) for the White athlete.</param>
@@ -60,6 +61,7 @@ public sealed record Fight(
     bool IsBye,
     FightStatus Status,
     Guid? TatamiId,
+    int? QueueOrder,
     int WhiteScore,
     int BlueScore,
     int WhitePenalties,

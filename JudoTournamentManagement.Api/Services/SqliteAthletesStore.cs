@@ -270,6 +270,8 @@ public sealed class SqliteAthletesStore : IAthletesStore
             record.LicenseId,
             record.WeightKg,
             record.Grade,
+            record.LastFightDurationSeconds,
+            record.LastFightEndedAtUtc,
             record.CreatedAtUtc,
             record.UpdatedAtUtc);
 }

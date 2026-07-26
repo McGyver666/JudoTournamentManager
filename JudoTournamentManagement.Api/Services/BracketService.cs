@@ -865,6 +865,7 @@ public sealed class BracketService : IBracketService
             r.IsBye,
             Enum.Parse<FightStatus>(r.Status),
             r.TatamiId,
+            r.QueueOrder,
             r.WhiteScore,
             r.BlueScore,
             r.WhitePenalties,

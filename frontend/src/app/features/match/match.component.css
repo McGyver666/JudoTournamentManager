@@ -3,6 +3,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  padding-bottom: 0.3rem;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
 }
 
 .page-header h1 {
@@ -11,8 +14,18 @@
 
 .page-header__status {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
   justify-content: flex-end;
   min-width: 0;
+}
+
+.page-header__clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #474b52;
+  white-space: nowrap;
 }
 
 .modal-backdrop {
@@ -63,6 +76,37 @@
   gap: 0.4rem;
   align-items: center;
   color: #111827;
+}
+
+.fight-athlete-meta {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.fight-athlete-meta__club,
+.athlete-card__club {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.fight-athlete-meta__last-fight {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+  padding: 0.08rem 0.35rem;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #374151;
+  background: #f3f4f6;
+  font-variant-numeric: tabular-nums;
+}
+
+.fight-athlete-meta__last-fight--warning {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .modal-next-fight__empty {
@@ -203,33 +247,76 @@
   color: var(--side-accent);
 }
 
-.athlete-card--blue .athlete-card__score {
-  color: var(--side-accent);
-}
-
-.athlete-card--blue .athlete-card__stats {
-  color: var(--side-accent);
-}
-
 .athlete-card__name {
   font-size: 1rem;
   font-weight: 700;
   color: #111827;
 }
 
-.athlete-card__score {
-  font-size: 3rem;
-  font-weight: 800;
+.athlete-card--blue .athlete-card__club {
+  color: color-mix(in srgb, var(--side-accent) 35%, white);
+}
+
+.athlete-card__counters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.athlete-score-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 4.9rem;
+  padding: 0.7rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid #d8dee6;
+  background: #f8fafc;
+  color: #4b5563;
+}
+
+.athlete-score-counter span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.athlete-score-counter strong {
+  font-size: 1.9rem;
   line-height: 1;
   color: #111827;
 }
 
-.athlete-card__stats {
+.athlete-score-counter--ippon.athlete-score-counter--active {
+  background: linear-gradient(160deg, #fff8dc 0%, #f9d746 58%, #e6a700 100%);
+  border-color: rgba(255, 230, 140, 0.85);
+  color: #4a3000;
+}
+
+.athlete-score-counter--ippon.athlete-score-counter--active strong {
+  color: #4a3000;
+}
+
+.athlete-card--blue .athlete-score-counter {
+  border-color: color-mix(in srgb, var(--side-accent) 18%, #d8dee6);
+  color: var(--side-accent);
+}
+
+.athlete-card--blue .athlete-score-counter strong {
+  color: var(--side-accent);
+}
+
+.athlete-card__shido-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
-  color: #4b5563;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.85rem;
+  font-weight: 700;
+  color: #4b5563;
 }
 
 .score-stack {
@@ -258,11 +345,6 @@
   font-weight: 600;
 }
 
-.score-row__impact {
-  color: #6b7280;
-  font-weight: 700;
-}
-
 .score-row__actions {
   display: flex;
   gap: 0.35rem;
@@ -276,10 +358,42 @@
   min-width: 0;
 }
 
+.fight-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.6rem;
+  color: #4b5563;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.fight-context--current {
+  justify-content: center;
+  text-align: center;
+}
+
+.fight-context--upcoming {
+  justify-content: flex-end;
+  text-align: right;
+  margin-left: auto;
+}
+
+.fight-context__category {
+  color: #111827;
+  font-weight: 700;
+}
+
+.fight-context__meta {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .fight-vs {
   display: grid;
   place-items: center;
-  min-height: 96px;
+  min-height: 58px;
   border-radius: 18px;
   background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   color: #111827;
@@ -362,10 +476,76 @@
   gap: 0.5rem;
 }
 
-.upcoming-row {
+.upcoming-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.upcoming-list__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.upcoming-list__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #374151;
+  margin: 0;
+}
+
+.upcoming-list__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.upcoming-item {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
   gap: 0.75rem;
+}
+
+.upcoming-item__position {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: #1565c0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.upcoming-item__body {
+  min-width: 0;
+}
+
+.upcoming-item__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.upcoming-item__move {
+  min-width: 2.4rem;
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 .fight-card__label {
@@ -374,12 +554,24 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #6b7280;
+  margin-bottom: 0;
+}
+
+.fight-card__topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.45rem;
 }
 
 .fight-athletes-compact {
   font-size: 0.92rem;
   color: #111827;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .btn {
@@ -403,13 +595,15 @@
 
 .btn--primary { background: #1565c0; color: #fff; }
 .btn--secondary { background: #e5e7eb; color: #111827; }
+.btn--fight-start-stop { border-color: #000000; min-height: 96px; }
 .btn--full { width: 100%; }
 .btn--white { background: #f3f4f6; color: #111827; border-color: #4b5563; }
 .btn--blue { background: var(--side-accent-soft); color: var(--side-accent); border-color: var(--side-accent); }
 .btn--confirm { padding: 0.65rem 0.8rem; }
 .btn--tiny { padding: 0.34rem 0.55rem; border-radius: 10px; font-size: 0.72rem; }
-.btn--positive { background: #f0fdf4; color: #166534; border-color: #ccead6; }
-.btn--negative { background: #fef2f2; color: #b91c1c; border-color: #f5c7c7; }
+.btn--tiny.btn--positive { padding-left: 2rem; padding-right: 2rem; }
+.btn--positive { background: #f0fdf4; color: #166534; border-color: #3fb968; }
+.btn--negative { background: #fef2f2; color: #b91c1c; border-color: #df8383; }
 
 .error-banner {
   display: flex;
@@ -468,7 +662,6 @@
     order: -1;
   }
 
-  .upcoming-row,
   .confirm-row {
     grid-template-columns: 1fr;
   }

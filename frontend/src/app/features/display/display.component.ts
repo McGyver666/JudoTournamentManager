@@ -15,7 +15,7 @@ import { SideThemeService } from '../../core/side-theme.service';
 import { TimeService } from '../../core/time.service';
 import { CategoryFightsUpdatedEvent, TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
-import { Athlete, Category, Club, Fight, FightSide, RoundRobinStanding, Tatami, Tournament } from '../../core/models';
+import { Athlete, Category, Club, Fight, FightSide, RoundRobinStanding, Tatami, TatamiQueue, Tournament } from '../../core/models';
 
 interface TatamiDisplay {
   tatami: Tatami;
@@ -887,10 +887,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
               this.syncOsaeKomiSnapshot(q.current);
             }
 
-            const currentId = q.current?.id;
-            const nextFights = [q.next, q.onDeck, ...q.upcoming]
-              .filter((fight): fight is Fight => !!fight && fight.id !== currentId)
-              .slice(0, 3);
+            const nextFights = this.buildNextFights(q);
             this.displays.set([{ tatami: selectedTatami, current: q.current, nextFights }]);
           },
           error: () => {
@@ -913,8 +910,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
               this.syncOsaeKomiSnapshot(q.current);
             }
 
-            const currentId = q.current?.id;
-            const nextFights = [q.next, q.onDeck, ...q.upcoming].filter((fight): fight is Fight => !!fight && fight.id !== currentId).slice(0, 3);
+            const nextFights = this.buildNextFights(q);
             updates.push({ tatami, current: q.current, nextFights });
             pending--;
             if (pending === 0) {
@@ -956,10 +952,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
           this.updateDisplayedFight(queue.current);
         }
 
-        const currentId = queue.current?.id;
-        const nextFights = [queue.next, queue.onDeck, ...queue.upcoming]
-          .filter((fight): fight is Fight => !!fight && fight.id !== currentId)
-          .slice(0, 3);
+        const nextFights = this.buildNextFights(queue);
 
         this.displays.update(displays => displays.map(display =>
           display.tatami.id === tatamiId
@@ -971,6 +964,13 @@ export class DisplayComponent implements OnInit, OnDestroy {
         this.tatamiQueueRefreshInFlight = false;
       },
     });
+  }
+
+  private buildNextFights(queue: TatamiQueue): Fight[] {
+    const currentId = queue.current?.id;
+    return queue.upcoming
+      .filter((fight) => fight.id !== currentId)
+      .slice(0, 3);
   }
 
   protected hasIppon(fight: Fight, side: FightSide): boolean {
