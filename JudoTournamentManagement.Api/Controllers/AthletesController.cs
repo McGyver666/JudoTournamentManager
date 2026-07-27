@@ -16,6 +16,7 @@ public sealed class AthletesController : ControllerBase
     private readonly IAthletesStore _athletesStore;
     private readonly IClubsStore _clubsStore;
     private readonly IDm4AthleteImportParser _dm4AthleteImportParser;
+    private readonly IDmfAthleteImportParser _dmfAthleteImportParser;
     private readonly ITournamentStore _tournamentStore;
 
     /// <summary>
@@ -25,15 +26,18 @@ public sealed class AthletesController : ControllerBase
         IAthletesStore athletesStore,
         IClubsStore clubsStore,
         IDm4AthleteImportParser dm4AthleteImportParser,
+        IDmfAthleteImportParser dmfAthleteImportParser,
         ITournamentStore tournamentStore)
     {
         ArgumentNullException.ThrowIfNull(athletesStore);
         ArgumentNullException.ThrowIfNull(clubsStore);
         ArgumentNullException.ThrowIfNull(dm4AthleteImportParser);
+        ArgumentNullException.ThrowIfNull(dmfAthleteImportParser);
         ArgumentNullException.ThrowIfNull(tournamentStore);
         _athletesStore = athletesStore;
         _clubsStore = clubsStore;
         _dm4AthleteImportParser = dm4AthleteImportParser;
+        _dmfAthleteImportParser = dmfAthleteImportParser;
         _tournamentStore = tournamentStore;
     }
 
@@ -256,6 +260,59 @@ public sealed class AthletesController : ControllerBase
     }
 
     /// <summary>
+    /// Imports athletes from a file and auto-detects DM4 or DMF format.
+    /// Use <c>?allowDuplicate=true</c> to bypass duplicate name/birth year/club checks.
+    /// </summary>
+    [Authorize(Roles = "Admin,Operator")]
+    [HttpPost("import/file")]
+    [ProducesResponseType(typeof(IReadOnlyList<Athlete>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<IReadOnlyList<Athlete>>> ImportFromFileAsync(
+        Guid tournamentId,
+        [FromForm] IFormFile? file,
+        [FromQuery] bool allowDuplicate = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await TournamentExistsAsync(tournamentId, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        if (file is null || file.Length == 0)
+        {
+            ModelState.AddModelError(nameof(file), "Es muss eine Importdatei hochgeladen werden.");
+            return ValidationProblem(ModelState);
+        }
+
+        byte[] fileBytes;
+        await using (var memoryStream = new MemoryStream())
+        {
+            await file.CopyToAsync(memoryStream, cancellationToken);
+            fileBytes = memoryStream.ToArray();
+        }
+
+        Dm4AthleteImportData parsed;
+        try
+        {
+            parsed = ParseAutoDetectedImport(fileBytes, file.FileName);
+        }
+        catch (Dm4ImportParseException ex)
+        {
+            ModelState.AddModelError(nameof(file), ex.Message);
+            return ValidationProblem(ModelState);
+        }
+        catch (DmfImportParseException ex)
+        {
+            ModelState.AddModelError(nameof(file), ex.Message);
+            return ValidationProblem(ModelState);
+        }
+
+        return await ImportParsedAthletesAsync(tournamentId, parsed, allowDuplicate, cancellationToken);
+    }
+
+    /// <summary>
     /// Imports athletes from an NWJV E-Melder DM4 file.
     /// The file must contain one club in <c>[Vereine]</c> and athlete rows in <c>[Teilnehmer]</c>.
     /// Use <c>?allowDuplicate=true</c> to bypass duplicate name/birth year/club checks.
@@ -307,6 +364,64 @@ public sealed class AthletesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
+        return await ImportParsedAthletesAsync(tournamentId, parsed, allowDuplicate, cancellationToken);
+    }
+
+    private Dm4AthleteImportData ParseAutoDetectedImport(ReadOnlyMemory<byte> fileBytes, string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+
+        if (string.Equals(extension, ".dm4", StringComparison.OrdinalIgnoreCase))
+        {
+            return _dm4AthleteImportParser.Parse(fileBytes);
+        }
+
+        if (string.Equals(extension, ".dmf", StringComparison.OrdinalIgnoreCase))
+        {
+            return _dmfAthleteImportParser.Parse(fileBytes, fileName);
+        }
+
+        if (LooksLikeDm4(fileBytes.Span))
+        {
+            return _dm4AthleteImportParser.Parse(fileBytes);
+        }
+
+        if (LooksLikeDmf(fileBytes.Span))
+        {
+            return _dmfAthleteImportParser.Parse(fileBytes, fileName);
+        }
+
+        throw new DmfImportParseException("Das Dateiformat konnte nicht erkannt werden. Unterstützt werden .dm4 und .dmf.");
+    }
+
+    private static bool LooksLikeDm4(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.IsEmpty)
+        {
+            return false;
+        }
+
+        var prefix = bytes.Length >= 80 ? bytes[..80] : bytes;
+        return prefix.Contains((byte)'[');
+    }
+
+    private static bool LooksLikeDmf(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length < 17)
+        {
+            return false;
+        }
+
+        var magic = "DiskMelderDataFile"u8;
+        return bytes[..magic.Length].SequenceEqual(magic);
+    }
+
+    private async Task<ActionResult<IReadOnlyList<Athlete>>> ImportParsedAthletesAsync(
+        Guid tournamentId,
+        Dm4AthleteImportData parsed,
+        bool allowDuplicate,
+        CancellationToken cancellationToken)
+    {
         var clubs = await _clubsStore.GetAllAsync(tournamentId, cancellationToken);
         var targetClub = clubs.FirstOrDefault(
             x => string.Equals(x.Name, parsed.ClubName, StringComparison.OrdinalIgnoreCase));
@@ -328,7 +443,7 @@ public sealed class AthletesController : ControllerBase
                 return Conflict(new ProblemDetails
                 {
                     Title = "Verein konnte nicht angelegt werden.",
-                    Detail = "Der Verein aus der DM4-Datei konnte nicht ermittelt oder angelegt werden.",
+                    Detail = "Der Verein aus der Importdatei konnte nicht ermittelt oder angelegt werden.",
                     Status = StatusCodes.Status409Conflict
                 });
             }
