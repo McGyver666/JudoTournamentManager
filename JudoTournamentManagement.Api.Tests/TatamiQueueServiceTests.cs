@@ -171,7 +171,7 @@ public sealed class TatamiQueueServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
-    public async Task GetQueue_ExcludesFightsWithUnassignedSlots()
+    public async Task GetQueue_IncludesAssignedFightsWithUnassignedSlots()
     {
         var db = CreateDatabasePath();
         Guid tid, cid, tatamiId;
@@ -197,9 +197,10 @@ public sealed class TatamiQueueServiceTests
         await using var ctx2 = CreateDbContext(db);
         var queue = await new TatamiQueueService(ctx2).GetQueueAsync(tid, tatamiId, CancellationToken.None);
 
-        // Final still has TBD athletes -> not playable -> queue empty.
-        Assert.Null(queue!.Current);
-        Assert.Empty(queue.Upcoming);
+        // Final still has TBD athletes, but once assigned to a tatami it must be visible.
+        Assert.NotNull(queue!.Current);
+        Assert.Equal(finalId, queue.Current!.Id);
+        Assert.Single(queue.Upcoming);
     }
 
     [Fact]

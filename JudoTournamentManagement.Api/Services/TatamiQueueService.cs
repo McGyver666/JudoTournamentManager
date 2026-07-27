@@ -6,7 +6,8 @@ namespace JudoTournamentManagement.Api.Services;
 
 /// <summary>
 /// SQLite-backed fight queue for a tatami (F-01).
-/// A fight is "playable" when it is in progress, or pending with both athletes assigned and is not a bye.
+/// Includes all active/assigned fights for the tatami, including pending fights with unresolved
+/// participants (n.n.), while keeping start-ready fights ahead of unresolved ones.
 /// </summary>
 public sealed class TatamiQueueService : ITatamiQueueService
 {
@@ -43,8 +44,9 @@ public sealed class TatamiQueueService : ITatamiQueueService
         // In-progress fights first, then ready pending fights. Pending fights honor a manual
         // queue order (QueueOrder) when set, falling back to bracket order (Round, FightNumber).
         var playable = records
-            .Where(IsPlayable)
+            .Where(IsQueueVisible)
             .OrderBy(f => f.Status == InProgress ? 0 : f.Status == Paused ? 1 : 2)
+            .ThenBy(f => f.Status == Pending && !IsReadyToStart(f) ? 1 : 0)
             .ThenBy(f => f.QueueOrder ?? int.MaxValue)
             .ThenBy(f => f.Round)
             .ThenBy(f => f.FightNumber)
@@ -60,10 +62,16 @@ public sealed class TatamiQueueService : ITatamiQueueService
             playable);
     }
 
-    private static bool IsPlayable(FightRecord f) =>
+    private static bool IsQueueVisible(FightRecord f) =>
         f.Status == InProgress
         || f.Status == Paused
-        || (f.Status == Pending && !f.IsBye && f.WhiteAthleteId is not null && f.BlueAthleteId is not null);
+        || (f.Status == Pending && !f.IsBye);
+
+    private static bool IsReadyToStart(FightRecord f) =>
+        f.Status == Pending
+        && !f.IsBye
+        && f.WhiteAthleteId is not null
+        && f.BlueAthleteId is not null;
 
     /// <summary>
     /// Computes whether the fight is currently in the golden-score overtime phase.
