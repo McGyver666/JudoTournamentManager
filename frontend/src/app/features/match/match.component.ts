@@ -97,6 +97,32 @@ export class MatchComponent implements OnInit, OnDestroy {
     return q.upcoming.filter((fight) => fight.id !== currentId);
   });
   protected readonly currentTimeLabel = computed(() => this.formatCurrentTime(this.nowEpochMs()));
+  protected readonly insufficientRestAthleteIds = computed(() => {
+    const nowMs = this.nowEpochMs();
+    const minimumGapSeconds = this.context.tournament()?.minimumRestBetweenFightsSeconds ?? 0;
+    const ids = new Set<string>();
+    if (minimumGapSeconds <= 0) {
+      return ids;
+    }
+
+    for (const athlete of this.athletes().values()) {
+      if (!athlete.lastFightEndedAtUtc) {
+        continue;
+      }
+
+      const endedAtMs = new Date(athlete.lastFightEndedAtUtc).getTime();
+      if (Number.isNaN(endedAtMs)) {
+        continue;
+      }
+
+      const elapsedSeconds = Math.floor((nowMs - endedAtMs) / 1000);
+      if (elapsedSeconds >= 0 && elapsedSeconds < minimumGapSeconds) {
+        ids.add(athlete.id);
+      }
+    }
+
+    return ids;
+  });
 
   private fightSub?: Subscription;
   private serverTimeSub?: Subscription;
@@ -424,24 +450,7 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   protected hasInsufficientRest(id: string | null): boolean {
     if (!id) return false;
-
-    const athlete = this.athletes().get(id);
-    if (!athlete?.lastFightEndedAtUtc) {
-      return false;
-    }
-
-    const minimumGapSeconds = this.context.tournament()?.minimumRestBetweenFightsSeconds ?? 0;
-    if (minimumGapSeconds <= 0) {
-      return false;
-    }
-
-    const endedAtMs = new Date(athlete.lastFightEndedAtUtc).getTime();
-    if (Number.isNaN(endedAtMs)) {
-      return false;
-    }
-
-    const elapsedSeconds = Math.floor((this.nowEpochMs() - endedAtMs) / 1000);
-    return elapsedSeconds >= 0 && elapsedSeconds < minimumGapSeconds;
+    return this.insufficientRestAthleteIds().has(id);
   }
 
   protected categoryName(id: string): string {
