@@ -566,6 +566,177 @@ public sealed class MatchServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task Confirm_DoubleElimination_PartialSourceResolution_PropagatesKnownSlot()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 8, BracketFormat.DoubleElimination);
+        }
+
+        var fights = await ReadFightsAsync(db, cid);
+        var target = fights
+            .Where(fight => fight.WhiteSourceFightId.HasValue
+                && fight.BlueSourceFightId.HasValue
+                && fight.WhiteSourceOutcome == FightSlotSourceOutcome.Winner.ToString()
+                && fight.BlueSourceOutcome == FightSlotSourceOutcome.Winner.ToString())
+            .Select(fight => new
+            {
+                Fight = fight,
+                WhiteSource = fights.Single(source => source.Id == fight.WhiteSourceFightId!.Value),
+                BlueSource = fights.Single(source => source.Id == fight.BlueSourceFightId!.Value),
+            })
+            .Where(candidate => candidate.WhiteSource.Status == FightStatus.Pending.ToString()
+                && candidate.BlueSource.Status == FightStatus.Pending.ToString()
+                && !candidate.WhiteSource.IsBye
+                && !candidate.BlueSource.IsBye)
+            .OrderBy(candidate => candidate.Fight.Round)
+            .ThenBy(candidate => candidate.Fight.FightNumber)
+            .First();
+
+        var chosenWinner = target.WhiteSource.WhiteAthleteId!.Value;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var service = CreateService(ctx);
+            await service.StartAsync(target.WhiteSource.Id, "T1", CancellationToken.None);
+            var result = await service.ConfirmResultAsync(target.WhiteSource.Id, chosenWinner, "T1", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        var updatedTarget = (await ReadFightsAsync(db, cid)).Single(fight => fight.Id == target.Fight.Id);
+        Assert.Equal(chosenWinner, updatedTarget.WhiteAthleteId);
+        Assert.Null(updatedTarget.BlueAthleteId);
+        Assert.Equal(FightStatus.Pending.ToString(), updatedTarget.Status);
+        Assert.False(updatedTarget.IsBye);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Confirm_DoubleElimination_BothSourcesResolved_PropagatesBothSlots()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 8, BracketFormat.DoubleElimination);
+        }
+
+        var fights = await ReadFightsAsync(db, cid);
+        var target = fights
+            .Where(fight => fight.WhiteSourceFightId.HasValue
+                && fight.BlueSourceFightId.HasValue
+                && fight.WhiteSourceOutcome == FightSlotSourceOutcome.Winner.ToString()
+                && fight.BlueSourceOutcome == FightSlotSourceOutcome.Winner.ToString())
+            .Select(fight => new
+            {
+                Fight = fight,
+                WhiteSource = fights.Single(source => source.Id == fight.WhiteSourceFightId!.Value),
+                BlueSource = fights.Single(source => source.Id == fight.BlueSourceFightId!.Value),
+            })
+            .Where(candidate => candidate.WhiteSource.Status == FightStatus.Pending.ToString()
+                && candidate.BlueSource.Status == FightStatus.Pending.ToString()
+                && !candidate.WhiteSource.IsBye
+                && !candidate.BlueSource.IsBye)
+            .OrderBy(candidate => candidate.Fight.Round)
+            .ThenBy(candidate => candidate.Fight.FightNumber)
+            .First();
+
+        var whiteWinner = target.WhiteSource.WhiteAthleteId!.Value;
+        var blueWinner = target.BlueSource.BlueAthleteId!.Value;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var service = CreateService(ctx);
+            await service.StartAsync(target.WhiteSource.Id, "T1", CancellationToken.None);
+            Assert.Equal(
+                MatchActionResult.Success,
+                await service.ConfirmResultAsync(target.WhiteSource.Id, whiteWinner, "T1", CancellationToken.None));
+
+            await service.StartAsync(target.BlueSource.Id, "T1", CancellationToken.None);
+            Assert.Equal(
+                MatchActionResult.Success,
+                await service.ConfirmResultAsync(target.BlueSource.Id, blueWinner, "T1", CancellationToken.None));
+        }
+
+        var updatedTarget = (await ReadFightsAsync(db, cid)).Single(fight => fight.Id == target.Fight.Id);
+        Assert.Equal(whiteWinner, updatedTarget.WhiteAthleteId);
+        Assert.Equal(blueWinner, updatedTarget.BlueAthleteId);
+        Assert.Equal(FightStatus.Pending.ToString(), updatedTarget.Status);
+        Assert.False(updatedTarget.IsBye);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Correct_DoubleElimination_SourceWinnerChange_RecalculatesDependentSlot()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 8, BracketFormat.DoubleElimination);
+        }
+
+        var fights = await ReadFightsAsync(db, cid);
+        var target = fights
+            .Where(fight => fight.WhiteSourceFightId.HasValue
+                && fight.BlueSourceFightId.HasValue
+                && fight.WhiteSourceOutcome == FightSlotSourceOutcome.Winner.ToString()
+                && fight.BlueSourceOutcome == FightSlotSourceOutcome.Winner.ToString())
+            .Select(fight => new
+            {
+                Fight = fight,
+                WhiteSource = fights.Single(source => source.Id == fight.WhiteSourceFightId!.Value),
+                BlueSource = fights.Single(source => source.Id == fight.BlueSourceFightId!.Value),
+            })
+            .Where(candidate => candidate.WhiteSource.Status == FightStatus.Pending.ToString()
+                && candidate.BlueSource.Status == FightStatus.Pending.ToString()
+                && !candidate.WhiteSource.IsBye
+                && !candidate.BlueSource.IsBye)
+            .OrderBy(candidate => candidate.Fight.Round)
+            .ThenBy(candidate => candidate.Fight.FightNumber)
+            .First();
+
+        var initialWhiteWinner = target.WhiteSource.WhiteAthleteId!.Value;
+        var correctedWhiteWinner = target.WhiteSource.BlueAthleteId!.Value;
+        var blueWinner = target.BlueSource.BlueAthleteId!.Value;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var service = CreateService(ctx);
+            await service.StartAsync(target.WhiteSource.Id, "T1", CancellationToken.None);
+            Assert.Equal(
+                MatchActionResult.Success,
+                await service.ConfirmResultAsync(target.WhiteSource.Id, initialWhiteWinner, "T1", CancellationToken.None));
+
+            await service.StartAsync(target.BlueSource.Id, "T1", CancellationToken.None);
+            Assert.Equal(
+                MatchActionResult.Success,
+                await service.ConfirmResultAsync(target.BlueSource.Id, blueWinner, "T1", CancellationToken.None));
+        }
+
+        var beforeCorrection = (await ReadFightsAsync(db, cid)).Single(fight => fight.Id == target.Fight.Id);
+        Assert.Equal(initialWhiteWinner, beforeCorrection.WhiteAthleteId);
+        Assert.Equal(blueWinner, beforeCorrection.BlueAthleteId);
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var result = await CreateService(ctx)
+                .CorrectResultAsync(target.WhiteSource.Id, correctedWhiteWinner, "Admin", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        var afterCorrection = (await ReadFightsAsync(db, cid)).Single(fight => fight.Id == target.Fight.Id);
+        Assert.Equal(correctedWhiteWinner, afterCorrection.WhiteAthleteId);
+        Assert.Equal(blueWinner, afterCorrection.BlueAthleteId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task Confirm_RoundRobin_DoesNotRewireFutureRounds()
     {
         var db = CreateDatabasePath();
