@@ -15,7 +15,7 @@ import { AuthStateService } from '../../core/auth-state.service';
 import { SideThemeService } from '../../core/side-theme.service';
 import { TimeService } from '../../core/time.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
-import { TournamentHubService } from '../../core/tournament-hub.service';
+import { CategoryFightsUpdatedEvent, TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 import {
   AdjustScoreRequest,
@@ -125,6 +125,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   });
 
   private fightSub?: Subscription;
+  private categoryFightsSub?: Subscription;
   private serverTimeSub?: Subscription;
   private reconnectSub?: Subscription;
   private querySub?: Subscription;
@@ -200,14 +201,33 @@ export class MatchComponent implements OnInit, OnDestroy {
     });
 
     this.fightSub = this.hub.fightUpdated$.subscribe(fight => {
+      const selectedTatamiId = this.selectedTatamiId();
+      if (!selectedTatamiId) {
+        return;
+      }
+
       const q = this.queue();
-      if (!q) return;
+      const isRelevantQueueFight = q
+        ? q.current?.id === fight.id || q.next?.id === fight.id || q.onDeck?.id === fight.id
+        : false;
+
+      // Completed fights can re-seed downstream fights where tatami assignment is not yet visible
+      // on the event payload. Force a queue refresh so the operator view re-sorts immediately.
+      if (fight.status === 'Completed') {
+        this.refreshQueue();
+        this.refreshAthletes();
+        return;
+      }
+
       // Refresh whenever an updated fight belongs to the selected tatami so queue reordering,
       // current/next/on-deck changes and score updates stay in sync across clients.
-      if (fight.tatamiId === this.selectedTatamiId()
-        || q.current?.id === fight.id || q.next?.id === fight.id || q.onDeck?.id === fight.id) {
+      if (fight.tatamiId === selectedTatamiId || isRelevantQueueFight) {
         this.refreshQueue();
       }
+    });
+
+    this.categoryFightsSub = this.hub.categoryFightsUpdated$.subscribe((evt) => {
+      this.handleCategoryFightsUpdated(evt);
     });
 
     this.serverTimeSub = this.hub.serverTimeSync$.subscribe((serverNowUtc) => {
@@ -222,10 +242,37 @@ export class MatchComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.querySub?.unsubscribe();
     this.fightSub?.unsubscribe();
+    this.categoryFightsSub?.unsubscribe();
     this.serverTimeSub?.unsubscribe();
     this.reconnectSub?.unsubscribe();
     this.stopTimer();
     this.stopHeaderClock();
+  }
+
+  private handleCategoryFightsUpdated(evt: CategoryFightsUpdatedEvent): void {
+    const tournamentId = this.context.tournamentId();
+    if (!tournamentId || !evt.tournamentId) {
+      return;
+    }
+
+    if (evt.tournamentId.toLowerCase() !== tournamentId.toLowerCase()) {
+      return;
+    }
+
+    this.refreshQueue();
+    this.refreshAthletes();
+  }
+
+  private refreshAthletes(): void {
+    const tid = this.context.tournamentId();
+    if (!tid) {
+      return;
+    }
+
+    this.api.getAthletes(tid).subscribe((athletes) => {
+      const map = new Map(athletes.map((a) => [a.id, a]));
+      this.athletes.set(map);
+    });
   }
 
   @HostListener('document:visibilitychange')
