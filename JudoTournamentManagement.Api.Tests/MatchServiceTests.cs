@@ -615,6 +615,66 @@ public sealed class MatchServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task Confirm_DoubleElimination_PartialSourceResolution_PreservesTatamiAssignment()
+    {
+        var db = CreateDatabasePath();
+        Guid tid, cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (tid, cid, _) = await SeedBracketAsync(ctx, 8, BracketFormat.DoubleElimination);
+        }
+
+        var fights = await ReadFightsAsync(db, cid);
+        var target = fights
+            .Where(fight => fight.WhiteSourceFightId.HasValue
+                && fight.BlueSourceFightId.HasValue
+                && fight.WhiteSourceOutcome == FightSlotSourceOutcome.Winner.ToString()
+                && fight.BlueSourceOutcome == FightSlotSourceOutcome.Winner.ToString())
+            .Select(fight => new
+            {
+                Fight = fight,
+                WhiteSource = fights.Single(source => source.Id == fight.WhiteSourceFightId!.Value),
+                BlueSource = fights.Single(source => source.Id == fight.BlueSourceFightId!.Value),
+            })
+            .Where(candidate => candidate.WhiteSource.Status == FightStatus.Pending.ToString()
+                && candidate.BlueSource.Status == FightStatus.Pending.ToString()
+                && !candidate.WhiteSource.IsBye
+                && !candidate.BlueSource.IsBye)
+            .OrderBy(candidate => candidate.Fight.Round)
+            .ThenBy(candidate => candidate.Fight.FightNumber)
+            .First();
+
+        Guid tatamiId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            var tatami = await new SqliteTatamisStore(ctx, NullLogger<SqliteTatamisStore>.Instance)
+                .CreateAsync(tid, "Tatami 1", 0, CancellationToken.None);
+            tatamiId = tatami.Id;
+
+            var assignResult = await CreateService(ctx)
+                .AssignTatamiAsync(target.Fight.Id, tatamiId, "Admin", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, assignResult);
+        }
+
+        var chosenWinner = target.WhiteSource.WhiteAthleteId!.Value;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var service = CreateService(ctx);
+            await service.StartAsync(target.WhiteSource.Id, "T1", CancellationToken.None);
+            var result = await service.ConfirmResultAsync(target.WhiteSource.Id, chosenWinner, "T1", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        var updatedTarget = (await ReadFightsAsync(db, cid)).Single(fight => fight.Id == target.Fight.Id);
+        Assert.Equal(chosenWinner, updatedTarget.WhiteAthleteId);
+        Assert.Null(updatedTarget.BlueAthleteId);
+        Assert.Equal(tatamiId, updatedTarget.TatamiId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task Confirm_DoubleElimination_BothSourcesResolved_PropagatesBothSlots()
     {
         var db = CreateDatabasePath();

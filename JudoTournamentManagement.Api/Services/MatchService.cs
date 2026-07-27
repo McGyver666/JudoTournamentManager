@@ -724,7 +724,6 @@ public sealed class MatchService : IMatchService
         fight.WinnerId = null;
         fight.IsBye = false;
         fight.Status = Pending;
-        fight.TatamiId = null;
         fight.WhiteScore = 0;
         fight.BlueScore = 0;
         fight.WhitePenalties = 0;
