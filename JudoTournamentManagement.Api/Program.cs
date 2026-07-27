@@ -8,6 +8,7 @@ using JudoTournamentManagement.Api.Hubs;
 using JudoTournamentManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -47,7 +48,12 @@ builder.Services.AddControllers(options => options.SuppressAsyncSuffixInActionNa
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseSqlite($"Data Source={databasePath}");
+    options.ConfigureWarnings(warnings =>
+        warnings.Log((RelationalEventId.CommandExecuted, LogLevel.Debug)));
+});
 builder.Services.AddAuthentication("BearerToken")
     .AddScheme<AuthenticationSchemeOptions, BearerTokenAuthenticationHandler>("BearerToken", _ => { });
 var authPermitLimit = builder.Environment.IsEnvironment("Testing") ? 10000 : 100;
