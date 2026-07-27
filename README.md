@@ -13,6 +13,7 @@ Already available:
 - local startup script
 - health endpoint
 - tournament, tatami, category, club, athlete, registration, draw and fight APIs
+- athlete file import via DM4 and DMF (with automatic format detection)
 - category assignment workflow (auto + manual)
 - assisted category generation workflow (preview + apply) with two strategies:
   - standard 2026 classes (source: `altersklassen_2026.md`)
@@ -359,6 +360,8 @@ are served at `/i18n/{lang}.json`.
 - `POST /api/tournaments/{tournamentId}/categories/generate/apply`
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/clubs`
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/athletes`
+- `POST /api/tournaments/{tournamentId}/athletes/import/file` (DM4/DMF upload, auto-detect)
+- `POST /api/tournaments/{tournamentId}/athletes/import/dm4` (DM4-specific compatibility route)
 
 - `GET/POST/DELETE /api/tournaments/{tournamentId}/registrations`
 - `POST /api/tournaments/{tournamentId}/registrations/auto-assign`

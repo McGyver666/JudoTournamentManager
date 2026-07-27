@@ -162,6 +162,7 @@ Story points are rough relative estimates.
 - Fields: first name, last name, birth year, gender, club, optional license ID.
 - Input validation enforced (required fields, formats).
 - Duplicate warning logic (name + birth year + club).
+- Athlete file import supports DM4 and DMF uploads.
 
 ### D-03 Registration to categories (P0, 5 SP) — ✅ Done
 **Story:** Als Admin möchte ich Athleten Klassen zuweisen, damit die Auslosung vorbereitet werden kann.  
