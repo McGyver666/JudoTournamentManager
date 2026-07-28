@@ -9,7 +9,7 @@ public sealed class Pbkdf2PasswordHasherService : IPasswordHasherService
 {
     private const int SaltSize = 16;
     private const int HashSize = 32;
-    private const int IterationCount = 210_000;
+    private const int IterationCount = 310_000;
 
     /// <inheritdoc />
     public (byte[] Hash, byte[] Salt, int Iterations) HashPassword(string password)
