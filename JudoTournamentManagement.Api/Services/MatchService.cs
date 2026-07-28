@@ -641,31 +641,38 @@ public sealed class MatchService : IMatchService
 
         foreach (var fight in fights
                      .Where(fight => fight.WhiteSourceFightId.HasValue || fight.BlueSourceFightId.HasValue)
-                     .OrderBy(fight => fight.FightNumber))
+                     .OrderBy(fight => fight.Round)
+                     .ThenBy(fight => fight.FightNumber))
         {
             bool whiteResolved = TryResolveDoubleEliminationSlot(
                 byId, fight.WhiteSourceFightId, fight.WhiteSourceOutcome, out var whiteAthleteId);
             bool blueResolved = TryResolveDoubleEliminationSlot(
                 byId, fight.BlueSourceFightId, fight.BlueSourceOutcome, out var blueAthleteId);
 
-            if (!whiteResolved || !blueResolved)
+            if (!whiteResolved && !blueResolved)
             {
                 ResetDerivedFight(fight);
                 continue;
             }
 
-            bool slotsChanged = fight.WhiteAthleteId != whiteAthleteId
-                || fight.BlueAthleteId != blueAthleteId;
-            if (slotsChanged)
+            var desiredWhiteAthleteId = whiteResolved ? whiteAthleteId : null;
+            var desiredBlueAthleteId = blueResolved ? blueAthleteId : null;
+
+            bool hasStaleAutoByeState = fight.IsBye && fight.Status == Completed;
+            bool slotsChanged = fight.WhiteAthleteId != desiredWhiteAthleteId
+                || fight.BlueAthleteId != desiredBlueAthleteId;
+            if (slotsChanged || hasStaleAutoByeState)
             {
                 ResetDerivedFight(fight);
-                fight.WhiteAthleteId = whiteAthleteId;
-                fight.BlueAthleteId = blueAthleteId;
+                fight.WhiteAthleteId = desiredWhiteAthleteId;
+                fight.BlueAthleteId = desiredBlueAthleteId;
+                fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
             }
 
-            if (whiteAthleteId is null || blueAthleteId is null)
+            // A bye can be auto-completed only once both sources are resolved and one side is empty.
+            if (whiteResolved && blueResolved && (desiredWhiteAthleteId is null || desiredBlueAthleteId is null))
             {
-                CompleteBye(fight, whiteAthleteId ?? blueAthleteId);
+                CompleteBye(fight, desiredWhiteAthleteId ?? desiredBlueAthleteId);
             }
         }
     }
@@ -717,7 +724,6 @@ public sealed class MatchService : IMatchService
         fight.WinnerId = null;
         fight.IsBye = false;
         fight.Status = Pending;
-        fight.TatamiId = null;
         fight.WhiteScore = 0;
         fight.BlueScore = 0;
         fight.WhitePenalties = 0;
@@ -741,7 +747,7 @@ public sealed class MatchService : IMatchService
         fight.IsBye = true;
         fight.Status = Completed;
         fight.WinnerId = winnerId;
-        fight.CompletedAtUtc = null;
+        fight.CompletedAtUtc = DateTimeOffset.UtcNow;
         fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 
