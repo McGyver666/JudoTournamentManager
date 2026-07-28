@@ -643,7 +643,7 @@ export class ConfigComponent implements OnInit {
     input.click();
   }
 
-  protected importAthletesFromDm4(event: Event, allowDuplicate = false): void {
+  protected importAthletesFromFile(event: Event, allowDuplicate = false): void {
     if (!this.canOperate()) {
       return;
     }
@@ -659,7 +659,8 @@ export class ConfigComponent implements OnInit {
       return;
     }
 
-    if (!file.name.toLowerCase().endsWith('.dm4')) {
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.dm4') && !lowerName.endsWith('.dmf')) {
       this.error.set(this.i18n.translate('athletes.importInvalidExtension'));
       this.athleteImportInfo.set(null);
       input.value = '';
@@ -669,7 +670,7 @@ export class ConfigComponent implements OnInit {
     this.error.set(null);
     this.athleteImportInfo.set(null);
 
-    this.api.importAthletesFromDm4(id, file, allowDuplicate).subscribe({
+    this.api.importAthletesFromFile(id, file, allowDuplicate).subscribe({
       next: (created) => {
         this.athleteImportInfo.set(
           this.i18n.translate('athletes.importSuccess', { count: created.length }),
@@ -681,7 +682,7 @@ export class ConfigComponent implements OnInit {
       error: (err: unknown) => {
         if (this.isConflict(err)) {
           if (confirm(this.i18n.translate('athletes.importDuplicateConfirm'))) {
-            this.importAthletesFromDm4(event, true);
+            this.importAthletesFromFile(event, true);
             return;
           }
 

@@ -13,6 +13,7 @@ Bereits verfuegbar:
 - lokales Startskript
 - Health-Endpunkt
 - APIs fuer Turniere, Tatamis, Kategorien, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
+- Athleten-Dateiimport ueber DM4 und DMF (mit automatischer Formaterkennung)
 - Ablauf zur Kategoriezuordnung (automatisch und manuell)
 - unterstuetzte Kategoriegenerierung (Vorschau und Anwenden) mit zwei Strategien:
   - Standardklassen 2026 (Quelle: `altersklassen_2026.md`)
@@ -355,6 +356,8 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `POST /api/tournaments/{tournamentId}/categories/generate/apply`
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/clubs`
 - `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/athletes`
+- `POST /api/tournaments/{tournamentId}/athletes/import/file` (DM4/DMF-Upload, automatische Erkennung)
+- `POST /api/tournaments/{tournamentId}/athletes/import/dm4` (DM4-spezifische Kompatibilitaetsroute)
 
 - `GET/POST/DELETE /api/tournaments/{tournamentId}/registrations`
 - `POST /api/tournaments/{tournamentId}/registrations/auto-assign`

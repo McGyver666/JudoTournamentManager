@@ -13,6 +13,16 @@ describe('DisplayComponent', () => {
   let fightUpdates: Subject<Fight>;
   let serverTimeSync: Subject<string>;
   let reconnected: Subject<void>;
+  let apiCalls: {
+    getTournament: jasmine.Spy;
+    getAthletes: jasmine.Spy;
+    getClubs: jasmine.Spy;
+    getCategories: jasmine.Spy;
+    getTatamis: jasmine.Spy;
+    getTatamiQueue: jasmine.Spy;
+    getFights: jasmine.Spy;
+    getCategoryStandings: jasmine.Spy;
+  };
 
   function createFight(overrides: Partial<Fight> = {}): Fight {
     return {
@@ -33,6 +43,7 @@ describe('DisplayComponent', () => {
       isBye: false,
       status: 'InProgress',
       tatamiId: 'tatami-1',
+      queueOrder: null,
       whiteScore: 0,
       blueScore: 0,
       whitePenalties: 0,
@@ -72,17 +83,24 @@ describe('DisplayComponent', () => {
     serverTimeSync = new Subject<string>();
     reconnected = new Subject<void>();
 
+    apiCalls = {
+      getTournament: jasmine.createSpy('getTournament').and.returnValue(of({ name: 'Testturnier' })),
+      getAthletes: jasmine.createSpy('getAthletes').and.returnValue(of([])),
+      getClubs: jasmine.createSpy('getClubs').and.returnValue(of([])),
+      getCategories: jasmine.createSpy('getCategories').and.returnValue(of([])),
+      getTatamis: jasmine.createSpy('getTatamis').and.returnValue(of([])),
+      getTatamiQueue: jasmine.createSpy('getTatamiQueue').and.returnValue(of({ current: null, upcoming: [] })),
+      getFights: jasmine.createSpy('getFights').and.returnValue(of([])),
+      getCategoryStandings: jasmine.createSpy('getCategoryStandings').and.returnValue(of([])),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         {
           provide: ApiService,
           useValue: {
             getServerTime: () => of({ serverTimeUtc: new Date().toISOString() }),
-            getTournament: () => of({ name: 'Testturnier' }),
-            getAthletes: () => of([]),
-            getClubs: () => of([]),
-            getCategories: () => of([]),
-            getTatamis: () => of([]),
+            ...apiCalls,
           },
         },
         {
@@ -180,6 +198,33 @@ describe('DisplayComponent', () => {
     fightUpdates.next(resumedFight);
 
     expect((fixture.componentInstance as any).hasPersistedOsaeKomi(resumedFight)).toBeFalse();
+
+    fixture.destroy();
+  });
+
+  it('refreshes the tournament view when a fight is completed', () => {
+    apiCalls.getTatamis.and.returnValue(of([createTatami()]));
+    apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight(), upcoming: [] }));
+
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: {
+        paramMap: of(convertToParamMap({})),
+        queryParamMap: of(convertToParamMap({ tournamentId: 'tournament-1' })),
+      },
+    });
+
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    expect(apiCalls.getTatamiQueue).toHaveBeenCalledTimes(1);
+    expect(apiCalls.getCategories).toHaveBeenCalledTimes(1);
+    expect(apiCalls.getFights).not.toHaveBeenCalled();
+
+    fightUpdates.next(createFight({ status: 'Completed', completedAtUtc: new Date().toISOString() }));
+
+    expect(apiCalls.getTatamiQueue).toHaveBeenCalledTimes(2);
+    expect(apiCalls.getCategories).toHaveBeenCalledTimes(2);
+    expect(apiCalls.getFights).toHaveBeenCalledTimes(0);
 
     fixture.destroy();
   });
