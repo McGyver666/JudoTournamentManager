@@ -223,7 +223,7 @@ describe('DisplayComponent', () => {
     fightUpdates.next(createFight({ status: 'Completed', completedAtUtc: new Date().toISOString() }));
 
     expect(apiCalls.getTatamiQueue).toHaveBeenCalledTimes(2);
-    expect(apiCalls.getCategories).toHaveBeenCalledTimes(2);
+    expect(apiCalls.getCategories).toHaveBeenCalledTimes(1);
     expect(apiCalls.getFights).toHaveBeenCalledTimes(0);
 
     fixture.destroy();

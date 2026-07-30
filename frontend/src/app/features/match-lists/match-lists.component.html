@@ -1,0 +1,297 @@
+<div class="match-lists-page">
+  <header class="match-lists-header">
+    <h1 class="tournament-title">{{ tournamentName() }}</h1>
+    <div class="match-lists-meta">
+      @if (!hubConnected()) {
+        <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
+      }
+    </div>
+  </header>
+
+  @if (!tournamentId()) {
+    <p class="info-hint">{{ 'display.noTournamentParam' | t }}</p>
+  } @else {
+    <section class="all-matches-section">
+      <div class="all-matches-header-row">
+        <h2 class="all-matches-title">{{ 'display.matchListsTitle' | t }}</h2>
+      </div>
+
+      @if (allMatchesLoading()) {
+        <p class="info-hint">{{ 'common.loading' | t }}</p>
+      } @else if (allMatchesError()) {
+        <p class="info-hint">{{ allMatchesError() }}</p>
+      } @else if (categoriesWithFights().length === 0) {
+        <p class="info-hint">{{ 'display.noMatches' | t }}</p>
+      } @else {
+        <div class="all-categories-list">
+          @for (cat of categoriesWithFights(); track cat.id) {
+            <article class="match-category-card">
+              <header class="match-category-header">
+                <h3 class="match-category-name">{{ cat.name }}</h3>
+                <span class="match-category-count">{{ fightsForCategory(cat.id).length }} {{ 'draw.fightsCount' | t }}</span>
+              </header>
+
+              @if (isCategoryPureRoundRobin(cat)) {
+                @if (allStandingsForCategory(cat.id).length > 0) {
+                  <div class="standings-wrap">
+                    <h4 class="round-title">{{ 'draw.standings' | t }}</h4>
+                    <table class="standings-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>{{ 'draw.athlete' | t }}</th>
+                          <th>{{ 'draw.standingsWins' | t }}</th>
+                          <th>{{ 'draw.standingsWazaAri' | t }}</th>
+                          <th>{{ 'draw.standingsYuko' | t }}</th>
+                          <th>{{ 'draw.standingsShidos' | t }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (s of allStandingsForCategory(cat.id); track s.athleteId) {
+                          <tr>
+                            <td>{{ s.rank }}</td>
+                            <td>
+                              <div>{{ s.athleteName }}</div>
+                              <div class="slot-club">{{ s.clubName }}</div>
+                            </td>
+                            <td>{{ s.wins }}</td>
+                            <td>{{ s.wazaAriScored }}</td>
+                            <td>{{ s.yukoScored }}</td>
+                            <td>{{ s.shidos }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                <div class="rounds-grid">
+                  @for (group of roundRobinMainRoundsForCategory(cat.id); track group.round) {
+                    <section class="round-block">
+                      <h5 class="round-title">{{ 'draw.round' | t: { n: group.round } }}</h5>
+                      <div class="fights-list">
+                        @for (f of group.fights; track f.id) {
+                          <div class="fight">
+                            <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                            <div class="slot white" [class.placeholder]="isPlaceholderSlot(f.whiteAthleteId, f.isBye, cat.id, f, 'white')" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
+                              @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                            <div class="slot blue" [class.placeholder]="isPlaceholderSlot(f.blueAthleteId, f.isBye, cat.id, f, 'blue')" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
+                              @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </section>
+                  }
+                </div>
+              } @else if (isCategoryRoundRobinWithKnockout(cat)) {
+                @for (poolGroup of roundRobinPoolGroupsForCategory(cat.id); track poolGroup.pool) {
+                  <section class="pool-block">
+                    <h4 class="round-title">{{ 'draw.pool' | t }} {{ poolGroup.pool }}</h4>
+
+                    @if (standingsForPool(cat.id, poolGroup.pool).length > 0) {
+                      <table class="standings-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>{{ 'draw.athlete' | t }}</th>
+                            <th>{{ 'draw.standingsWins' | t }}</th>
+                            <th>{{ 'draw.standingsWazaAri' | t }}</th>
+                            <th>{{ 'draw.standingsYuko' | t }}</th>
+                            <th>{{ 'draw.standingsShidos' | t }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (s of standingsForPool(cat.id, poolGroup.pool); track s.athleteId) {
+                            <tr>
+                              <td>{{ s.rank }}</td>
+                              <td>
+                                <div>{{ s.athleteName }}</div>
+                                <div class="slot-club">{{ s.clubName }}</div>
+                              </td>
+                              <td>{{ s.wins }}</td>
+                              <td>{{ s.wazaAriScored }}</td>
+                              <td>{{ s.yukoScored }}</td>
+                              <td>{{ s.shidos }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+
+                    <div class="rounds-grid">
+                      @for (group of poolGroup.rounds; track group.round) {
+                        <section class="round-block">
+                          <h5 class="round-title">{{ 'draw.round' | t: { n: group.round } }}</h5>
+                          <div class="fights-list">
+                            @for (f of group.fights; track f.id) {
+                              <div class="fight">
+                                <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                                <div class="slot white" [class.placeholder]="isPlaceholderSlot(f.whiteAthleteId, f.isBye, cat.id, f, 'white')" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
+                                  @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                                <div class="slot blue" [class.placeholder]="isPlaceholderSlot(f.blueAthleteId, f.isBye, cat.id, f, 'blue')" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
+                                  @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </section>
+                      }
+                    </div>
+                  </section>
+                }
+
+                @if (roundRobinMainRoundsForCategory(cat.id).length > 0) {
+                  <section class="ko-phase-block">
+                    <h4 class="round-title">{{ 'draw.knockoutPhase' | t }}</h4>
+                    <div class="bracket-shell">
+                      <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                        <svg
+                          class="bracket-connectors"
+                          [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                          [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                          [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                          preserveAspectRatio="none">
+                          @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                            <path [attr.d]="path.d" />
+                          }
+                        </svg>
+                        @for (group of roundRobinMainRoundsForCategory(cat.id); track group.round) {
+                          <div class="round">
+                            <h4>{{ 'draw.round' | t: { n: group.round } }}</h4>
+                            @for (f of group.fights; track f.id) {
+                              <div class="fight"
+                                [attr.data-fight-id]="f.id"
+                                [attr.data-round]="f.round"
+                                [attr.data-fight-number]="f.fightNumber"
+                                [attr.data-bracket-type]="f.bracketType">
+                                <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                                <div class="slot white" [class.placeholder]="isPlaceholderSlot(f.whiteAthleteId, f.isBye, cat.id, f, 'white')" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
+                                  @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                                <div class="slot blue" [class.placeholder]="isPlaceholderSlot(f.blueAthleteId, f.isBye, cat.id, f, 'blue')" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
+                                  @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </section>
+                }
+              } @else {
+                <div class="bracket-shell">
+                  <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Main')" (scroll)="onBracketScrolled()">
+                    <svg
+                      class="bracket-connectors"
+                      [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Main'))"
+                      [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Main'))"
+                      [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Main'))"
+                      preserveAspectRatio="none">
+                      @for (path of connectorPaths(cat.id, 'Main'); track path.id) {
+                        <path [attr.d]="path.d" />
+                      }
+                    </svg>
+                    @for (group of mainRoundsForCategory(cat.id); track group.round) {
+                      <div class="round">
+                        <h4>{{ 'draw.round' | t: { n: group.round } }}</h4>
+                        @for (f of group.fights; track f.id) {
+                          <div class="fight"
+                            [attr.data-fight-id]="f.id"
+                            [attr.data-round]="f.round"
+                            [attr.data-fight-number]="f.fightNumber"
+                            [attr.data-bracket-type]="f.bracketType">
+                            <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                            <div class="slot white" [class.placeholder]="isPlaceholderSlot(f.whiteAthleteId, f.isBye, cat.id, f, 'white')" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
+                              @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                            <div class="slot blue" [class.placeholder]="isPlaceholderSlot(f.blueAthleteId, f.isBye, cat.id, f, 'blue')" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                              <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
+                              @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                <div class="slot-club">{{ clubName }}</div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (repechageRoundsForCategory(cat.id).length > 0) {
+                  <section class="pool-block">
+                    <h4 class="round-title">{{ 'draw.repechageSection' | t }}</h4>
+                    <div class="bracket-shell">
+                      <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Repechage')" (scroll)="onBracketScrolled()">
+                        <svg
+                          class="bracket-connectors"
+                          [attr.width]="connectorSvgWidth(connectorContainerId(cat.id, 'Repechage'))"
+                          [attr.height]="connectorSvgHeight(connectorContainerId(cat.id, 'Repechage'))"
+                          [attr.viewBox]="connectorSvgViewBox(connectorContainerId(cat.id, 'Repechage'))"
+                          preserveAspectRatio="none">
+                          @for (path of connectorPaths(cat.id, 'Repechage'); track path.id) {
+                            <path [attr.d]="path.d" />
+                          }
+                        </svg>
+                        @for (group of repechageRoundsForCategory(cat.id); track group.round) {
+                          <div class="round">
+                            <h5>{{ 'draw.round' | t: { n: group.round } }}</h5>
+                            @for (f of group.fights; track f.id) {
+                              <div class="fight"
+                                [attr.data-fight-id]="f.id"
+                                [attr.data-round]="f.round"
+                                [attr.data-fight-number]="f.fightNumber"
+                                [attr.data-bracket-type]="f.bracketType">
+                                <div class="fight-no">{{ 'draw.fight' | t: { n: f.fightNumber } }}</div>
+                                <div class="slot white" [class.placeholder]="isPlaceholderSlot(f.whiteAthleteId, f.isBye, cat.id, f, 'white')" [class.winner]="f.winnerId && f.winnerId === f.whiteAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.whiteAthleteId, f.isBye, cat.id, f, 'white') }}</div>
+                                  @if (drawAthleteClubName(f.whiteAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                                <div class="slot blue" [class.placeholder]="isPlaceholderSlot(f.blueAthleteId, f.isBye, cat.id, f, 'blue')" [class.winner]="f.winnerId && f.winnerId === f.blueAthleteId">
+                                  <div class="slot-name">{{ drawAthleteName(f.blueAthleteId, f.isBye, cat.id, f, 'blue') }}</div>
+                                  @if (drawAthleteClubName(f.blueAthleteId, f.isBye); as clubName) {
+                                    <div class="slot-club">{{ clubName }}</div>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </section>
+                }
+              }
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>

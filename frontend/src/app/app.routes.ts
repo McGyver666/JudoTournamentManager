@@ -61,6 +61,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/display/display.component').then((m) => m.DisplayComponent),
   },
   {
+    path: 'display/match-lists',
+    canActivate: [requireDisplayGuard],
+    loadComponent: () =>
+      import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
+  },
+  {
     path: 'display/tatami/:tatamiId',
     canActivate: [requireDisplayGuard],
     loadComponent: () => import('./features/display/display.component').then((m) => m.DisplayComponent),
