@@ -244,6 +244,33 @@
 	margin: 0;
 }
 
+.qr-share-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: .75rem;
+}
+
+.qr-share-code {
+	display: flex;
+	justify-content: center;
+	width: 100%;
+}
+
+.qr-share-code :is(svg, img) {
+	width: 100%;
+	height: auto;
+	max-width: 220px;
+}
+
+.qr-share-hint {
+	margin: 0;
+	font-size: .88rem;
+	color: #40566f;
+	line-height: 1.35;
+}
+
 @media (max-width:700px) {
 	.display-page {padding: .9rem; border-radius: 10px;}
 	.display-header {flex-direction:column;align-items:flex-start;gap:.65rem}

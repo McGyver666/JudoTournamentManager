@@ -216,6 +216,16 @@
           }
         </div>
       }
+
+      @if (guestShareQr(); as qr) {
+        <div class="tatami-card qr-share-card">
+          <div class="tatami-card-header">
+            <h2 class="tatami-name">{{ 'display.qrShareTitle' | t }}</h2>
+          </div>
+          <div class="qr-share-code" [innerHTML]="qr"></div>
+          <p class="qr-share-hint">{{ 'display.qrShareHint' | t }}</p>
+        </div>
+      }
     </div>
 
     <section class="active-categories-section">

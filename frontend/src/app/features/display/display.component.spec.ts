@@ -100,6 +100,17 @@ describe('DisplayComponent', () => {
           provide: ApiService,
           useValue: {
             getServerTime: () => of({ serverTimeUtc: new Date().toISOString() }),
+            getGuestShare: () =>
+              of({
+                tournamentId: 'tournament-1',
+                exists: false,
+                isEnabled: false,
+                isActive: false,
+                token: null,
+                expiresAtUtc: null,
+                publicUrl: null,
+              }),
+            getGuestShareQr: () => of(''),
             ...apiCalls,
           },
         },

@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { combineLatest, Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { SideThemeService } from '../../core/side-theme.service';
@@ -37,6 +38,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private readonly hub = inject(TournamentHubService);
   private readonly time = inject(TimeService);
   private readonly route = inject(ActivatedRoute);
+  private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly tournamentId = signal<string | null>(null);
   protected readonly tatamiModeTatamiId = signal<string | null>(null);
@@ -47,6 +49,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
   protected readonly clubs = signal<Map<string, Club>>(new Map());
   protected readonly categories = signal<Map<string, Category>>(new Map());
   protected readonly nowEpochMs = signal<number>(Date.now());
+  /** Inline SVG QR code for the public guest-share link, or null when the share is off. */
+  protected readonly guestShareQr = signal<SafeHtml | null>(null);
   protected readonly hubConnected = computed(() => this.hub.connected());
   protected readonly isTatamiMode = computed(() => this.tatamiModeTatamiId() !== null);
   private readonly persistedOsaeKomiMap = new Map<string, { seconds: number; side: FightSide; clearOnResume: boolean }>();
@@ -71,6 +75,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
   private querySub?: Subscription;
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private lastTatamiQueueRefreshAt = 0;
+  private lastGuestShareRefreshAt = 0;
   private lastClockResyncCheckAtMs = 0;
   private tatamiQueueRefreshInFlight = false;
 
@@ -127,6 +132,11 @@ export class DisplayComponent implements OnInit, OnDestroy {
         this.lastTatamiQueueRefreshAt = now;
         this.refreshCurrentTatamiQueue(tid);
       }
+
+      if (tid && !this.isTatamiMode() && now - this.lastGuestShareRefreshAt >= 15_000) {
+        this.lastGuestShareRefreshAt = now;
+        this.refreshGuestShare(tid);
+      }
     }, 100);
   }
 
@@ -157,6 +167,33 @@ export class DisplayComponent implements OnInit, OnDestroy {
     });
     this.loadCategories(tid);
     this.refreshQueues(tid);
+    this.refreshGuestShare(tid);
+  }
+
+  /**
+   * Loads the public guest-share QR code for the tournament overview. The QR box is only
+   * shown when the share is currently active; in single-tatami mode it is never shown.
+   */
+  private refreshGuestShare(tid: string): void {
+    if (this.isTatamiMode()) {
+      this.guestShareQr.set(null);
+      return;
+    }
+
+    this.api.getGuestShare(tid).subscribe({
+      next: (state) => {
+        if (!state.isActive) {
+          this.guestShareQr.set(null);
+          return;
+        }
+
+        this.api.getGuestShareQr(tid).subscribe({
+          next: (svg) => this.guestShareQr.set(this.sanitizer.bypassSecurityTrustHtml(svg)),
+          error: () => this.guestShareQr.set(null),
+        });
+      },
+      error: () => this.guestShareQr.set(null),
+    });
   }
 
   @HostListener('document:visibilitychange')

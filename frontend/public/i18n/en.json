@@ -380,6 +380,8 @@
   "display.activeCategoriesTitle": "Active categories per tatami",
   "display.activeCategoriesCount": "{n} active categories",
   "display.noActiveCategories": "No active categories",
+  "display.qrShareTitle": "Public access",
+  "display.qrShareHint": "Find all match lists here.",
 
   "results.title": "Results",
   "results.print": "Print",

@@ -9,11 +9,13 @@ namespace JudoTournamentManagement.Api.Controllers;
 
 /// <summary>
 /// Management endpoints for a tournament's anonymous guest share (enable, disable,
-/// rotate, inspect, QR code). Restricted to Admin and Operator roles.
+/// rotate, inspect, QR code). Mutations are restricted to Admin and Operator roles;
+/// reading the current state and QR code is additionally allowed for the Display role
+/// so the tournament overview screen can render the public share QR.
 /// </summary>
 [ApiController]
 [Route("api/tournaments/{tournamentId:guid}/guest-share")]
-[Authorize(Roles = "Admin,Operator")]
+[Authorize]
 public sealed class GuestShareController : ControllerBase
 {
     private readonly IGuestShareService _guestShareService;
@@ -42,6 +44,7 @@ public sealed class GuestShareController : ControllerBase
     /// Returns the current guest-share state and shareable public URL.
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = "Admin,Operator,Display")]
     [ProducesResponseType(typeof(GuestShareResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GuestShareResponse>> GetAsync(
@@ -61,6 +64,7 @@ public sealed class GuestShareController : ControllerBase
     /// Creates the share (if absent) and switches it on, optionally with an auto-off expiry.
     /// </summary>
     [HttpPost("enable")]
+    [Authorize(Roles = "Admin,Operator")]
     [ProducesResponseType(typeof(GuestShareResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GuestShareResponse>> EnableAsync(
@@ -87,6 +91,7 @@ public sealed class GuestShareController : ControllerBase
     /// Switches the share off without discarding the token.
     /// </summary>
     [HttpPost("disable")]
+    [Authorize(Roles = "Admin,Operator")]
     [ProducesResponseType(typeof(GuestShareResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GuestShareResponse>> DisableAsync(
@@ -107,6 +112,7 @@ public sealed class GuestShareController : ControllerBase
     /// Generates a fresh token (invalidating the previous QR) and switches the share on.
     /// </summary>
     [HttpPost("rotate")]
+    [Authorize(Roles = "Admin,Operator")]
     [ProducesResponseType(typeof(GuestShareResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GuestShareResponse>> RotateAsync(
@@ -133,6 +139,7 @@ public sealed class GuestShareController : ControllerBase
     /// Returns the guest URL rendered as an SVG QR code. Requires an existing share.
     /// </summary>
     [HttpGet("qr")]
+    [Authorize(Roles = "Admin,Operator,Display")]
     [Produces("image/svg+xml")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
