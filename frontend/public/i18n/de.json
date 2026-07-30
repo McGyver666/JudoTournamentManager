@@ -382,6 +382,8 @@
   "display.activeCategoriesTitle": "Aktive Kategorien je Matte",
   "display.activeCategoriesCount": "{n} aktive Kategorien",
   "display.noActiveCategories": "Keine aktiven Kategorien",
+  "display.qrShareTitle": "Öffentliche Freigabe",
+  "display.qrShareHint": "Hier finden Sie alle Kampflisten.",
 
   "results.title": "Ergebnisse",
   "results.print": "Drucken",
