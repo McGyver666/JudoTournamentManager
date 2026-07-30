@@ -14,6 +14,9 @@
     <button class="tab-btn" [class.active]="activeTab() === 'medals'" (click)="setTab('medals')">
       {{ 'results.tab.medals' | t }}
     </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'clubs'" (click)="setTab('clubs')">
+      {{ 'results.tab.clubScoring' | t }}
+    </button>
   </div>
 
   <!-- Rankings tab -->
@@ -85,6 +88,131 @@
             }
           </tbody>
         </table>
+      }
+    </div>
+  }
+
+  @if (activeTab() === 'clubs') {
+    <div class="clubs-section">
+      @if (clubScoringLoading()) {
+        <p class="loading-hint">{{ 'common.loading' | t }}</p>
+      } @else {
+        <section class="club-block">
+          <div class="club-header">
+            <h2>{{ 'results.clubScoring.byAgeGroup' | t }}</h2>
+          </div>
+
+          @if (ageGroupScoring().length === 0) {
+            <p class="info-hint">{{ 'results.noResults' | t }}</p>
+          } @else {
+            @for (group of ageGroupScoring(); track group.ageGroup) {
+              <article class="age-group-card">
+                <header class="age-group-header">
+                  <h3>{{ group.ageGroup }}</h3>
+                  <span class="status-badge" [class.status-badge--final]="group.status === 'Final'">
+                    {{ statusKey(group.status) | t }}
+                  </span>
+                </header>
+                <p class="progress-text">
+                  {{ 'results.clubScoring.progress' | t }}: {{ group.completedFights }} / {{ group.plannedFights }}
+                </p>
+
+                @if (group.clubs.length === 0) {
+                  <p class="info-hint">{{ 'results.noResults' | t }}</p>
+                } @else {
+                  <table class="club-table">
+                    <thead>
+                      <tr>
+                        <th class="col-place">{{ 'results.clubScoring.rank' | t }}</th>
+                        <th>{{ 'results.club' | t }}</th>
+                        <th class="num-col">1.</th>
+                        <th class="num-col">2.</th>
+                        <th class="num-col">3.</th>
+                        <th class="num-col">{{ 'results.clubScoring.basePoints' | t }}</th>
+                        <th class="num-col">{{ 'results.clubScoring.wins' | t }}</th>
+                        <th class="num-col">{{ 'results.clubScoring.fights' | t }}</th>
+                        <th class="num-col">{{ 'results.clubScoring.winRate' | t }}</th>
+                        <th class="num-col">{{ 'results.clubScoring.score' | t }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (entry of group.clubs; track entry.clubId) {
+                        <tr>
+                          <td class="col-place">{{ entry.rank }}.</td>
+                          <td>{{ entry.clubName }}</td>
+                          <td class="num-col">{{ entry.firstPlaces }}</td>
+                          <td class="num-col">{{ entry.secondPlaces }}</td>
+                          <td class="num-col">{{ entry.thirdPlaces }}</td>
+                          <td class="num-col">{{ entry.basePoints }}</td>
+                          <td class="num-col">{{ entry.wins }}</td>
+                          <td class="num-col">{{ entry.fights }}</td>
+                          <td class="num-col">{{ winRatePercent(entry) }}</td>
+                          <td class="num-col">{{ scoreValue(entry) }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </article>
+            }
+          }
+        </section>
+
+        <section class="club-block">
+          <div class="club-header">
+            <h2>{{ 'results.clubScoring.global' | t }}</h2>
+            @if (globalScoring(); as global) {
+              <span class="status-badge" [class.status-badge--final]="global.status === 'Final'">
+                {{ statusKey(global.status) | t }}
+              </span>
+            }
+          </div>
+
+          @if (globalScoring(); as global) {
+            <p class="progress-text">
+              {{ 'results.clubScoring.progress' | t }}: {{ global.completedFights }} / {{ global.plannedFights }}
+            </p>
+
+            @if (global.clubs.length === 0) {
+              <p class="info-hint">{{ 'results.noResults' | t }}</p>
+            } @else {
+              <table class="club-table">
+                <thead>
+                  <tr>
+                    <th class="col-place">{{ 'results.clubScoring.rank' | t }}</th>
+                    <th>{{ 'results.club' | t }}</th>
+                    <th class="num-col">1.</th>
+                    <th class="num-col">2.</th>
+                    <th class="num-col">3.</th>
+                    <th class="num-col">{{ 'results.clubScoring.basePoints' | t }}</th>
+                    <th class="num-col">{{ 'results.clubScoring.wins' | t }}</th>
+                    <th class="num-col">{{ 'results.clubScoring.fights' | t }}</th>
+                    <th class="num-col">{{ 'results.clubScoring.winRate' | t }}</th>
+                    <th class="num-col">{{ 'results.clubScoring.score' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (entry of global.clubs; track entry.clubId) {
+                    <tr>
+                      <td class="col-place">{{ entry.rank }}.</td>
+                      <td>{{ entry.clubName }}</td>
+                      <td class="num-col">{{ entry.firstPlaces }}</td>
+                      <td class="num-col">{{ entry.secondPlaces }}</td>
+                      <td class="num-col">{{ entry.thirdPlaces }}</td>
+                      <td class="num-col">{{ entry.basePoints }}</td>
+                      <td class="num-col">{{ entry.wins }}</td>
+                      <td class="num-col">{{ entry.fights }}</td>
+                      <td class="num-col">{{ winRatePercent(entry) }}</td>
+                      <td class="num-col">{{ scoreValue(entry) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          } @else {
+            <p class="info-hint">{{ 'results.noResults' | t }}</p>
+          }
+        </section>
       }
     </div>
   }

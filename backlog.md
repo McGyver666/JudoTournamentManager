@@ -347,6 +347,81 @@ Story points are rough relative estimates.
 - ✅ `README.md` und `README.de.md` beschreiben Freigabe-Workflow, TLS-Regel (öffentlich ⇒ TLS), Datensparsamkeit und Auto-Aus.
 - ✅ Beide Versionen strukturell/inhaltlich konsistent inkl. Sprach-Querverweise.
 
+### G-05 Vereinswertung pro Altersklasse und global (P1, 13 SP) — 🔜 Geplant
+**Story:** Als Turnierleitung möchte ich zusätzlich zu Ranglisten und Medaillenspiegel eine transparente Vereinswertung sehen, damit Teamleistung je Altersklasse und turnierweit nachvollziehbar vergleichbar ist.
+
+**Fachliche Leitregeln (Grilling-Ergebnis):**
+- Platzierungspunkte: 1. Platz = 7, 2. Platz = 5, 3. Platz = 3.
+- Zwei dritte Plätze zählen jeweils separat mit 3 Punkten.
+- Altersklassen-Endscore: Basispunkte x Siegquote der Altersklasse.
+- Globale Zusatzwertung: globale Basispunkte x globale Siegquote über das ganze Turnier.
+- Siegquote = gewonnene Kämpfe / absolvierte Kämpfe; Freilose zählen nicht als Kampf.
+- Sonderfall Nenner = 0: Siegquote = 0.0.
+- Interne Berechnung mit voller Präzision; Anzeige auf 2 Nachkommastellen.
+- Ranking erfolgt nach ungerundetem Wert; Gleichheit mit technischer Toleranz (1e-9).
+- Tie-break Reihenfolge: Endscore (ungerundet), Siegquote, Anzahl 1., Anzahl 2., Anzahl 3., sonst geteilter Rang.
+- Rangnummern bei Gleichstand im Wettbewerbsstil: 1, 2, 2, 4.
+- Athleten ohne Verein werden unter Sammelverein Ohne Verein geführt.
+
+#### G-05a Backend-Datenmodell und DTOs (P1, 3 SP)
+**Story:** Als System möchte ich strukturierte DTOs für Altersklassen- und Globalwertung bereitstellen, damit die Frontend-Anzeige vollständig und nachvollziehbar gerendert werden kann.
+**Acceptance Criteria:**
+- Neue Antwortmodelle für Vereinswertung enthalten mindestens: Verein, Rang, Status (Vorläufig/Final), Basispunkte, Siege, Kämpfe, Siegquote, Endscore (raw + display), Podestzähler (1/2/3).
+- Altersklassen-Antwort enthält zusätzlich Fortschritt (abgeschlossene Kämpfe vs geplante Kämpfe) und Altersklassen-Metadaten.
+- Alle gemeldeten Vereine erscheinen in der Liste, auch ohne Kämpfe oder mit 0.00.
+- API bleibt lokalisierungsfreundlich: keine fest verdrahteten UI-Texte in DTO-Feldern.
+
+#### G-05b RankingService-Erweiterung (P1, 3 SP)
+**Story:** Als System möchte ich Altersklassen- und Globalwertung aus den Turnierdaten berechnen, damit die Vereinsrangfolge jederzeit reproduzierbar ist.
+**Acceptance Criteria:**
+- Altersklassen-Siegquote nutzt nur Kämpfe der jeweiligen Altersklasse.
+- Globale Siegquote nutzt Kämpfe des gesamten Turniers.
+- Rechenlogik ignoriert Freilose vollständig in Zähler und Nenner.
+- Rechenlogik aktualisiert nach jedem beendeten Kampf (nicht nur nach Siegen).
+- Tie-break und Rangvergabe entsprechen exakt den Leitregeln inklusive geteilter Ränge.
+
+#### G-05c API-Endpunkte im Results-Bereich (P1, 2 SP)
+**Story:** Als Frontend möchte ich dedizierte Endpunkte für Vereinswertungen abrufen, damit die neue Ansicht unabhängig von Ranglisten/Medaillenspiegel geladen werden kann.
+**Acceptance Criteria:**
+- Neue autorisierte Endpunkte unter `api/tournaments/{id}` für:
+  - Vereinswertung je Altersklasse (eine Altersklasse oder alle Altersklassen),
+  - globale Vereinswertung.
+- 404 bei unbekanntem Turnier; 200 mit leerer, aber strukturierter Antwort bei noch fehlenden Kampfdaten.
+- Statuslabel-Logik:
+  - Altersklasse ist Final, sobald alle geplanten Kämpfe der Altersklasse beendet sind.
+  - Global ist Final, sobald alle geplanten Kämpfe aller Altersklassen beendet sind.
+
+#### G-05d Frontend-Ergebnisseite: dritter Tab Vereinswertung (P1, 3 SP)
+**Story:** Als Nutzer möchte ich im Ergebnisbereich einen dritten Tab Vereinswertung sehen, damit ich teambezogene Auswertungen direkt neben Ranglisten und Medaillenspiegel prüfen kann.
+**Acceptance Criteria:**
+- Results-Ansicht hat drei Tabs: Ranglisten, Medaillenspiegel, Vereinswertung.
+- Im Tab Vereinswertung werden zwei Blöcke untereinander angezeigt:
+  - Vereinswertung pro Altersklasse,
+  - globale Vereinswertung.
+- Je Block wird das Statuslabel Vorläufig/Final sichtbar angezeigt.
+- Je Altersklasse wird ein Fortschrittshinweis angezeigt: abgeschlossene Kämpfe vs geplant.
+- Darstellung der mittleren Rechentiefe pro Verein: Podestzähler 1/2/3, Basispunkte, Siege, Kämpfe, Siegquote, Endscore.
+- Deutsche Standardtexte mit i18n-Keys; englische Platzhalter ergänzen.
+
+#### G-05e Live-Aktualisierung und Konsistenz (P1, 1 SP)
+**Story:** Als Turnierleitung möchte ich, dass die Vereinswertung live den aktuellen Stand zeigt, damit die Anzeige jederzeit mit den Kampfergebnissen übereinstimmt.
+**Acceptance Criteria:**
+- Nach Abschluss eines Kampfes wird die Vereinswertung neu geladen oder per Event aktualisiert.
+- Vorläufig/Final-Status kippt automatisch bei Erreichen der Abschlussbedingungen.
+- Es wird keine manuelle Abschaltlogik für die Wertung benötigt.
+
+#### G-05f Tests (Unit + Integration + Frontend) (P1, 1 SP)
+**Story:** Als Team möchten wir die Wertungslogik und Anzeige automatisiert absichern, damit Regeländerungen keine unbemerkten fachlichen Regressionen auslösen.
+**Acceptance Criteria:**
+- Unit-Tests für Berechnung:
+  - Basispunkte inkl. zwei dritter Plätze,
+  - Siegquote ohne Freilos,
+  - Nenner=0 Verhalten,
+  - Tie-break Reihenfolge und geteilte Ränge (1,2,2,4).
+- Integrationstests für Endpunkte: Datenform, Autorisierung, Statuslabel, 404/200-Verhalten.
+- Frontend-Tests für neuen Tab und Kernfelder der Tabellen.
+- Neue Tests sind mit `Category=UnitTest` markiert (Backend) und im bestehenden Frontend-Testlauf enthalten.
+
 ---
 
 ## Epic H - Localization (German-First)
