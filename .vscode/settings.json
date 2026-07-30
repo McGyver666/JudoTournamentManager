@@ -8,6 +8,7 @@
         "dotnet build": true,
         "npx ng build": true,
         "Push-Location frontend; npx ng build": true,
-        "Pop-Location": true
+        "Pop-Location": true,
+        "npm run build": true
     }
 }

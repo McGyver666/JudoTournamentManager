@@ -91,6 +91,7 @@ public sealed class TournamentsController : ControllerBase
             request.OsaeKomiYukoSeconds,
             request.OsaeKomiYukoEnabled,
             request.MinimumRestBetweenFightsSeconds,
+            request.TwoThirdPlacesInRoundRobin,
             cancellationToken);
 
         var hydrated = await _tournamentStore.GetByIdAsync(created.Id, cancellationToken) ?? created;
@@ -129,6 +130,7 @@ public sealed class TournamentsController : ControllerBase
             request.OsaeKomiYukoSeconds,
             request.OsaeKomiYukoEnabled,
             request.MinimumRestBetweenFightsSeconds,
+            request.TwoThirdPlacesInRoundRobin,
             cancellationToken);
 
         return updated ? NoContent() : NotFound();

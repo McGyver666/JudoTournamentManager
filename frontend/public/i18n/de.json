@@ -63,6 +63,7 @@
   "tournaments.osaeKomiYukoSeconds": "Osae-komi Yuko (Sekunden)",
   "tournaments.osaeKomiYukoEnabled": "Yuko aktiviert",
   "tournaments.minimumRestBetweenFightsSeconds": "Mindestabstand zwischen zwei Kämpfen (Sekunden)",
+  "tournaments.twoThirdPlacesInRoundRobin": "Zwei dritte Plätze bei Jeder gegen Jeden",
 
   "share.action": "Gäste-Zugriff",
   "share.title": "Gäste-Zugriff (QR-Code)",

@@ -94,13 +94,22 @@ public sealed class RankingService : IRankingService
             if (!hasCompletedRealFight)
                 return Array.Empty<RankingEntry>();
 
+            var twoThirdPlaces = await _dbContext.Tournaments
+                .AsNoTracking()
+                .Where(t => t.Id == tournamentId)
+                .Select(t => t.TwoThirdPlacesInRoundRobin)
+                .FirstOrDefaultAsync(cancellationToken);
+
             var standings = await GetRoundRobinStandingsAsync(tournamentId, categoryId, cancellationToken);
+
+            // When two third places are awarded, the 4th-ranked athlete also receives bronze (place 3).
+            var placesToTake = twoThirdPlaces ? 4 : 3;
 
             return standings
                 .Where(s => s.PoolNumber == 0)
                 .OrderBy(s => s.Rank)
-                .Take(3)
-                .Select(s => new RankingEntry(s.Rank, s.AthleteId, s.AthleteName, s.ClubName))
+                .Take(placesToTake)
+                .Select(s => new RankingEntry(Math.Min(s.Rank, 3), s.AthleteId, s.AthleteName, s.ClubName))
                 .ToArray();
         }
 

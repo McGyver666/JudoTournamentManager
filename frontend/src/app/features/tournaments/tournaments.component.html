@@ -75,6 +75,12 @@
         <label>{{ 'tournaments.minimumRestBetweenFightsSeconds' | t }}</label>
         <input type="number" [(ngModel)]="form.minimumRestBetweenFightsSeconds" name="minimumRestBetweenFightsSeconds" min="0" max="3600" />
       </div>
+      <div>
+        <label>
+          <input type="checkbox" [(ngModel)]="form.twoThirdPlacesInRoundRobin" name="twoThirdPlacesInRoundRobin" />
+          {{ 'tournaments.twoThirdPlacesInRoundRobin' | t }}
+        </label>
+      </div>
     </div>
     <div class="form-actions">
       <button (click)="cancel()">{{ 'common.cancel' | t }}</button>
