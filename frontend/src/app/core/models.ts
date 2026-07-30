@@ -48,6 +48,7 @@ export interface Tournament {
   osaeKomiYukoSeconds: number;
   osaeKomiYukoEnabled: boolean;
   minimumRestBetweenFightsSeconds: number;
+  twoThirdPlacesInRoundRobin: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -63,6 +64,7 @@ export interface CreateTournamentRequest {
   osaeKomiYukoSeconds: number;
   osaeKomiYukoEnabled: boolean;
   minimumRestBetweenFightsSeconds: number;
+  twoThirdPlacesInRoundRobin: boolean;
 }
 
 export type UpdateTournamentRequest = CreateTournamentRequest;

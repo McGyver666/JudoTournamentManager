@@ -31,6 +31,7 @@ describe('MatchComponent', () => {
       osaeKomiYukoSeconds: 5,
       osaeKomiYukoEnabled: true,
       minimumRestBetweenFightsSeconds: 180,
+      twoThirdPlacesInRoundRobin: false,
       createdAtUtc: new Date().toISOString(),
       updatedAtUtc: new Date().toISOString(),
     };

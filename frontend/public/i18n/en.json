@@ -62,6 +62,7 @@
   "tournaments.osaeKomiYukoSeconds": "Osae-komi Yuko (seconds)",
   "tournaments.osaeKomiYukoEnabled": "Yuko enabled",
   "tournaments.minimumRestBetweenFightsSeconds": "Minimum rest between two fights (seconds)",
+  "tournaments.twoThirdPlacesInRoundRobin": "Two third places in round-robin",
 
   "share.action": "Guest access",
   "share.title": "Guest access (QR code)",

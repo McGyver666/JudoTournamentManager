@@ -50,6 +50,9 @@ public sealed class TournamentRecord
     /// <summary>Minimum required rest gap in seconds before an athlete should fight again.</summary>
     public int MinimumRestBetweenFightsSeconds { get; set; } = 180;
 
+    /// <summary>Whether two third places (bronze medals) are awarded in round-robin categories.</summary>
+    public bool TwoThirdPlacesInRoundRobin { get; set; }
+
     /// <summary>
     /// Creation timestamp in UTC.
     /// </summary>

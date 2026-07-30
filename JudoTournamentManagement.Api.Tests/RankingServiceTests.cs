@@ -370,6 +370,74 @@ public sealed class RankingServiceTests
     }
 
     [Fact]
+    public async Task GetCategoryRankings_RoundRobinWithTwoThirdPlacesEnabled_AwardsTwoBronze()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        var (tid, cid, _, athleteIds) = await SeedAsync(ctx, 4);
+
+        var category = await ctx.Categories.FirstAsync(c => c.Id == cid);
+        category.DrawFormat = BracketFormat.RoundRobin.ToString();
+
+        var tournament = await ctx.Tournaments.FirstAsync(t => t.Id == tid);
+        tournament.TwoThirdPlacesInRoundRobin = true;
+
+        var a0 = athleteIds[0]; // 3 wins
+        var a1 = athleteIds[1]; // 2 wins
+        var a2 = athleteIds[2]; // 1 win
+        var a3 = athleteIds[3]; // 0 wins
+
+        ctx.Fights.AddRange(
+            MakeRRFight(tid, cid, a0, a1, winner: a0, fightNumber: 1),
+            MakeRRFight(tid, cid, a0, a2, winner: a0, fightNumber: 2),
+            MakeRRFight(tid, cid, a0, a3, winner: a0, fightNumber: 3),
+            MakeRRFight(tid, cid, a1, a2, winner: a1, fightNumber: 4),
+            MakeRRFight(tid, cid, a1, a3, winner: a1, fightNumber: 5),
+            MakeRRFight(tid, cid, a2, a3, winner: a2, fightNumber: 6)
+        );
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetCategoryRankingsAsync(tid, cid, CancellationToken.None);
+
+        Assert.Equal(4, result.Count);
+        Assert.Equal((1, a0), (result[0].Place, result[0].AthleteId));
+        Assert.Equal((2, a1), (result[1].Place, result[1].AthleteId));
+        Assert.Equal((3, a2), (result[2].Place, result[2].AthleteId));
+        Assert.Equal((3, a3), (result[3].Place, result[3].AthleteId));
+    }
+
+    [Fact]
+    public async Task GetCategoryRankings_RoundRobinWithTwoThirdPlacesDisabled_AwardsSingleBronze()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        var (tid, cid, _, athleteIds) = await SeedAsync(ctx, 4);
+
+        var category = await ctx.Categories.FirstAsync(c => c.Id == cid);
+        category.DrawFormat = BracketFormat.RoundRobin.ToString();
+
+        var a0 = athleteIds[0]; // 3 wins
+        var a1 = athleteIds[1]; // 2 wins
+        var a2 = athleteIds[2]; // 1 win
+        var a3 = athleteIds[3]; // 0 wins
+
+        ctx.Fights.AddRange(
+            MakeRRFight(tid, cid, a0, a1, winner: a0, fightNumber: 1),
+            MakeRRFight(tid, cid, a0, a2, winner: a0, fightNumber: 2),
+            MakeRRFight(tid, cid, a0, a3, winner: a0, fightNumber: 3),
+            MakeRRFight(tid, cid, a1, a2, winner: a1, fightNumber: 4),
+            MakeRRFight(tid, cid, a1, a3, winner: a1, fightNumber: 5),
+            MakeRRFight(tid, cid, a2, a3, winner: a2, fightNumber: 6)
+        );
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetCategoryRankingsAsync(tid, cid, CancellationToken.None);
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal((3, a2), (result[2].Place, result[2].AthleteId));
+    }
+
+    [Fact]
     public async Task GetMedalTable_AggregatesAcrossCategories()
     {
         await using var ctx = CreateDbContext();
