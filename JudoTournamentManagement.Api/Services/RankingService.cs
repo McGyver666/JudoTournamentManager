@@ -12,6 +12,14 @@ public sealed class RankingService : IRankingService
 {
     private readonly AppDbContext _dbContext;
 
+    private const int FirstPlacePoints = 7;
+    private const int SecondPlacePoints = 5;
+    private const int ThirdPlacePoints = 3;
+    private const decimal TieBreakTolerance = 0.000000001m;
+    private const string ProvisionalStatus = "Provisional";
+    private const string FinalStatus = "Final";
+    private const string UnknownClubName = "Ohne Verein";
+
     private static readonly string MainType = FightBracketType.Main.ToString();
     private static readonly string RepechageType = FightBracketType.Repechage.ToString();
     private static readonly string GroupStageType = FightBracketType.GroupStage.ToString();
@@ -374,4 +382,419 @@ public sealed class RankingService : IRankingService
 
         return result;
     }
+
+    /// <inheritdoc />
+    public async Task<AgeGroupClubScoringResponse> GetAgeGroupClubScoringAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken)
+    {
+        var generatedAtUtc = DateTimeOffset.UtcNow;
+        var categories = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(c => c.TournamentId == tournamentId)
+            .Select(c => new { c.Id, c.AgeGroup })
+            .ToListAsync(cancellationToken);
+
+        if (categories.Count == 0)
+        {
+            return new AgeGroupClubScoringResponse(tournamentId, generatedAtUtc, Array.Empty<AgeGroupClubScoringItem>());
+        }
+
+        var categoryById = categories.ToDictionary(c => c.Id, c => c.AgeGroup);
+        var ageGroups = categories
+            .Select(c => c.AgeGroup)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var clubs = await _dbContext.Clubs
+            .AsNoTracking()
+            .Where(c => c.TournamentId == tournamentId)
+            .Select(c => new { c.Id, c.Name })
+            .ToListAsync(cancellationToken);
+        var clubNames = clubs.ToDictionary(c => c.Id, c => c.Name);
+
+        var athletes = await _dbContext.Athletes
+            .AsNoTracking()
+            .Where(a => a.TournamentId == tournamentId)
+            .Select(a => new { a.Id, a.ClubId })
+            .ToListAsync(cancellationToken);
+        var athleteClubIds = athletes.ToDictionary(a => a.Id, a => ResolveClubId(a.ClubId, clubNames));
+
+        var registeredClubPairs = await _dbContext.Registrations
+            .AsNoTracking()
+            .Where(r => r.TournamentId == tournamentId && r.CategoryId.HasValue)
+            .Join(
+                _dbContext.Categories.AsNoTracking(),
+                r => r.CategoryId!.Value,
+                c => c.Id,
+                (r, c) => new { c.AgeGroup, r.AthleteId })
+            .ToListAsync(cancellationToken);
+
+        var registeredClubsByAgeGroup = ageGroups.ToDictionary(
+            age => age,
+            _ => new HashSet<Guid>());
+
+        foreach (var pair in registeredClubPairs)
+        {
+            if (!registeredClubsByAgeGroup.TryGetValue(pair.AgeGroup, out var set))
+            {
+                continue;
+            }
+
+            if (athleteClubIds.TryGetValue(pair.AthleteId, out var clubId))
+            {
+                set.Add(clubId);
+            }
+        }
+
+        var podiumByAgeGroup = ageGroups.ToDictionary(
+            age => age,
+            _ => new Dictionary<Guid, (int first, int second, int third)>());
+
+        foreach (var category in categories)
+        {
+            var rankings = await GetCategoryRankingsAsync(tournamentId, category.Id, cancellationToken);
+            if (rankings.Count == 0)
+            {
+                continue;
+            }
+
+            var ageGroupPodium = podiumByAgeGroup[category.AgeGroup];
+            foreach (var ranking in rankings)
+            {
+                if (ranking.Place is < 1 or > 3)
+                {
+                    continue;
+                }
+
+                var clubId = athleteClubIds.TryGetValue(ranking.AthleteId, out var mappedClubId)
+                    ? mappedClubId
+                    : Guid.Empty;
+
+                var current = ageGroupPodium.TryGetValue(clubId, out var existing)
+                    ? existing
+                    : (0, 0, 0);
+                var updated = ranking.Place switch
+                {
+                    1 => (current.Item1 + 1, current.Item2, current.Item3),
+                    2 => (current.Item1, current.Item2 + 1, current.Item3),
+                    3 => (current.Item1, current.Item2, current.Item3 + 1),
+                    _ => current
+                };
+                ageGroupPodium[clubId] = updated;
+            }
+        }
+
+        var fights = await _dbContext.Fights
+            .AsNoTracking()
+            .Where(f => f.TournamentId == tournamentId && !f.IsBye)
+            .ToListAsync(cancellationToken);
+
+        var plannedByAgeGroup = ageGroups.ToDictionary(age => age, _ => 0);
+        var completedByAgeGroup = ageGroups.ToDictionary(age => age, _ => 0);
+        var winsByAgeGroup = ageGroups.ToDictionary(age => age, _ => new Dictionary<Guid, int>());
+        var fightsByAgeGroup = ageGroups.ToDictionary(age => age, _ => new Dictionary<Guid, int>());
+
+        foreach (var fight in fights)
+        {
+            if (!categoryById.TryGetValue(fight.CategoryId, out var ageGroup))
+            {
+                continue;
+            }
+
+            plannedByAgeGroup[ageGroup]++;
+
+            if (!string.Equals(fight.Status, CompletedStatus, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            completedByAgeGroup[ageGroup]++;
+            CountFightParticipant(fightsByAgeGroup[ageGroup], fight.WhiteAthleteId, athleteClubIds);
+            CountFightParticipant(fightsByAgeGroup[ageGroup], fight.BlueAthleteId, athleteClubIds);
+            CountFightWinner(winsByAgeGroup[ageGroup], fight.WinnerId, athleteClubIds);
+        }
+
+        var items = new List<AgeGroupClubScoringItem>();
+        foreach (var ageGroup in ageGroups)
+        {
+            var candidateClubIds = new HashSet<Guid>(registeredClubsByAgeGroup[ageGroup]);
+            candidateClubIds.UnionWith(podiumByAgeGroup[ageGroup].Keys);
+            candidateClubIds.UnionWith(winsByAgeGroup[ageGroup].Keys);
+            candidateClubIds.UnionWith(fightsByAgeGroup[ageGroup].Keys);
+
+            var aggregates = BuildAggregates(
+                candidateClubIds,
+                clubNames,
+                podiumByAgeGroup[ageGroup],
+                winsByAgeGroup[ageGroup],
+                fightsByAgeGroup[ageGroup]);
+
+            var ranked = BuildRankedEntries(aggregates);
+
+            var planned = plannedByAgeGroup[ageGroup];
+            var completed = completedByAgeGroup[ageGroup];
+            var status = BuildStatus(planned, completed);
+
+            items.Add(new AgeGroupClubScoringItem(
+                ageGroup,
+                status,
+                completed,
+                planned,
+                ranked));
+        }
+
+        return new AgeGroupClubScoringResponse(tournamentId, generatedAtUtc, items);
+    }
+
+    /// <inheritdoc />
+    public async Task<GlobalClubScoringResponse> GetGlobalClubScoringAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken)
+    {
+        var generatedAtUtc = DateTimeOffset.UtcNow;
+        var categories = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(c => c.TournamentId == tournamentId)
+            .Select(c => c.Id)
+            .ToListAsync(cancellationToken);
+
+        var clubs = await _dbContext.Clubs
+            .AsNoTracking()
+            .Where(c => c.TournamentId == tournamentId)
+            .Select(c => new { c.Id, c.Name })
+            .ToListAsync(cancellationToken);
+        var clubNames = clubs.ToDictionary(c => c.Id, c => c.Name);
+
+        var athletes = await _dbContext.Athletes
+            .AsNoTracking()
+            .Where(a => a.TournamentId == tournamentId)
+            .Select(a => new { a.Id, a.ClubId })
+            .ToListAsync(cancellationToken);
+        var athleteClubIds = athletes.ToDictionary(a => a.Id, a => ResolveClubId(a.ClubId, clubNames));
+
+        var podium = new Dictionary<Guid, (int first, int second, int third)>();
+        foreach (var categoryId in categories)
+        {
+            var rankings = await GetCategoryRankingsAsync(tournamentId, categoryId, cancellationToken);
+            foreach (var ranking in rankings)
+            {
+                if (ranking.Place is < 1 or > 3)
+                {
+                    continue;
+                }
+
+                var clubId = athleteClubIds.TryGetValue(ranking.AthleteId, out var mappedClubId)
+                    ? mappedClubId
+                    : Guid.Empty;
+
+                var current = podium.TryGetValue(clubId, out var existing)
+                    ? existing
+                    : (0, 0, 0);
+                var updated = ranking.Place switch
+                {
+                    1 => (current.Item1 + 1, current.Item2, current.Item3),
+                    2 => (current.Item1, current.Item2 + 1, current.Item3),
+                    3 => (current.Item1, current.Item2, current.Item3 + 1),
+                    _ => current
+                };
+                podium[clubId] = updated;
+            }
+        }
+
+        var fights = await _dbContext.Fights
+            .AsNoTracking()
+            .Where(f => f.TournamentId == tournamentId && !f.IsBye)
+            .ToListAsync(cancellationToken);
+
+        var wins = new Dictionary<Guid, int>();
+        var fightCounts = new Dictionary<Guid, int>();
+
+        foreach (var fight in fights.Where(f => string.Equals(f.Status, CompletedStatus, StringComparison.Ordinal)))
+        {
+            CountFightParticipant(fightCounts, fight.WhiteAthleteId, athleteClubIds);
+            CountFightParticipant(fightCounts, fight.BlueAthleteId, athleteClubIds);
+            CountFightWinner(wins, fight.WinnerId, athleteClubIds);
+        }
+
+        var candidateClubIds = new HashSet<Guid>(clubs.Select(c => c.Id));
+        candidateClubIds.UnionWith(podium.Keys);
+        candidateClubIds.UnionWith(wins.Keys);
+        candidateClubIds.UnionWith(fightCounts.Keys);
+
+        var aggregates = BuildAggregates(candidateClubIds, clubNames, podium, wins, fightCounts);
+        var ranked = BuildRankedEntries(aggregates);
+
+        var plannedFights = fights.Count;
+        var completedFights = fights.Count(f => string.Equals(f.Status, CompletedStatus, StringComparison.Ordinal));
+
+        return new GlobalClubScoringResponse(
+            tournamentId,
+            generatedAtUtc,
+            BuildStatus(plannedFights, completedFights),
+            completedFights,
+            plannedFights,
+            ranked);
+    }
+
+    private static string BuildStatus(int plannedFights, int completedFights) =>
+        plannedFights > 0 && completedFights >= plannedFights ? FinalStatus : ProvisionalStatus;
+
+    private static void CountFightParticipant(
+        IDictionary<Guid, int> fightsByClub,
+        Guid? athleteId,
+        IReadOnlyDictionary<Guid, Guid> athleteClubIds)
+    {
+        if (!athleteId.HasValue)
+        {
+            return;
+        }
+
+        var clubId = athleteClubIds.TryGetValue(athleteId.Value, out var mappedClubId)
+            ? mappedClubId
+            : Guid.Empty;
+        fightsByClub[clubId] = fightsByClub.TryGetValue(clubId, out var current) ? current + 1 : 1;
+    }
+
+    private static void CountFightWinner(
+        IDictionary<Guid, int> winsByClub,
+        Guid? winnerId,
+        IReadOnlyDictionary<Guid, Guid> athleteClubIds)
+    {
+        if (!winnerId.HasValue)
+        {
+            return;
+        }
+
+        var clubId = athleteClubIds.TryGetValue(winnerId.Value, out var mappedClubId)
+            ? mappedClubId
+            : Guid.Empty;
+        winsByClub[clubId] = winsByClub.TryGetValue(clubId, out var current) ? current + 1 : 1;
+    }
+
+    private static List<ClubScoringAggregate> BuildAggregates(
+        IEnumerable<Guid> clubIds,
+        IReadOnlyDictionary<Guid, string> clubNames,
+        IReadOnlyDictionary<Guid, (int first, int second, int third)> podiumCounts,
+        IReadOnlyDictionary<Guid, int> wins,
+        IReadOnlyDictionary<Guid, int> fights)
+    {
+        return clubIds.Select(clubId =>
+            {
+                var podium = podiumCounts.TryGetValue(clubId, out var p) ? p : (0, 0, 0);
+                var winCount = wins.TryGetValue(clubId, out var w) ? w : 0;
+                var fightCount = fights.TryGetValue(clubId, out var f) ? f : 0;
+                var basePoints = (podium.Item1 * FirstPlacePoints)
+                               + (podium.Item2 * SecondPlacePoints)
+                               + (podium.Item3 * ThirdPlacePoints);
+                var winRate = fightCount > 0 ? winCount / (decimal)fightCount : 0m;
+                var score = basePoints * winRate;
+
+                return new ClubScoringAggregate(
+                    clubId,
+                    GetClubName(clubId, clubNames),
+                    podium.Item1,
+                    podium.Item2,
+                    podium.Item3,
+                    basePoints,
+                    winCount,
+                    fightCount,
+                    winRate,
+                    score);
+            })
+            .ToList();
+    }
+
+    private static List<ClubScoringEntry> BuildRankedEntries(IReadOnlyList<ClubScoringAggregate> aggregates)
+    {
+        var ordered = aggregates
+            .OrderByDescending(a => a.ScoreRaw)
+            .ThenByDescending(a => a.WinRateRaw)
+            .ThenByDescending(a => a.FirstPlaces)
+            .ThenByDescending(a => a.SecondPlaces)
+            .ThenByDescending(a => a.ThirdPlaces)
+            .ThenBy(a => a.ClubName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var ranked = new List<ClubScoringEntry>(ordered.Count);
+        var ranks = new int[ordered.Count];
+
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            if (i == 0)
+            {
+                ranks[i] = 1;
+                continue;
+            }
+
+            ranks[i] = AreEquivalent(ordered[i], ordered[i - 1])
+                ? ranks[i - 1]
+                : i + 1;
+        }
+
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var current = ordered[i];
+            var isSharedRank = (i > 0 && AreEquivalent(current, ordered[i - 1]))
+                               || (i < ordered.Count - 1 && AreEquivalent(current, ordered[i + 1]));
+
+            ranked.Add(new ClubScoringEntry(
+                ranks[i],
+                isSharedRank,
+                current.ClubId,
+                current.ClubName,
+                current.FirstPlaces,
+                current.SecondPlaces,
+                current.ThirdPlaces,
+                current.BasePoints,
+                current.Wins,
+                current.Fights,
+                current.WinRateRaw,
+                RoundDisplay(current.WinRateRaw),
+                current.ScoreRaw,
+                RoundDisplay(current.ScoreRaw)));
+        }
+
+        return ranked;
+    }
+
+    private static bool AreEquivalent(ClubScoringAggregate left, ClubScoringAggregate right)
+    {
+        return Math.Abs(left.ScoreRaw - right.ScoreRaw) <= TieBreakTolerance
+               && Math.Abs(left.WinRateRaw - right.WinRateRaw) <= TieBreakTolerance
+               && left.FirstPlaces == right.FirstPlaces
+               && left.SecondPlaces == right.SecondPlaces
+               && left.ThirdPlaces == right.ThirdPlaces;
+    }
+
+    private static decimal RoundDisplay(decimal value) =>
+        Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+    private static Guid ResolveClubId(Guid clubId, IReadOnlyDictionary<Guid, string> clubNames) =>
+        clubNames.ContainsKey(clubId) ? clubId : Guid.Empty;
+
+    private static string GetClubName(Guid clubId, IReadOnlyDictionary<Guid, string> clubNames)
+    {
+        if (clubId == Guid.Empty)
+        {
+            return UnknownClubName;
+        }
+
+        return clubNames.TryGetValue(clubId, out var name)
+            ? name
+            : UnknownClubName;
+    }
+
+    private sealed record ClubScoringAggregate(
+        Guid ClubId,
+        string ClubName,
+        int FirstPlaces,
+        int SecondPlaces,
+        int ThirdPlaces,
+        int BasePoints,
+        int Wins,
+        int Fights,
+        decimal WinRateRaw,
+        decimal ScoreRaw);
 }

@@ -8,6 +8,7 @@ import {
   AssignCategoryRequest,
   AssignTatamiRequest,
   AutoAssignResult,
+  AgeGroupClubScoringResponse,
   BulkAssignTatamiRequest,
   BulkTatamiAssignment,
   Category,
@@ -27,6 +28,7 @@ import {
   Fight,
   GenerateCategoriesRequest,
   GenerateDrawRequest,
+  GlobalClubScoringResponse,
   LocalUserAccount,
   LoginRequest,
   LoginResponse,
@@ -415,6 +417,16 @@ export class ApiService {
 
   getMedalTable(tournamentId: string): Observable<MedalEntry[]> {
     return this.http.get<MedalEntry[]>(`api/tournaments/${tournamentId}/medal-table`);
+  }
+
+  getAgeGroupClubScoring(tournamentId: string): Observable<AgeGroupClubScoringResponse> {
+    return this.http.get<AgeGroupClubScoringResponse>(
+      `api/tournaments/${tournamentId}/club-scoring/age-groups`);
+  }
+
+  getGlobalClubScoring(tournamentId: string): Observable<GlobalClubScoringResponse> {
+    return this.http.get<GlobalClubScoringResponse>(
+      `api/tournaments/${tournamentId}/club-scoring/global`);
   }
 
   // Public / guest access --------------------------------------------------

@@ -489,6 +489,246 @@ public sealed class RankingServiceTests
         Assert.Equal(0, beta.Gold);
     }
 
+    [Fact]
+    public async Task GetAgeGroupClubScoring_ComputesPerAgeGroupScore_AndFinalStatus()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        await ctx.Database.EnsureCreatedAsync();
+
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var tournament = await tStore.CreateAsync("Club Score", new DateOnly(2026, 7, 1), "V", "O", CancellationToken.None);
+        var tid = tournament.Id;
+
+        var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
+        var clubA = await clubStore.CreateAsync(tid, "Judo A", null, null, null, CancellationToken.None);
+        var clubB = await clubStore.CreateAsync(tid, "Judo B", null, null, null, CancellationToken.None);
+
+        var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
+        var athleteA = await athleteStore.CreateAsync(tid, clubA!.Id, "Max", "A", 2011, Gender.Male, null, null, 1, true, CancellationToken.None);
+        var athleteB = await athleteStore.CreateAsync(tid, clubB!.Id, "Tom", "B", 2011, Gender.Male, null, null, 1, true, CancellationToken.None);
+
+        var categoryStore = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var category = await categoryStore.CreateAsync(
+            tid,
+            "U15 -46",
+            "U15",
+            Gender.Male,
+            46m,
+            null,
+            null,
+            null,
+            180,
+            false,
+            60,
+            CancellationToken.None);
+
+        var registrationStore = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        var regA = await registrationStore.CreateAsync(tid, athleteA!.Id, 46m, null, false, CancellationToken.None);
+        var regB = await registrationStore.CreateAsync(tid, athleteB!.Id, 46m, null, false, CancellationToken.None);
+        await registrationStore.AssignCategoryAsync(regA!.Id, category!.Id, CancellationToken.None);
+        await registrationStore.AssignCategoryAsync(regB!.Id, category.Id, CancellationToken.None);
+
+        ctx.Fights.Add(new FightRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tid,
+            CategoryId = category.Id,
+            Round = 1,
+            FightNumber = 1,
+            BracketType = FightBracketType.Main.ToString(),
+            Status = FightStatus.Completed.ToString(),
+            IsBye = false,
+            WhiteAthleteId = athleteA.Id,
+            BlueAthleteId = athleteB.Id,
+            WinnerId = athleteA.Id,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetAgeGroupClubScoringAsync(tid, CancellationToken.None);
+
+        var u15 = Assert.Single(result.Items);
+        Assert.Equal("U15", u15.AgeGroup);
+        Assert.Equal("Final", u15.Status);
+        Assert.Equal(1, u15.PlannedFights);
+        Assert.Equal(1, u15.CompletedFights);
+
+        Assert.Equal(2, u15.Clubs.Count);
+        var first = u15.Clubs.First(c => c.ClubName == "Judo A");
+        var second = u15.Clubs.First(c => c.ClubName == "Judo B");
+
+        Assert.Equal(1, first.Rank);
+        Assert.Equal(7, first.BasePoints);
+        Assert.Equal(1, first.Wins);
+        Assert.Equal(1, first.Fights);
+        Assert.Equal(1m, first.WinRateRaw);
+        Assert.Equal(7m, first.ScoreRaw);
+
+        Assert.Equal(2, second.Rank);
+        Assert.Equal(5, second.BasePoints);
+        Assert.Equal(0, second.Wins);
+        Assert.Equal(1, second.Fights);
+        Assert.Equal(0m, second.WinRateRaw);
+        Assert.Equal(0m, second.ScoreRaw);
+    }
+
+    [Fact]
+    public async Task GetAgeGroupClubScoring_ByeOnlyCategory_KeepsBasePointsButZeroWinRate()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        await ctx.Database.EnsureCreatedAsync();
+
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var tournament = await tStore.CreateAsync("Club Score Bye", new DateOnly(2026, 7, 1), "V", "O", CancellationToken.None);
+        var tid = tournament.Id;
+
+        var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
+        var club = await clubStore.CreateAsync(tid, "Judo Solo", null, null, null, CancellationToken.None);
+
+        var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
+        var athlete = await athleteStore.CreateAsync(tid, club!.Id, "Solo", "One", 2012, Gender.Male, null, null, 1, true, CancellationToken.None);
+
+        var categoryStore = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var category = await categoryStore.CreateAsync(
+            tid,
+            "U13 -40",
+            "U13",
+            Gender.Male,
+            40m,
+            null,
+            null,
+            null,
+            180,
+            false,
+            60,
+            CancellationToken.None);
+
+        var registrationStore = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        var registration = await registrationStore.CreateAsync(tid, athlete!.Id, 40m, null, false, CancellationToken.None);
+        await registrationStore.AssignCategoryAsync(registration!.Id, category!.Id, CancellationToken.None);
+
+        ctx.Fights.Add(new FightRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tid,
+            CategoryId = category.Id,
+            Round = 1,
+            FightNumber = 1,
+            BracketType = FightBracketType.Main.ToString(),
+            Status = FightStatus.Completed.ToString(),
+            IsBye = true,
+            WhiteAthleteId = athlete.Id,
+            BlueAthleteId = null,
+            WinnerId = athlete.Id,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetAgeGroupClubScoringAsync(tid, CancellationToken.None);
+
+        var row = Assert.Single(Assert.Single(result.Items).Clubs);
+        Assert.Equal(7, row.BasePoints);
+        Assert.Equal(0, row.Fights);
+        Assert.Equal(0, row.Wins);
+        Assert.Equal(0m, row.WinRateRaw);
+        Assert.Equal(0m, row.ScoreRaw);
+    }
+
+    [Fact]
+    public async Task GetGlobalClubScoring_UsesCompetitionRankingForSharedPlaces()
+    {
+        await using var ctx = CreateDbContext();
+        var svc = CreateService(ctx);
+        await ctx.Database.EnsureCreatedAsync();
+
+        var tStore = new SqliteTournamentStore(ctx, NullLogger<SqliteTournamentStore>.Instance);
+        var tournament = await tStore.CreateAsync("Global Score", new DateOnly(2026, 7, 1), "V", "O", CancellationToken.None);
+        var tid = tournament.Id;
+
+        var clubStore = new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance);
+        var clubA = await clubStore.CreateAsync(tid, "Club A", null, null, null, CancellationToken.None);
+        var clubB = await clubStore.CreateAsync(tid, "Club B", null, null, null, CancellationToken.None);
+        var clubC = await clubStore.CreateAsync(tid, "Club C", null, null, null, CancellationToken.None);
+        await clubStore.CreateAsync(tid, "Club D", null, null, null, CancellationToken.None);
+
+        var athleteStore = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
+        var a1 = await athleteStore.CreateAsync(tid, clubA!.Id, "A", "One", 2010, Gender.Male, null, null, 1, true, CancellationToken.None);
+        var b1 = await athleteStore.CreateAsync(tid, clubB!.Id, "B", "One", 2010, Gender.Male, null, null, 1, true, CancellationToken.None);
+        var a2 = await athleteStore.CreateAsync(tid, clubA.Id, "A", "Two", 2010, Gender.Male, null, null, 1, true, CancellationToken.None);
+        var c1 = await athleteStore.CreateAsync(tid, clubC!.Id, "C", "One", 2010, Gender.Male, null, null, 1, true, CancellationToken.None);
+
+        var categoryStore = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var cU15 = await categoryStore.CreateAsync(tid, "U15 -50", "U15", Gender.Male, 50m, null, null, null, 180, false, 60, CancellationToken.None);
+        var cU18 = await categoryStore.CreateAsync(tid, "U18 -60", "U18", Gender.Male, 60m, null, null, null, 180, false, 60, CancellationToken.None);
+
+        var registrationStore = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        var r1 = await registrationStore.CreateAsync(tid, a1!.Id, 50m, null, false, CancellationToken.None);
+        var r2 = await registrationStore.CreateAsync(tid, b1!.Id, 50m, null, false, CancellationToken.None);
+        var r3 = await registrationStore.CreateAsync(tid, a2!.Id, 60m, null, false, CancellationToken.None);
+        var r4 = await registrationStore.CreateAsync(tid, c1!.Id, 60m, null, false, CancellationToken.None);
+        await registrationStore.AssignCategoryAsync(r1!.Id, cU15!.Id, CancellationToken.None);
+        await registrationStore.AssignCategoryAsync(r2!.Id, cU15.Id, CancellationToken.None);
+        await registrationStore.AssignCategoryAsync(r3!.Id, cU18!.Id, CancellationToken.None);
+        await registrationStore.AssignCategoryAsync(r4!.Id, cU18.Id, CancellationToken.None);
+
+        ctx.Fights.AddRange(
+            new FightRecord
+            {
+                Id = Guid.NewGuid(),
+                TournamentId = tid,
+                CategoryId = cU15.Id,
+                Round = 1,
+                FightNumber = 1,
+                BracketType = FightBracketType.Main.ToString(),
+                Status = FightStatus.Completed.ToString(),
+                IsBye = false,
+                WhiteAthleteId = a1.Id,
+                BlueAthleteId = b1.Id,
+                WinnerId = a1.Id,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+                UpdatedAtUtc = DateTimeOffset.UtcNow,
+            },
+            new FightRecord
+            {
+                Id = Guid.NewGuid(),
+                TournamentId = tid,
+                CategoryId = cU18.Id,
+                Round = 1,
+                FightNumber = 1,
+                BracketType = FightBracketType.Main.ToString(),
+                Status = FightStatus.Completed.ToString(),
+                IsBye = false,
+                WhiteAthleteId = a2.Id,
+                BlueAthleteId = c1.Id,
+                WinnerId = a2.Id,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+                UpdatedAtUtc = DateTimeOffset.UtcNow,
+            });
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetGlobalClubScoringAsync(tid, CancellationToken.None);
+
+        Assert.Equal("Final", result.Status);
+        Assert.Equal(4, result.Clubs.Count);
+
+        var clubAEntry = result.Clubs.First(c => c.ClubName == "Club A");
+        var clubBEntry = result.Clubs.First(c => c.ClubName == "Club B");
+        var clubCEntry = result.Clubs.First(c => c.ClubName == "Club C");
+        var clubDEntry = result.Clubs.First(c => c.ClubName == "Club D");
+
+        Assert.Equal(1, clubAEntry.Rank);
+        Assert.Equal(2, clubBEntry.Rank);
+        Assert.True(clubBEntry.IsSharedRank);
+        Assert.Equal(2, clubCEntry.Rank);
+        Assert.True(clubCEntry.IsSharedRank);
+        Assert.Equal(4, clubDEntry.Rank);
+        Assert.Equal(0m, clubDEntry.ScoreRaw);
+    }
+
     // ─── Round-robin standings tests ──────────────────────────────────────────
 
     private static FightRecord MakeRRFight(

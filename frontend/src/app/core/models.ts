@@ -471,6 +471,46 @@ export interface MedalEntry {
   bronze: number;
 }
 
+export interface ClubScoringEntry {
+  rank: number;
+  isSharedRank: boolean;
+  clubId: string;
+  clubName: string;
+  firstPlaces: number;
+  secondPlaces: number;
+  thirdPlaces: number;
+  basePoints: number;
+  wins: number;
+  fights: number;
+  winRateRaw: number;
+  winRateDisplay: number;
+  scoreRaw: number;
+  scoreDisplay: number;
+}
+
+export interface AgeGroupClubScoringItem {
+  ageGroup: string;
+  status: 'Provisional' | 'Final';
+  completedFights: number;
+  plannedFights: number;
+  clubs: ClubScoringEntry[];
+}
+
+export interface AgeGroupClubScoringResponse {
+  tournamentId: string;
+  generatedAtUtc: string;
+  items: AgeGroupClubScoringItem[];
+}
+
+export interface GlobalClubScoringResponse {
+  tournamentId: string;
+  generatedAtUtc: string;
+  status: 'Provisional' | 'Final';
+  completedFights: number;
+  plannedFights: number;
+  clubs: ClubScoringEntry[];
+}
+
 export type UserRole = 'Admin' | 'Operator' | 'Display';
 
 export interface LoginRequest {

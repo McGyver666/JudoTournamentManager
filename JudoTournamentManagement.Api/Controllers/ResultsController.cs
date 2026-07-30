@@ -44,4 +44,46 @@ public sealed class ResultsController : ControllerBase
         var table = await _rankingService.GetMedalTableAsync(tournamentId, cancellationToken);
         return Ok(table);
     }
+
+    /// <summary>
+    /// Returns club scoring grouped by age group.
+    /// </summary>
+    [Authorize]
+    [HttpGet("club-scoring/age-groups")]
+    [ProducesResponseType(typeof(AgeGroupClubScoringResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AgeGroupClubScoringResponse>> GetAgeGroupClubScoringAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken)
+    {
+        var tournament = await _tournamentStore.GetByIdAsync(tournamentId, cancellationToken);
+        if (tournament is null)
+        {
+            return NotFound();
+        }
+
+        var scoring = await _rankingService.GetAgeGroupClubScoringAsync(tournamentId, cancellationToken);
+        return Ok(scoring);
+    }
+
+    /// <summary>
+    /// Returns turnier-wide (global) club scoring.
+    /// </summary>
+    [Authorize]
+    [HttpGet("club-scoring/global")]
+    [ProducesResponseType(typeof(GlobalClubScoringResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GlobalClubScoringResponse>> GetGlobalClubScoringAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken)
+    {
+        var tournament = await _tournamentStore.GetByIdAsync(tournamentId, cancellationToken);
+        if (tournament is null)
+        {
+            return NotFound();
+        }
+
+        var scoring = await _rankingService.GetGlobalClubScoringAsync(tournamentId, cancellationToken);
+        return Ok(scoring);
+    }
 }
