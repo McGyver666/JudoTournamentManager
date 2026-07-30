@@ -70,6 +70,11 @@ public sealed class AppDbContext : DbContext
     /// </summary>
     public DbSet<CategoryPresetRecord> CategoryPresets => Set<CategoryPresetRecord>();
 
+    /// <summary>
+    /// Anonymous guest-share tokens (one per tournament) for public match lists.
+    /// </summary>
+    public DbSet<GuestShareRecord> GuestShares => Set<GuestShareRecord>();
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -237,5 +242,16 @@ public sealed class AppDbContext : DbContext
                       .HasForeignKey(x => x.TournamentId)
                       .OnDelete(DeleteBehavior.Cascade);
         categoryPreset.HasIndex(x => x.TournamentId);
+
+        var guestShare = modelBuilder.Entity<GuestShareRecord>();
+        guestShare.ToTable("GuestShares");
+        guestShare.HasKey(x => x.Id);
+        guestShare.Property(x => x.Token).IsRequired().HasMaxLength(64);
+        guestShare.HasIndex(x => x.TournamentId).IsUnique();
+        guestShare.HasIndex(x => x.Token).IsUnique();
+        guestShare.HasOne(x => x.Tournament)
+                  .WithMany()
+                  .HasForeignKey(x => x.TournamentId)
+                  .OnDelete(DeleteBehavior.Cascade);
     }
 }

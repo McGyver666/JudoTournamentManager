@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using JudoTournamentManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -12,14 +13,17 @@ namespace JudoTournamentManagement.Api.Hubs;
 public sealed class TournamentHub : Hub
 {
     private readonly ITournamentStore _tournamentStore;
+    private readonly IGuestShareService _guestShareService;
 
     /// <summary>
     /// Initializes a new hub instance.
     /// </summary>
-    public TournamentHub(ITournamentStore tournamentStore)
+    public TournamentHub(ITournamentStore tournamentStore, IGuestShareService guestShareService)
     {
         ArgumentNullException.ThrowIfNull(tournamentStore);
+        ArgumentNullException.ThrowIfNull(guestShareService);
         _tournamentStore = tournamentStore;
+        _guestShareService = guestShareService;
     }
 
     /// <summary>
@@ -33,6 +37,8 @@ public sealed class TournamentHub : Hub
             throw new HubException("Ungueltige Turnier-ID.");
         }
 
+        await EnsureGuestScopeAsync(parsedTournamentId);
+
         var tournament = await _tournamentStore.GetByIdAsync(parsedTournamentId, Context.ConnectionAborted);
         if (tournament is null)
         {
@@ -40,6 +46,33 @@ public sealed class TournamentHub : Hub
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, tournamentId);
+    }
+
+    /// <summary>
+    /// For an anonymous guest connection, restricts hub access to the guest's own
+    /// tournament and re-checks that the share is still active (soft-disconnect:
+    /// a guest cannot (re-)join a group once the share has been switched off).
+    /// Operator roles are unaffected.
+    /// </summary>
+    private async Task EnsureGuestScopeAsync(Guid tournamentId)
+    {
+        var user = Context.User;
+        if (user is null || !user.IsInRole(IGuestShareService.GuestRole))
+        {
+            return;
+        }
+
+        var scopedTournamentId = user.FindFirstValue(IGuestShareService.TournamentClaimType);
+        if (!Guid.TryParse(scopedTournamentId, out var guestTournamentId) || guestTournamentId != tournamentId)
+        {
+            throw new HubException("Kein Zugriff auf dieses Turnier.");
+        }
+
+        var state = await _guestShareService.GetStateAsync(tournamentId, Context.ConnectionAborted);
+        if (!state.IsActive)
+        {
+            throw new HubException("Die Gast-Freigabe ist nicht aktiv.");
+        }
     }
 
     /// <summary>

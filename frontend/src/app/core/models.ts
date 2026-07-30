@@ -209,6 +209,38 @@ export interface Athlete {
   updatedAtUtc: string;
 }
 
+/**
+ * Privacy-reduced athlete projection served by the public/guest endpoints.
+ * Only the fields required to render the match lists ("Nachname, Vorname"
+ * plus club affiliation) are exposed — no birth year, license, weight or grade.
+ */
+export interface PublicAthlete {
+  id: string;
+  clubId: string;
+  firstName: string;
+  lastName: string;
+}
+
+/** Privacy-reduced club projection served by the public/guest endpoints. */
+export interface PublicClub {
+  id: string;
+  name: string;
+}
+
+/**
+ * State of a tournament's guest share link (anonymous read-only access to the
+ * match lists via QR code). Mirrors the backend <c>GuestShareResponse</c>.
+ */
+export interface GuestShareResponse {
+  tournamentId: string;
+  exists: boolean;
+  isEnabled: boolean;
+  isActive: boolean;
+  token: string | null;
+  expiresAtUtc: string | null;
+  publicUrl: string | null;
+}
+
 export interface CreateAthleteRequest {
   clubId: string;
   firstName: string;

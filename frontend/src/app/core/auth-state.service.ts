@@ -10,6 +10,13 @@ const EXPIRES_KEY = 'judo.auth.expires';
 export class AuthStateService {
   private readonly tokenValue = signal<string | null>(null);
 
+  /**
+   * Ephemeral bearer token supplied via a guest share link (URL query param).
+   * Never persisted to storage and takes precedence over any login token so the
+   * public match-lists page and its SignalR/API calls authenticate as a guest.
+   */
+  private readonly guestTokenValue = signal<string | null>(null);
+
   readonly user = signal<AuthenticatedUser | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -25,7 +32,12 @@ export class AuthStateService {
   }
 
   token(): string | null {
-    return this.tokenValue();
+    return this.guestTokenValue() ?? this.tokenValue();
+  }
+
+  /** Sets the ephemeral guest token used by the public match-lists page. */
+  setGuestToken(token: string | null): void {
+    this.guestTokenValue.set(token && token.length > 0 ? token : null);
   }
 
   init(): Promise<void> {

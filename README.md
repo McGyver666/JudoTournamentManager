@@ -389,6 +389,18 @@ are served at `/i18n/{lang}.json`.
 - `GET /api/tournaments/{tournamentId}/medal-table`
 - `GET /api/tournaments/{tournamentId}/audit-log`
 
+- `GET /api/tournaments/{tournamentId}/public/athletes` (data-minimized; Admin/Operator/Display/Guest)
+- `GET /api/tournaments/{tournamentId}/public/clubs`
+- `GET /api/tournaments/{tournamentId}/public/categories`
+- `GET /api/tournaments/{tournamentId}/public/tournament`
+- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/fights`
+- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/standings`
+- `GET /api/tournaments/{tournamentId}/guest-share` (Admin/Operator)
+- `POST /api/tournaments/{tournamentId}/guest-share/enable`
+- `POST /api/tournaments/{tournamentId}/guest-share/disable`
+- `POST /api/tournaments/{tournamentId}/guest-share/rotate`
+- `GET /api/tournaments/{tournamentId}/guest-share/qr` (SVG)
+
 - `POST /api/auth/bootstrap-admin`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
@@ -413,6 +425,48 @@ Example `POST /api/tournaments` request body:
   "organizer": "JC Essen"
 }
 ```
+
+## Guest access (public match lists)
+
+Spectators on the local network can open a read-only view of the match lists by
+scanning a QR code — without an account and without touching the app shell.
+
+Workflow:
+- On the tournament view, an Admin or Operator opens the **Guest access** panel and
+  clicks **Enable**. This creates exactly one guest token per tournament and shows a
+  QR code plus a shareable link (`/public/match-lists?tid=…&t=<token>`).
+- The auto-off preset controls an optional expiry: **until midnight today** (default),
+  **4h**, **8h**, or **no auto-off**.
+- **Rotate** issues a fresh token and immediately invalidates the previous QR.
+  **Disable** switches the share off without discarding the token.
+- Guests reach only the public, read-only match lists of that one tournament. A bare
+  authenticated endpoint still requires an operator role, so guest access never
+  extends beyond the match lists.
+
+Data minimization:
+- The public endpoints return reduced DTOs only (athletes = id, club, first/last name;
+  clubs = id, name). No license/pass number, birth year, weight, grade, or contact
+  data is exposed. The whole match-list view (Display and Guest) uses this same
+  reduced model.
+
+TLS rule:
+- On a local/LAN host (localhost, private IP ranges, single-label or `.local`/`.lan`
+  host names) plain HTTP is accepted.
+- On a non-local/public host the guest link and QR are only served over **HTTPS**;
+  requesting them over plain HTTP returns `400 Bad Request`. In production nginx
+  terminates TLS in front of the app. An explicit base URL can be configured via
+  `GuestShare:PublicBaseUrl`.
+
+Realtime and lifecycle:
+- Guests join the existing broadcast-only SignalR hub, but only their own
+  tournament group, and only while the share is active (soft-disconnect: once a
+  share is disabled, no new connections or joins are accepted; running connections
+  simply run out).
+- Guest reads are not logged; enabling, disabling and rotating are audited
+  (`GuestShareEnabled`/`GuestShareDisabled`/`GuestShareRotated`) without the token.
+- Backups never contain the guest token, and a restore always leaves the share
+  disabled (re-enable to share again).
+- The public endpoints have their own per-IP rate-limit window.
 
 ## Localization
 

@@ -10,11 +10,12 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { catchError, forkJoin, of, Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { AuthStateService } from '../../core/auth-state.service';
 import { I18nService } from '../../core/i18n.service';
 import { SideThemeService } from '../../core/side-theme.service';
 import { CategoryFightsUpdatedEvent, TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
-import { Athlete, Category, Club, Fight, RoundRobinStanding, Tournament } from '../../core/models';
+import { Category, Fight, PublicAthlete, PublicClub, RoundRobinStanding, Tournament } from '../../core/models';
 
 interface RoundGroup {
   round: number;
@@ -46,16 +47,21 @@ interface ConnectorPath {
 })
 export class MatchListsComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthStateService);
   private readonly i18n = inject(I18nService);
   protected readonly sideTheme = inject(SideThemeService);
   private readonly hub = inject(TournamentHubService);
   private readonly route = inject(ActivatedRoute);
 
+  /** True when opened via a guest share link (anonymous read-only access). */
+  protected readonly guestMode = signal<boolean>(false);
+  /** True when a guest link is invalid, disabled or expired (server rejected access). */
+  protected readonly accessDenied = signal<boolean>(false);
   protected readonly tournamentId = signal<string | null>(null);
   protected readonly tournament = signal<Tournament | null>(null);
   protected readonly tournamentName = signal<string>('');
-  protected readonly athletes = signal<Map<string, Athlete>>(new Map());
-  protected readonly clubs = signal<Map<string, Club>>(new Map());
+  protected readonly athletes = signal<Map<string, PublicAthlete>>(new Map());
+  protected readonly clubs = signal<Map<string, PublicClub>>(new Map());
   protected readonly categories = signal<Map<string, Category>>(new Map());
   protected readonly categoryList = signal<Category[]>([]);
   protected readonly fightsByCategory = signal<Map<string, Fight[]>>(new Map());
@@ -80,12 +86,24 @@ export class MatchListsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.querySub = this.route.queryParamMap.subscribe((queryParamMap) => {
-      const tid = queryParamMap.get('tournamentId') ?? undefined;
+      // The Display route uses ?tournamentId=…; the guest share link uses
+      // ?tid=…&t=<token>. Support both so a single component serves both cases.
+      const guestToken = queryParamMap.get('t') ?? undefined;
+      const tid = queryParamMap.get('tournamentId') ?? queryParamMap.get('tid') ?? undefined;
+
+      this.guestMode.set(!!guestToken);
+      if (guestToken) {
+        this.auth.setGuestToken(guestToken);
+      }
 
       if (tid) {
         this.tournamentId.set(tid);
         this.loadData(tid);
-        void this.hub.connect(tid);
+        // Guests get a static snapshot; the realtime hub stays scoped to
+        // authenticated Display clients (guest hub scope is handled separately).
+        if (!guestToken) {
+          void this.hub.connect(tid);
+        }
       } else {
         this.tournamentId.set(null);
       }
@@ -123,15 +141,25 @@ export class MatchListsComponent implements OnInit, OnDestroy {
   }
 
   private loadData(tid: string): void {
-    this.api.getTournament(tid).subscribe(t => {
-      this.tournament.set(t);
-      this.tournamentName.set(t.name);
-      this.sideTheme.applyTheme(document.documentElement, t);
+    this.accessDenied.set(false);
+    this.api.getPublicTournament(tid).subscribe({
+      next: (t) => {
+        this.tournament.set(t);
+        this.tournamentName.set(t.name);
+        this.sideTheme.applyTheme(document.documentElement, t);
+      },
+      error: () => {
+        // A rejected guest link (disabled/expired/invalid token) surfaces as a
+        // friendly notice instead of an empty list.
+        if (this.guestMode()) {
+          this.accessDenied.set(true);
+        }
+      },
     });
-    this.api.getAthletes(tid).subscribe(athletes => {
+    this.api.getPublicAthletes(tid).subscribe(athletes => {
       this.athletes.set(new Map(athletes.map(a => [a.id, a])));
     });
-    this.api.getClubs(tid).subscribe(clubs => {
+    this.api.getPublicClubs(tid).subscribe(clubs => {
       this.clubs.set(new Map(clubs.map(c => [c.id, c])));
     });
     this.refreshCategoriesAndMatches(tid);
@@ -157,7 +185,7 @@ export class MatchListsComponent implements OnInit, OnDestroy {
   }
 
   private refreshCategoriesAndMatches(tid: string): void {
-    this.api.getCategories(tid).subscribe({
+    this.api.getPublicCategories(tid).subscribe({
       next: categories => {
         const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
         this.categoryList.set(sortedCategories);
@@ -180,7 +208,7 @@ export class MatchListsComponent implements OnInit, OnDestroy {
     }
 
     const fightRequests = categories.map((category) =>
-      this.api.getFights(tid, category.id).pipe(catchError(() => of([] as Fight[]))));
+      this.api.getPublicFights(tid, category.id).pipe(catchError(() => of([] as Fight[]))));
 
     forkJoin(fightRequests).subscribe({
       next: (results) => {
@@ -214,7 +242,7 @@ export class MatchListsComponent implements OnInit, OnDestroy {
     }
 
     const standingRequests = roundRobinCategories.map((category) =>
-      this.api.getCategoryStandings(tid, category.id).pipe(catchError(() => of([] as RoundRobinStanding[]))));
+      this.api.getPublicStandings(tid, category.id).pipe(catchError(() => of([] as RoundRobinStanding[]))));
 
     forkJoin(standingRequests).subscribe({
       next: (results) => {
