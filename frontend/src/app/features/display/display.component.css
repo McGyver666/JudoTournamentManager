@@ -32,15 +32,6 @@
 
 .display-meta {display:flex;gap:.65rem;align-items:center}
 
-.badge-offline {
-	background: #fff0ef;
-	color: #b3261e;
-	border: 1px solid #f5c4c0;
-	border-radius: 999px;
-	padding: .2rem .55rem;
-	font-size: .74rem;
-}
-
 .tatami-fullscreen {
 	background: linear-gradient(165deg, #081a2f 0%, #0d2743 46%, #12395d 100%);
 	border: none;
