@@ -2,13 +2,15 @@
   <header class="match-lists-header">
     <h1 class="tournament-title">{{ tournamentName() }}</h1>
     <div class="match-lists-meta">
-      @if (!hubConnected()) {
+      @if (!guestMode() && !hubConnected()) {
         <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
       }
     </div>
   </header>
 
-  @if (!tournamentId()) {
+  @if (guestMode() && accessDenied()) {
+    <p class="info-hint">{{ 'share.guestInvalid' | t }}</p>
+  } @else if (!tournamentId()) {
     <p class="info-hint">{{ 'display.noTournamentParam' | t }}</p>
   } @else {
     <section class="all-matches-section">

@@ -57,6 +57,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAuthentication("BearerToken")
     .AddScheme<AuthenticationSchemeOptions, BearerTokenAuthenticationHandler>("BearerToken", _ => { });
 var authPermitLimit = builder.Environment.IsEnvironment("Testing") ? 10000 : 100;
+var publicPermitLimit = builder.Environment.IsEnvironment("Testing") ? 10000 : 300;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -85,8 +86,36 @@ builder.Services.AddRateLimiter(options =>
                 AutoReplenishment = true
             });
     });
+
+    // Dedicated per-IP window for the anonymous public/guest read endpoints so a
+    // single client cannot exhaust the server with polling requests.
+    options.AddPolicy("PublicPolicy", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ip,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = publicPermitLimit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
 });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // A bare [Authorize] must keep requiring a real operator role. Without this,
+    // the anonymous "Guest" principal (issued for guest-share tokens) would count
+    // as an authenticated user and satisfy every existing [Authorize] endpoint.
+    // Guest access is granted only where roles are listed explicitly.
+    options.FallbackPolicy = null;
+    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireRole("Admin", "Operator", "Display")
+        .Build();
+});
 builder.Services.AddScoped<ITournamentStore, SqliteTournamentStore>();
 builder.Services.AddScoped<ITatamisStore, SqliteTatamisStore>();
 builder.Services.AddScoped<ICategoriesStore, SqliteCategoriesStore>();
@@ -107,6 +136,8 @@ builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddHostedService<MatchClockEvaluator>();
 builder.Services.AddScoped<IPasswordHasherService, Pbkdf2PasswordHasherService>();
 builder.Services.AddScoped<IAuthService, SqliteAuthService>();
+builder.Services.AddScoped<IGuestShareService, SqliteGuestShareService>();
+builder.Services.AddSingleton<IGuestShareLinkBuilder, GuestShareLinkBuilder>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddSignalR();
 

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../core/api.service';
@@ -9,7 +10,10 @@ import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { I18nService } from '../../core/i18n.service';
 import { extractApiError } from '../../core/http-error';
-import { AccentSideColor, CreateTournamentRequest, Tournament } from '../../core/models';
+import { AccentSideColor, CreateTournamentRequest, GuestShareResponse, Tournament } from '../../core/models';
+
+/** Auto-off presets offered when enabling or rotating a guest share link. */
+type GuestShareTtl = 'midnight' | '4h' | '8h' | 'none';
 
 /** Tournament administration: list, create, edit, delete and select the active tournament. */
 @Component({
@@ -22,6 +26,7 @@ export class TournamentsComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthStateService);
   private readonly i18n = inject(I18nService);
+  private readonly sanitizer = inject(DomSanitizer);
   protected readonly context = inject(TournamentContextService);
 
   protected readonly tournaments = signal<Tournament[]>([]);
@@ -35,6 +40,15 @@ export class TournamentsComponent implements OnInit {
   protected readonly canManage = this.auth.canOperate;
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly accentSideColors: AccentSideColor[] = ['Blue', 'Red'];
+
+  // Guest share (QR) management -------------------------------------------
+  protected readonly shareTournamentId = signal<string | null>(null);
+  protected readonly shareState = signal<GuestShareResponse | null>(null);
+  protected readonly shareQr = signal<SafeHtml | null>(null);
+  protected readonly shareBusy = signal(false);
+  protected readonly shareError = signal<string | null>(null);
+  protected readonly shareTtlOptions: GuestShareTtl[] = ['midnight', '4h', '8h', 'none'];
+  protected shareTtl: GuestShareTtl = 'midnight';
 
   protected form: CreateTournamentRequest = this.emptyForm();
 
@@ -219,6 +233,144 @@ export class TournamentsComponent implements OnInit {
 
   protected isBackupBusy(tournamentId: string): boolean {
     return this.backupBusyId() === tournamentId;
+  }
+
+  // Guest share (QR) management -------------------------------------------
+
+  protected isShareOpen(t: Tournament): boolean {
+    return this.shareTournamentId() === t.id;
+  }
+
+  protected toggleShare(t: Tournament): void {
+    if (!this.canManage()) {
+      return;
+    }
+    if (this.shareTournamentId() === t.id) {
+      this.closeShare();
+      return;
+    }
+
+    this.shareTournamentId.set(t.id);
+    this.shareState.set(null);
+    this.shareQr.set(null);
+    this.shareError.set(null);
+    this.shareTtl = 'midnight';
+    this.loadShareState(t.id);
+  }
+
+  protected closeShare(): void {
+    this.shareTournamentId.set(null);
+    this.shareState.set(null);
+    this.shareQr.set(null);
+    this.shareError.set(null);
+  }
+
+  protected enableShare(): void {
+    const tid = this.shareTournamentId();
+    if (!tid || !this.canManage()) {
+      return;
+    }
+    this.runShareAction(this.api.enableGuestShare(tid, this.computeExpiry()));
+  }
+
+  protected rotateShare(): void {
+    const tid = this.shareTournamentId();
+    if (!tid || !this.canManage()) {
+      return;
+    }
+    if (!confirm(this.i18n.translate('share.confirmRotate'))) {
+      return;
+    }
+    this.runShareAction(this.api.rotateGuestShare(tid, this.computeExpiry()));
+  }
+
+  protected disableShare(): void {
+    const tid = this.shareTournamentId();
+    if (!tid || !this.canManage()) {
+      return;
+    }
+    this.runShareAction(this.api.disableGuestShare(tid));
+  }
+
+  protected copyShareUrl(): void {
+    const url = this.shareState()?.publicUrl;
+    if (!url) {
+      return;
+    }
+    void navigator.clipboard?.writeText(url).then(
+      () => this.info.set(this.i18n.translate('share.copied')),
+      () => undefined,
+    );
+  }
+
+  private loadShareState(tid: string): void {
+    this.shareBusy.set(true);
+    this.shareError.set(null);
+    this.api.getGuestShare(tid).subscribe({
+      next: (state) => {
+        this.shareState.set(state);
+        this.shareBusy.set(false);
+        this.loadShareQr(tid, state);
+      },
+      error: (err) => {
+        this.shareError.set(extractApiError(err, this.i18n.translate('errors.load')));
+        this.shareBusy.set(false);
+      },
+    });
+  }
+
+  private runShareAction(action: Observable<GuestShareResponse>): void {
+    const tid = this.shareTournamentId();
+    if (!tid) {
+      return;
+    }
+    this.shareBusy.set(true);
+    this.shareError.set(null);
+    action.subscribe({
+      next: (state) => {
+        this.shareState.set(state);
+        this.shareBusy.set(false);
+        this.loadShareQr(tid, state);
+      },
+      error: (err) => {
+        this.shareError.set(extractApiError(err, this.i18n.translate('errors.save')));
+        this.shareBusy.set(false);
+      },
+    });
+  }
+
+  private loadShareQr(tid: string, state: GuestShareResponse): void {
+    if (!state.exists) {
+      this.shareQr.set(null);
+      return;
+    }
+    this.api.getGuestShareQr(tid).subscribe({
+      next: (svg) => this.shareQr.set(this.sanitizer.bypassSecurityTrustHtml(svg)),
+      error: () => this.shareQr.set(null),
+    });
+  }
+
+  /** Translates the selected auto-off preset into an absolute UTC expiry (or null). */
+  private computeExpiry(): string | null {
+    const now = new Date();
+    switch (this.shareTtl) {
+      case 'none':
+        return null;
+      case '4h':
+        return new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
+      case '8h':
+        return new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString();
+      case 'midnight':
+      default: {
+        const midnight = new Date(now);
+        midnight.setHours(23, 59, 59, 999);
+        return midnight.toISOString();
+      }
+    }
+  }
+
+  protected shareTtlLabelKey(ttl: GuestShareTtl): string {
+    return `share.ttl.${ttl}`;
   }
 
   private emptyForm(): CreateTournamentRequest {

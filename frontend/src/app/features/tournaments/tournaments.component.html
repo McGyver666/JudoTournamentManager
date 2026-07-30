@@ -112,6 +112,9 @@
           <td>{{ t.organizer }}</td>
           <td>
             <button (click)="select(t)" [disabled]="isActive(t)">{{ 'tournaments.open' | t }}</button>
+            @if (canManage()) {
+              <button (click)="toggleShare(t)" [class.active]="isShareOpen(t)">{{ 'share.action' | t }}</button>
+            }
             @if (isAdmin()) {
               <button (click)="backup(t)" [disabled]="isBackupBusy(t.id)">{{ 'tournaments.backup' | t }}</button>
             }
@@ -121,6 +124,64 @@
             }
           </td>
         </tr>
+        @if (isShareOpen(t) && canManage()) {
+          <tr class="share-row">
+            <td colspan="5">
+              <div class="share-panel">
+                <div class="share-controls">
+                  <h3>{{ 'share.title' | t }}</h3>
+                  <p class="muted">{{ 'share.hint' | t }}</p>
+                  @if (shareError()) {
+                    <p class="error">{{ shareError() }}</p>
+                  }
+                  @if (shareState(); as state) {
+                    <p>
+                      <strong>{{ 'share.status' | t }}:</strong>
+                      @if (state.isActive) {
+                        <span class="badge">{{ 'share.statusActive' | t }}</span>
+                      } @else if (state.exists && state.isEnabled) {
+                        <span class="badge">{{ 'share.statusExpired' | t }}</span>
+                      } @else {
+                        <span class="badge">{{ 'share.statusOff' | t }}</span>
+                      }
+                    </p>
+                    @if (state.isActive && state.expiresAtUtc) {
+                      <p class="muted">{{ 'share.expiresAt' | t }}: {{ state.expiresAtUtc | date: 'dd.MM.yyyy HH:mm' }}</p>
+                    }
+
+                    <div class="share-ttl">
+                      <label>{{ 'share.autoOff' | t }}</label>
+                      <select [(ngModel)]="shareTtl" name="shareTtl">
+                        @for (ttl of shareTtlOptions; track ttl) {
+                          <option [ngValue]="ttl">{{ shareTtlLabelKey(ttl) | t }}</option>
+                        }
+                      </select>
+                    </div>
+
+                    <div class="share-actions">
+                      @if (state.isActive) {
+                        <button (click)="disableShare()" [disabled]="shareBusy()">{{ 'share.disable' | t }}</button>
+                        <button (click)="rotateShare()" [disabled]="shareBusy()">{{ 'share.rotate' | t }}</button>
+                      } @else {
+                        <button class="primary" (click)="enableShare()" [disabled]="shareBusy()">{{ 'share.enable' | t }}</button>
+                      }
+                    </div>
+
+                    @if (state.isActive && state.publicUrl) {
+                      <div class="share-link">
+                        <a [href]="state.publicUrl" target="_blank" rel="noopener">{{ state.publicUrl }}</a>
+                        <button (click)="copyShareUrl()">{{ 'share.copy' | t }}</button>
+                      </div>
+                    }
+                  }
+                </div>
+                @if (shareState()?.isActive && shareQr()) {
+                  <div class="share-qr" [innerHTML]="shareQr()"></div>
+                }
+              </div>
+            </td>
+          </tr>
+        }
       }
     </tbody>
   </table>

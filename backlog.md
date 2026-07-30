@@ -272,6 +272,81 @@ Story points are rough relative estimates.
 - Aggregates medals across categories.
 - Sort by gold/silver/bronze, then club name.
 
+### G-04 Anonyme QR-Freigabe der Wettkampflisten (P1) — ✅ Done
+**Story:** Als Turnierleitung möchte ich auf der Turnieransicht einen QR-Code anzeigen, über den Personen im lokalen Netzwerk zeitlich begrenzten, anonymen Nur-Lese-Zugriff auf die Wettkampflisten erhalten, damit Zuschauer und Betreuer die Kämpfe ohne eigenes Benutzerkonto verfolgen können.
+
+**Rahmen-Entscheidungen (Grilling-Ergebnis):**
+- Anonymer Zugriff über ein **eigenständiges Guest-Share-Token** (kein Benutzerkonto); read-only Pseudo-Rolle `Guest`.
+- Scope bewusst schmal: **nur** die Wettkampflisten-Ansicht.
+- **Ein** aktives Token pro Turnier; manueller An/Aus-Toggle + optionale TTL (Default „bis Mitternacht heute"); „Rotieren" invalidiert das alte Token sofort.
+- Verwaltung durch **Admin + Operator**; Aktionen werden auditiert; einzelne Gast-Zugriffe werden **nicht** protokolliert.
+- **Datensparsamkeit:** dedizierte, reduzierte Public-DTOs (`athletes = {id, clubId, firstName, lastName}`, `clubs = {id, name}`); die gesamte Wettkampflisten-Ansicht (Display + Gast) nutzt diese.
+- QR **serverseitig als SVG**; Basis-URL aus Host-Header (optionaler Override); nicht-lokaler/öffentlicher Host nur mit TLS.
+- Bei Backup/Restore ist die Freigabe immer deaktiviert; kein Token im Backup.
+
+#### G-04a Guest-Share-Token-Modell + Persistenz (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als System möchte ich Guest-Share-Tokens pro Turnier speichern und verwalten, damit anonymer Zugriff zustandsbasiert freigegeben, deaktiviert und rotiert werden kann.  
+**Acceptance Criteria:**
+- Neue Entität/Tabelle mit genau einem aktiven Token pro Turnier (`TournamentId`, `Token` Klartext, `IsEnabled`, `ExpiresAtUtc`, `CreatedUtc`, `RotatedAtUtc`).
+- Token wird mit `RandomNumberGenerator` (≥256 Bit, base64url) erzeugt.
+- EF-Core-Migration ergänzt; Legacy-DB-Adoption bleibt intakt.
+- Backup/Restore übernimmt den Token **nicht** (Restore ⇒ deaktiviert/kein Token).
+- Unit-Tests für Erzeugen/Rotieren/Deaktivieren/Ablauf; `Category=UnitTest`.
+
+#### G-04b Reduzierte Public-Read-Endpoints (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als anonymer Gast (und als Display-Client) möchte ich die Wettkampflisten über datenminimierte Endpoints laden, damit keine personenbezogenen Zusatzdaten übertragen werden.  
+**Acceptance Criteria:**
+- Neue Endpoints `GET /api/tournaments/{id}/public/{athletes,clubs,categories,fights,standings}` liefern reduzierte DTOs.
+- `athletes = {id, clubId, firstName, lastName}`, `clubs = {id, name}`; keine Lizenz-/Passnummer, kein Geburtsjahr, kein Gewicht, keine Kontaktdaten.
+- Autorisiert für `Admin, Operator, Display, Guest`; Guest nur bei aktiver, gültiger Freigabe.
+- Bestehende vollständige `getAthletes`/`getClubs` bleiben für Betreiber-Ansichten unverändert.
+- Unit-/Integrationstests für DTO-Form und Autorisierung.
+
+#### G-04c Guest-Authentifizierung im Bearer-Handler + Hub-Scope (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als System möchte ich Guest-Tokens erkennen und streng auf ihr Turnier begrenzen, damit anonymer Zugriff nicht über die Wettkampflisten hinausreicht.  
+**Status:** Vollständig umgesetzt. Handler + Scope-Absicherung (Guest-Principal, Gültigkeitsprüfung, DefaultPolicy zwingt echte Rolle für `[Authorize]`, Controller erzwingt Turnier-Scope). TLS-Erzwingung im `GuestShareLinkBuilder` (nicht-lokaler Host ohne HTTPS ⇒ `GuestShareInsecureHostException`; Controller liefert 400 bei `enable`/`rotate`/`qr`, Public-Link im Status entfällt). `TournamentHub` prüft Guest-Turnier-Scope und aktive Freigabe (Soft-Disconnect). Eigene `PublicPolicy` (per-IP Fixed-Window) auf dem `PublicController`. Neue Tests: Link-Builder-TLS-Theorie, Hub-Scope (4), Guest-Zugriff-Integration (3), Controller-TLS (2).  
+**Acceptance Criteria:**
+- ✅ `BearerTokenAuthenticationHandler` erzeugt für ein gültiges Guest-Token ein read-only `Guest`-Principal (turniergebunden).
+- ✅ Gültigkeitsprüfung: `IsEnabled` und nicht abgelaufen; deaktiviert/abgelaufen/rotiert ⇒ kein Zugriff.
+- ✅ Bloßes `[Authorize]` verlangt weiterhin eine Betreiberrolle (Admin/Operator/Display); Guest erreicht nur explizit freigegebene Public-Endpoints (Scope-Leak verhindert).
+- ✅ Nicht-lokaler/öffentlicher Host nur über TLS akzeptiert.
+- ✅ SignalR: Guest darf **nur** die Gruppe des eigenen Turniers joinen; Soft-Disconnect (keine neuen Verbindungen/Reconnects bei Deaktivierung, laufende laufen aus).
+- ✅ Eigene per-IP Rate-Limit-Policy für die Public-Endpoints.
+- ✅ Integrationstests für Zugriff/Verweigerung und Scope-Grenzen.
+
+#### G-04d Serverseitige QR-Erzeugung + Verwaltung (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als Admin/Operator möchte ich die Freigabe erzeugen, anzeigen, rotieren und deaktivieren, damit ich den anonymen Zugriff kontrolliert steuern kann.  
+**Status:** `GuestShareController` (Admin/Operator) mit `GET`, `enable`, `disable`, `rotate`, `qr` umgesetzt; QR serverseitig als SVG via QRCoder; Basis-URL aus Host-Header oder `GuestShare:PublicBaseUrl`-Override. Backup/Restore zieht die Freigabe bewusst nicht mit (kein Token im Backup, Restore ⇒ deaktiviert; Decision 13 erfüllt). TLS-Erzwingung für nicht-lokale Hosts ergänzt (siehe G-04c).  
+**Acceptance Criteria:**
+- ✅ Endpoints zum Erzeugen/Aktivieren, Deaktivieren, Rotieren und Abrufen des Status (Admin/Operator).
+- ✅ `GET .../guest-share/qr` liefert QR als SVG mit der Public-URL; Basis-URL aus Host-Header, optionaler konfigurierter Override.
+- ✅ Audit: `GuestShareEnabled`, `GuestShareDisabled`, `GuestShareRotated` mit auslösendem Betreiber; kein Token im Audit-Detail; keine Gast-Reads.
+- ✅ Unit-Tests für QR-Ausgabe (SVG), Verwaltungslogik, URL-Aufbau und tokenfreies Audit.
+
+#### G-04e Wettkampflisten auf reduziertes Modell umstellen (P1, 2 SP) — ✅ Umgesetzt
+**Story:** Als Nutzer der Wettkampflisten möchte ich, dass die Ansicht nur die tatsächlich angezeigten Daten lädt, damit weniger personenbezogene Daten übertragen werden.  
+**Status:** `MatchListsComponent` lädt Athleten/Vereine/Kategorien/Kämpfe/Stände über die reduzierten Public-Endpoints (`ApiService.getPublicAthletes/Clubs/Categories/Fights/Standings`) — ein Code-Pfad für Display **und** Gast. Neue TS-Modelle `PublicAthlete`/`PublicClub`. Keine sichtbare Funktionsänderung (weiterhin „Nachname, Vorname" + Verein). Frontend-Build grün.  
+**Acceptance Criteria:**
+- `MatchListsComponent` nutzt die reduzierten Public-Endpoints (Display + Gast, ein Code-Pfad).
+- Keine sichtbare Funktionsänderung (Name „Nachname, Vorname" + Verein wie bisher).
+- Frontend-Tests bleiben grün.
+
+#### G-04f Public-Route + QR-Anzeige im Frontend (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als Gast möchte ich über den gescannten QR eine fokussierte Nur-Listen-Seite ohne App-Navigation öffnen, und als Betreiber möchte ich den QR auf der Turnieransicht sehen.  
+**Status:** Route `public/match-lists?tid=…&t=<token>` (ohne Guard) rendert `MatchListsComponent` ohne App-Shell (`updateShellVisibility` blendet `/public` aus). Der Token wird via `AuthStateService.setGuestToken` als Bearer für API-Aufrufe genutzt (Gast-Modus verzichtet bewusst auf die Hub-Verbindung → statischer Snapshot). Die Turnieransicht (Admin/Operator) zeigt je Turnier ein aufklappbares Panel „Gäste-Zugriff" mit Status, Auto-Aus-Preset (Bis Mitternacht/4h/8h/kein Aus, Default Mitternacht), Freigeben/Deaktivieren/Rotieren, Ablaufanzeige, öffentlichem Link (kopierbar) und serverseitig geliefertem QR-SVG (inline). Deutsch-erste i18n-Keys `share.*` in `de.json`/`en.json`.  
+**Acceptance Criteria:**
+- Neue Route `public/match-lists?tournamentId=…&t=<token>` rendert die Wettkampflisten ohne App-Shell/Nav/Login; Token aus URL, als Bearer + Hub-`access_token` genutzt.
+- Turnieransicht (Admin/Operator) zeigt QR + Steuerung (Freigeben/Deaktivieren/Rotieren, TTL-Preset, Ablaufanzeige).
+- Deutsch-erste, lokalisierbare Labels (i18n-Keys, `en`-Platzhalter).
+- Ungültige/deaktivierte Freigabe zeigt eine verständliche Hinweisseite.
+
+#### G-04g Dokumentation (README DE/EN) (P2, 1 SP) — ✅ Umgesetzt
+**Story:** Als Betreiber möchte ich die anonyme QR-Freigabe dokumentiert haben, damit Einrichtung, TLS-Anforderung und Datenschutzverhalten klar sind.  
+**Status:** `README.md` und `README.de.md` enthalten einen Abschnitt „Guest access / Gastzugriff" (Freigabe-Workflow, Auto-Aus-Presets, Rotieren/Deaktivieren, Datensparsamkeit, TLS-Regel für öffentliche Hosts, Realtime/Soft-Disconnect, Audit, Backup-Verhalten, per-IP Rate-Limit) sowie die neuen Public- und Guest-Share-Endpoints in der API-Liste. Beide Sprachversionen sind strukturell konsistent.  
+**Acceptance Criteria:**
+- ✅ `README.md` und `README.de.md` beschreiben Freigabe-Workflow, TLS-Regel (öffentlich ⇒ TLS), Datensparsamkeit und Auto-Aus.
+- ✅ Beide Versionen strukturell/inhaltlich konsistent inkl. Sprach-Querverweise.
+
 ---
 
 ## Epic H - Localization (German-First)

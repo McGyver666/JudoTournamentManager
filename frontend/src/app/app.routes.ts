@@ -76,5 +76,12 @@ export const routes: Routes = [
     canActivate: [requireAdminGuard],
     loadComponent: () => import('./features/user-management/user-management.component').then((m) => m.UserManagementComponent),
   },
+  {
+    // Anonymous guest access via QR share link (?tid=…&t=<token>).
+    // No guard: the bearer token is supplied in the URL and validated server-side.
+    path: 'public/match-lists',
+    loadComponent: () =>
+      import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
+  },
   { path: '**', redirectTo: 'tournaments' },
 ];

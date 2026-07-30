@@ -385,6 +385,18 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `GET /api/tournaments/{tournamentId}/medal-table`
 - `GET /api/tournaments/{tournamentId}/audit-log`
 
+- `GET /api/tournaments/{tournamentId}/public/athletes` (datenminimiert; Admin/Operator/Display/Gast)
+- `GET /api/tournaments/{tournamentId}/public/clubs`
+- `GET /api/tournaments/{tournamentId}/public/categories`
+- `GET /api/tournaments/{tournamentId}/public/tournament`
+- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/fights`
+- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/standings`
+- `GET /api/tournaments/{tournamentId}/guest-share` (Admin/Operator)
+- `POST /api/tournaments/{tournamentId}/guest-share/enable`
+- `POST /api/tournaments/{tournamentId}/guest-share/disable`
+- `POST /api/tournaments/{tournamentId}/guest-share/rotate`
+- `GET /api/tournaments/{tournamentId}/guest-share/qr` (SVG)
+
 - `POST /api/auth/bootstrap-admin`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
@@ -409,6 +421,52 @@ Beispielanforderung fuer `POST /api/tournaments`:
   "organizer": "JC Essen"
 }
 ```
+
+## Gastzugriff (oeffentliche Wettkampflisten)
+
+Zuschauer im lokalen Netzwerk koennen die Wettkampflisten per QR-Code als
+Nur-Lese-Ansicht oeffnen — ohne Benutzerkonto und ohne die App-Navigation.
+
+Ablauf:
+- In der Turnieransicht oeffnet ein Administrator oder Operator das Panel
+  **Gaeste-Zugriff** und klickt auf **Freigeben**. Damit entsteht genau ein
+  Gast-Token pro Turnier; angezeigt werden ein QR-Code und ein teilbarer Link
+  (`/public/match-lists?tid=…&t=<token>`).
+- Das Auto-Aus-Preset steuert eine optionale Gueltigkeitsgrenze: **bis Mitternacht
+  heute** (Standard), **4h**, **8h** oder **kein Auto-Aus**.
+- **Rotieren** erzeugt ein neues Token und macht den vorherigen QR sofort
+  ungueltig. **Deaktivieren** schaltet die Freigabe aus, ohne das Token zu
+  verwerfen.
+- Gaeste erreichen ausschliesslich die oeffentlichen Nur-Lese-Wettkampflisten
+  dieses einen Turniers. Ein blosser authentifizierter Endpunkt verlangt weiterhin
+  eine Betreiberrolle; der Gastzugriff reicht damit nie ueber die Wettkampflisten
+  hinaus.
+
+Datensparsamkeit:
+- Die Public-Endpoints liefern nur reduzierte DTOs (Athleten = Id, Verein, Vor-/
+  Nachname; Vereine = Id, Name). Keine Lizenz-/Passnummer, kein Geburtsjahr, kein
+  Gewicht, kein Grad, keine Kontaktdaten. Die gesamte Wettkampflisten-Ansicht
+  (Display und Gast) nutzt dasselbe reduzierte Modell.
+
+TLS-Regel:
+- Auf einem lokalen/LAN-Host (localhost, private IP-Bereiche, einteilige oder
+  `.local`/`.lan`-Hostnamen) wird einfaches HTTP akzeptiert.
+- Auf einem nicht-lokalen/oeffentlichen Host werden Gast-Link und QR nur ueber
+  **HTTPS** ausgeliefert; ein Abruf ueber einfaches HTTP liefert `400 Bad Request`.
+  In Produktion terminiert nginx das TLS vor der App. Eine explizite Basis-URL
+  laesst sich ueber `GuestShare:PublicBaseUrl` konfigurieren.
+
+Realtime und Lebenszyklus:
+- Gaeste treten dem bestehenden reinen Broadcast-SignalR-Hub bei, aber nur der
+  Gruppe des eigenen Turniers und nur solange die Freigabe aktiv ist
+  (Soft-Disconnect: nach dem Deaktivieren werden keine neuen Verbindungen oder
+  Beitritte mehr akzeptiert; laufende Verbindungen laufen einfach aus).
+- Gast-Zugriffe werden nicht protokolliert; Freigeben, Deaktivieren und Rotieren
+  werden auditiert (`GuestShareEnabled`/`GuestShareDisabled`/`GuestShareRotated`)
+  — ohne das Token.
+- Backups enthalten das Gast-Token nie; nach einem Restore ist die Freigabe immer
+  deaktiviert (zum erneuten Teilen neu freigeben).
+- Die Public-Endpoints haben ein eigenes per-IP-Rate-Limit-Fenster.
 
 ## Lokalisierung
 
