@@ -71,6 +71,12 @@
                 rel="noopener"
                 role="menuitem"
                 (click)="closeDisplayMenu()">{{ 'display.menuOverview' | t }}</a>
+              <a
+                [href]="matchListsUrl(tid)"
+                target="_blank"
+                rel="noopener"
+                role="menuitem"
+                (click)="closeDisplayMenu()">{{ 'display.menuMatchLists' | t }}</a>
               @for (tatami of displayTatamis(); track tatami.id) {
                 <a
                   [href]="tatamiDisplayUrl(tid, tatami.id)"

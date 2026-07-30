@@ -119,6 +119,10 @@ export class AppComponent implements OnInit, OnDestroy {
     return `/display?tournamentId=${encodeURIComponent(tournamentId)}`;
   }
 
+  protected matchListsUrl(tournamentId: string): string {
+    return `/display/match-lists?tournamentId=${encodeURIComponent(tournamentId)}`;
+  }
+
   protected tatamiDisplayUrl(tournamentId: string, tatamiId: string): string {
     return `/display/tatami/${encodeURIComponent(tatamiId)}?tournamentId=${encodeURIComponent(tournamentId)}`;
   }
