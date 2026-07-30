@@ -250,6 +250,10 @@
 	align-items: center;
 	text-align: center;
 	gap: .75rem;
+	justify-self: start;
+	align-self: start;
+	width: fit-content;
+	max-width: 260px;
 }
 
 .qr-share-code {
