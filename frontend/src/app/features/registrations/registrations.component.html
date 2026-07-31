@@ -5,8 +5,6 @@
     <h1>{{ 'registrations.title' | t }}</h1>
     <div class="toolbar-actions">
       <button (click)="exportCsv()" [disabled]="registrations().length === 0">{{ 'registrations.export' | t }}</button>
-      <button class="primary" (click)="startCreate()"
-        [disabled]="!canOperate() || athletes().length === 0">{{ 'registrations.new' | t }}</button>
     </div>
   </div>
 
@@ -18,9 +16,112 @@
     <p class="error">{{ error() }}</p>
   }
 
-  @if (showForm() && canOperate()) {
-    <div class="card">
-      <h2>{{ 'registrations.new' | t }}</h2>
+  @if (canOperate() && athletes().length > 0) {
+    <div class="card weigh-panel">
+      <h2>{{ 'registrations.quickPanelTitle' | t }}</h2>
+
+      <div class="weigh-layout">
+        <section class="weigh-search-block">
+          <div class="weigh-filters">
+            <div>
+              <label>{{ 'registrations.filterClub' | t }}</label>
+              <select [ngModel]="selectedClubId()" (ngModelChange)="onFilterClubChanged($event)" name="filterClub">
+                <option value="">{{ 'registrations.allClubs' | t }}</option>
+                @for (club of clubOptions(); track club.id) {
+                  <option [value]="club.id">{{ club.name }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label>{{ 'registrations.filterAgeGroup' | t }}</label>
+              <select [ngModel]="selectedAgeGroup()" (ngModelChange)="onFilterAgeGroupChanged($event)" name="filterAgeGroup">
+                <option value="">{{ 'registrations.allAgeGroups' | t }}</option>
+                @for (ageGroup of ageGroupOptions(); track ageGroup) {
+                  <option [value]="ageGroup">{{ ageGroup }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label>{{ 'registrations.filterGender' | t }}</label>
+              <select [ngModel]="selectedGender()" (ngModelChange)="onFilterGenderChanged($event)" name="filterGender">
+                <option value="All">{{ 'registrations.allGenders' | t }}</option>
+                <option value="Male">{{ 'gender.male' | t }}</option>
+                <option value="Female">{{ 'gender.female' | t }}</option>
+                <option value="Mixed">{{ 'gender.mixed' | t }}</option>
+              </select>
+            </div>
+            <div class="filter-reset-wrap">
+              <button type="button" (click)="resetFilters()">{{ 'registrations.filterReset' | t }}</button>
+            </div>
+          </div>
+
+          <label>{{ 'registrations.searchAthlete' | t }}</label>
+          <input
+            #searchInput
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchChanged($event)"
+            (keydown)="onSearchKeyDown($event)"
+            [placeholder]="'registrations.searchHint' | t"
+            autocomplete="off"
+            name="searchAthlete" />
+
+          <div class="athlete-list" role="listbox" [attr.aria-label]="'registrations.athlete' | t">
+            @for (a of filteredAthletes(); track a.id) {
+              <button
+                type="button"
+                class="athlete-list-item"
+                [class.active]="isActiveAthlete(a.id)"
+                (click)="selectAthlete(a.id, true)">
+                {{ athleteListLabel(a) }}
+              </button>
+            }
+
+            @if (hasNoMatches()) {
+              <p class="muted no-matches">{{ 'registrations.noMatches' | t }}</p>
+            }
+          </div>
+
+          @if (hasMoreThanVisibleRows()) {
+            <p class="muted list-hint">{{ 'registrations.moreMatchesHint' | t:{ count: visibleAthleteCountHint() } }}</p>
+          }
+        </section>
+
+        <section class="weigh-input-block">
+          <label>{{ 'registrations.selectedAthlete' | t }}</label>
+          <div class="selected-athlete">{{ activeAthleteLabel() }}</div>
+
+          <label>{{ 'registrations.weight' | t }} *</label>
+          <input
+            #weightInput
+            type="number"
+            [(ngModel)]="form.weightKg"
+            (keydown)="onWeightKeyDown($event)"
+            name="rw"
+            step="0.1"
+            min="1"
+            max="300"
+            required />
+
+          <label class="checkbox-inline">
+            <input type="checkbox" [(ngModel)]="form.licenseConfirmed" name="rlc" />
+            {{ 'registrations.licenseConfirmed' | t }}
+          </label>
+
+          <div class="qr-row">
+            <button type="button" (click)="showQrScanner.set(true)" [disabled]="showQrScanner()">
+              {{ 'registrations.scan' | t }}
+            </button>
+            @if (form.dokumeQrUrl) {
+              <span class="success">✓ {{ 'registrations.licenseCheckRequired' | t }}</span>
+            }
+          </div>
+
+          <div class="form-actions weigh-actions">
+            <button class="primary" type="button" (click)="save()" [disabled]="!isFormValid()">{{ 'common.save' | t }}</button>
+          </div>
+        </section>
+      </div>
 
       @if (showQrScanner()) {
         <app-qr-license-scanner
@@ -28,46 +129,12 @@
           (scanCancelled)="onScanCancelled()">
         </app-qr-license-scanner>
       }
+    </div>
+  }
 
-      <div class="row">
-        <div>
-          <label>{{ 'registrations.athlete' | t }}</label>
-          <select [(ngModel)]="form.athleteId" (change)="onAthleteSelected()" name="ra">
-            @for (a of availableAthletes(); track a.id) {
-              <option [value]="a.id">{{ athleteLabel(a) }}</option>
-            }
-          </select>
-        </div>
-        <div>
-          <label>{{ 'registrations.weight' | t }} *</label>
-          <input type="number" [(ngModel)]="form.weightKg" name="rw" step="0.1" min="1" max="300" required />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <button (click)="showQrScanner.set(true)" [disabled]="showQrScanner()">
-            {{ 'registrations.scan' | t }}
-          </button>
-          @if (form.dokumeQrUrl) {
-            <p class="success">✓ {{ 'registrations.licenseCheckRequired' | t }}</p>
-          }
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label class="checkbox-inline">
-            <input type="checkbox" [(ngModel)]="form.licenseConfirmed" name="rlc" />
-            {{ 'registrations.licenseConfirmed' | t }}
-          </label>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button (click)="showForm.set(false)">{{ 'common.cancel' | t }}</button>
-        <button class="primary" (click)="save()" [disabled]="!isFormValid()">{{ 'common.save' | t }}</button>
-      </div>
+  @if (toastMessage()) {
+    <div class="weigh-toast" role="status" aria-live="polite" (click)="clearToast()">
+      {{ toastMessage() }}
     </div>
   }
 
