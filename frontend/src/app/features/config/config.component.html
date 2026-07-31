@@ -419,9 +419,10 @@
         <input
           #dm4Input
           type="file"
-          accept=".dm4,.dmf"
+          accept=".dm4,.dmf,.csv"
           style="display: none;"
           (change)="importAthletesFromFile($event)" />
+        <button (click)="exportAthletesCsv()" [disabled]="athletes().length === 0">{{ 'athletes.exportCsv' | t }}</button>
         <button (click)="openAthleteImportDialog(dm4Input)" [disabled]="!canOperate()">{{ 'athletes.importFile' | t }}</button>
         <button class="primary" (click)="newAthlete()" [disabled]="!canOperate() || clubs().length === 0">{{ 'athletes.new' | t }}</button>
       </div>
