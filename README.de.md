@@ -12,10 +12,10 @@ Bereits verfuegbar:
 - .NET-10-Backendloesung mit SQLite-Persistenz (EF Core)
 - lokales Startskript
 - Health-Endpunkt
-- APIs fuer Turniere, Tatamis, Kategorien, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
+- APIs fuer Turniere, Tatamis, Gewichtsklassen, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
 - Athleten-Dateiimport ueber DM4 und DMF (mit automatischer Formaterkennung)
-- Ablauf zur Kategoriezuordnung (automatisch und manuell)
-- unterstuetzte Kategoriegenerierung (Vorschau und Anwenden) mit zwei Strategien:
+- Ablauf zur Gewichtsklassenzuordnung (automatisch und manuell)
+- unterstuetzte Gewichtsklassengenerierung (Vorschau und Anwenden) mit zwei Strategien:
   - Standardklassen 2026 (Quelle: `altersklassen_2026.md`)
   - athletengesteuerte Klassen nach Zielzahl von Athleten je Klasse und maximaler Gewichtsdifferenz
 - Ablauf zur Tatami-Zuordnung (automatisch und manuell)

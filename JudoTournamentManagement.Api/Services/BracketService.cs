@@ -46,7 +46,7 @@ public sealed class BracketService : IBracketService
         if (format == BracketFormat.DoubleElimination && registrations.Count > 32)
         {
             throw new InvalidOperationException(
-                "Das Doppel-K.-o.-System unterstützt höchstens 32 Athleten pro Kategorie.");
+                "Das Doppel-K.-o.-System unterstützt höchstens 32 Athleten pro Gewichtsklasse.");
         }
 
         // Deterministic shuffle: seed derived from category ID so same input → same bracket

@@ -10,6 +10,6 @@ public sealed record AssignCategoryRequest
     /// <summary>
     /// Category to assign to the athlete.
     /// </summary>
-    [Required(ErrorMessage = "Die Kategorie ist erforderlich.")]
+    [Required(ErrorMessage = "Die Gewichtsklasse ist erforderlich.")]
     public Guid CategoryId { get; init; }
 }
