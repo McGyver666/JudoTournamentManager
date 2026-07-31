@@ -57,17 +57,6 @@
 
       <div class="row">
         <div>
-          <button (click)="showQrScanner.set(true)" [disabled]="showQrScanner()">
-            {{ 'registrations.scan' | t }}
-          </button>
-          @if (form.dokumeQrUrl) {
-            <p class="success">✓ {{ 'registrations.licenseCheckRequired' | t }}</p>
-          }
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
           <label class="checkbox-inline">
             <input type="checkbox" [(ngModel)]="form.licenseConfirmed" name="rlc" />
             {{ 'registrations.licenseConfirmed' | t }}
