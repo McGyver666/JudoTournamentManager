@@ -85,7 +85,7 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
 
         if (skippedDuplicateCount > 0)
         {
-            warnings.Add($"{skippedDuplicateCount} Kategorien wurden wegen Duplikaten übersprungen.");
+            warnings.Add($"{skippedDuplicateCount} Gewichtsklassen wurden wegen Duplikaten übersprungen.");
         }
 
         _logger.LogInformation(

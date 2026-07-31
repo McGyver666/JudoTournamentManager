@@ -137,14 +137,14 @@ Story points are rough relative estimates.
 - Category can be locked once draw is generated.
 
 ### C-04 Assisted category generation (P1, 8 SP) — ✅ Done
-**Story:** Als Admin möchte ich Kategorien per Assistent generieren, damit Standardklassen und meldungsbasierte Klassen schnell erstellt werden können.  
+**Story:** Als Admin möchte ich Gewichtsklassen per Assistent generieren, damit Standardklassen und meldungsbasierte Klassen schnell erstellt werden können.
 **Acceptance Criteria:**
-- In der Kategorie-Konfiguration gibt es einen "Kategorien generieren"-Button.
+- In der Gewichtsklassen-Konfiguration gibt es einen "Gewichtsklassen generieren"-Button.
 - Assistent erfasst Jahrgangsbereich, Geschlecht, Kampfzeit, Golden-Score-Einstellungen.
 - Zwei Strategien: Standardklassen 2026 und meldungsbasierte Zielgröße mit maximaler Gewichtsabweichung.
 - Vor dem Anlegen wird eine Vorschau angezeigt und erst nach Bestätigung gespeichert.
-- Beim Anwenden werden zuvor generierte, ungesperrte Kategorien ersetzt; gesperrte Kategorien bleiben erhalten.
-- Gemischte Kategorien werden als eigene Gender-Ausprägung unterstützt (Mixed).
+- Beim Anwenden werden zuvor generierte, ungesperrte Gewichtsklassen ersetzt; gesperrte Gewichtsklassen bleiben erhalten.
+- Gemischte Gewichtsklassen werden als eigene Gender-Ausprägung unterstützt (Mixed).
 
 ---
 
@@ -172,7 +172,7 @@ Story points are rough relative estimates.
 - Registration list exportable (CSV/PDF optional for MVP: CSV mandatory).
 
 ### D-04 Assisted category assignment (P1, 3 SP) — ✅ Done
-**Story:** Als Admin möchte ich Meldungen automatisch oder manuell Kategorien zuordnen können, damit die Auslosung schneller vorbereitet wird.  
+**Story:** Als Admin möchte ich Meldungen automatisch oder manuell Gewichtsklassen zuordnen können, damit die Auslosung schneller vorbereitet wird.  
 **Acceptance Criteria:**
 - Auto-assignment based on gender, birth year and weight.
 - Manual per-athlete category override.
@@ -183,7 +183,7 @@ Story points are rough relative estimates.
 ## Epic E - Draw/Bracket Engine
 
 ### E-01 Generate brackets (P0, 8 SP) — ✅ Done
-**Story:** Als Admin möchte ich pro Kategorie automatisch einen Turnierbaum erzeugen, damit Kämpfe gestartet werden können.  
+**Story:** Als Admin möchte ich pro Gewichtsklasse automatisch einen Turnierbaum erzeugen, damit Kämpfe gestartet werden können.  
 **Acceptance Criteria:**
 - Support single elimination.
 - Support repechage variant required by target tournament format (configurable preset).
@@ -260,7 +260,7 @@ Story points are rough relative estimates.
 - Auto-refresh via realtime channel.
 
 ### G-02 Category results/rankings (P0, 5 SP) — ✅ Done
-**Story:** Als Turnierleitung möchte ich Platzierungen je Kategorie sehen, damit Siegerehrungen vorbereitet werden können.  
+**Story:** Als Turnierleitung möchte ich Platzierungen je Gewichtsklasse sehen, damit Siegerehrungen vorbereitet werden können.  
 **Acceptance Criteria:**
 - Ranking generated from final bracket state.
 - Clearly displays 1st/2nd/3rd placements.

@@ -180,7 +180,7 @@ Implementierung in RankingService.
 ## 5.2 Berechnungsablauf Altersklasse
 
 1. Vereine der Altersklasse ermitteln (inklusive Ohne Verein bei Bedarf)
-2. Podestplatzierungen aus Rankings der Kategorien der Altersklasse aggregieren
+2. Podestplatzierungen aus Rankings der Gewichtsklassen der Altersklasse aggregieren
 3. Basispunkte berechnen
 4. Kaempfe der Altersklasse auswerten (ohne Freilos)
 5. Siege und Kaempfe pro Verein zaehlen

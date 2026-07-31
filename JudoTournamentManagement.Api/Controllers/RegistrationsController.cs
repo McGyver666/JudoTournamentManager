@@ -114,7 +114,7 @@ public sealed class RegistrationsController : ControllerBase
         var registrations = await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken);
 
         var sb = new StringBuilder();
-        sb.AppendLine("Kategorie;Altersklasse;Geschlecht;Gewichtsklasse;Nachname;Vorname;Jahrgang;Verein;Gewicht;Lizenzbest;Lizenznummer;Lizenzablauf");
+        sb.AppendLine("Gewichtsklasse;Altersklasse;Geschlecht;Gewichtsklasse;Nachname;Vorname;Jahrgang;Verein;Gewicht;Lizenzbest;Lizenznummer;Lizenzablauf");
 
         foreach (var r in registrations)
         {
