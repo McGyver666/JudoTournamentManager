@@ -179,9 +179,11 @@
   "athletes.empty": "No athletes yet.",
   "athletes.noClubs": "Please create a club first.",
   "athletes.duplicateConfirm": "A similar athlete already exists. Create anyway?",
+  "athletes.exportCsv": "Export CSV",
   "athletes.importFile": "Import file (DM4/DMF)",
   "athletes.importSuccess": "Imported {count} athletes from file.",
-  "athletes.importInvalidExtension": "Please select a file with the .dm4 or .dmf extension.",
+  "athletes.importInvalidExtension": "Please select a file with the .dm4, .dmf or .csv extension.",
+  "athletes.importCsvInvalidFormat": "The CSV file has an invalid format. Please only import CSV files exported by this system.",
   "athletes.importDuplicateConfirm": "At least one athlete may already exist. Continue import anyway?",
 
   "registrations.title": "Weigh-in",

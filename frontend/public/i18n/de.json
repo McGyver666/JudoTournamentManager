@@ -181,9 +181,11 @@
     "athletes.gradeUnknown": "Unbekannter Gürtelgrad",
   "athletes.noClubs": "Bitte zuerst einen Verein anlegen.",
   "athletes.duplicateConfirm": "Ein ähnlicher Athlet existiert bereits. Trotzdem anlegen?",
+  "athletes.exportCsv": "CSV exportieren",
   "athletes.importFile": "Datei importieren (DM4/DMF)",
   "athletes.importSuccess": "{count} Athleten aus Datei importiert.",
-  "athletes.importInvalidExtension": "Bitte eine Datei mit der Endung .dm4 oder .dmf auswählen.",
+  "athletes.importInvalidExtension": "Bitte eine Datei mit der Endung .dm4, .dmf oder .csv auswählen.",
+  "athletes.importCsvInvalidFormat": "Die CSV-Datei hat ein ungültiges Format. Bitte nur mit diesem System exportierte CSV-Dateien importieren.",
   "athletes.importDuplicateConfirm": "Mindestens ein Athlet existiert möglicherweise bereits. Import trotzdem durchführen?",
 
   "registrations.title": "Waage",
