@@ -19,6 +19,7 @@ Already available:
   - standard 2026 classes (source: `altersklassen_2026.md`)
   - athlete-driven classes by target athletes per class and max weight deviation
 - tatami assignment workflow (auto + manual)
+- combat overview of completed fights (Operator/Admin) with category/tatami filters and expandable score details
 - public display view with realtime updates (SignalR)
 - server-authoritative synchronized fight and osae-komi timing across operator and display views
 - tenth-second local display for running final fight seconds and active osae-komi countdowns
@@ -385,6 +386,7 @@ are served at `/i18n/{lang}.json`.
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/correct`
+- `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; enriched summaries of finished fights)
 
 - `GET /api/tournaments/{tournamentId}/medal-table`
 - `GET /api/tournaments/{tournamentId}/audit-log`

@@ -390,6 +390,37 @@ export interface FightUpdatedMessage {
   serverNowUtc: string;
 }
 
+/** Enriched summary of a completed fight for the tournament-wide combat overview (Kampfübersicht). */
+export interface CompletedFightSummary {
+  fightId: string;
+  categoryId: string;
+  categoryName: string;
+  bracketType: FightBracketType;
+  round: number;
+  fightNumber: number;
+  poolNumber: number | null;
+  tatamiId: string | null;
+  tatamiName: string | null;
+  whiteAthleteName: string;
+  whiteClubName: string;
+  blueAthleteName: string;
+  blueClubName: string;
+  winnerSide: 'White' | 'Blue' | null;
+  winnerName: string;
+  whiteScore: number;
+  blueScore: number;
+  whitePenalties: number;
+  bluePenalties: number;
+  whiteIpponCount: number;
+  whiteWazaAriCount: number;
+  whiteYukoCount: number;
+  blueIpponCount: number;
+  blueWazaAriCount: number;
+  blueYukoCount: number;
+  startedAtUtc: string | null;
+  completedAtUtc: string;
+  durationSeconds: number | null;
+}
 export interface ServerTimeResponse {
   serverTimeUtc: string;
 }

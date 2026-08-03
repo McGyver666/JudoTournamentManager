@@ -52,6 +52,13 @@ export const routes: Routes = [
         (m) => m.TatamiAssignmentComponent),
   },
   {
+    path: 'combat-overview',
+    canActivate: [requireOperatorGuard],
+    loadComponent: () =>
+      import('./features/combat-overview/combat-overview.component').then(
+        (m) => m.CombatOverviewComponent),
+  },
+  {
     path: 'match',
     canActivate: [requireOperatorGuard],
     loadComponent: () => import('./features/match/match.component').then((m) => m.MatchComponent),
