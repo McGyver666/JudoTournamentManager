@@ -29,6 +29,8 @@ namespace JudoTournamentManagement.Api.Contracts;
 /// <param name="BlueIpponCount">Ippon count for the accent-side athlete.</param>
 /// <param name="BlueWazaAriCount">Waza-ari count for the accent-side athlete.</param>
 /// <param name="BlueYukoCount">Yuko count for the accent-side athlete.</param>
+/// <param name="WhiteAthleteId">White athlete's ID; needed by clients for result editing.</param>
+/// <param name="BlueAthleteId">Accent-side athlete's ID; needed by clients for result editing.</param>
 /// <param name="StartedAtUtc">Timestamp when the fight was started; null when not recorded.</param>
 /// <param name="CompletedAtUtc">Timestamp when the fight was completed.</param>
 /// <param name="DurationSeconds">Wall-clock duration between start and completion in seconds; null when start or end is missing.</param>
@@ -58,6 +60,8 @@ public sealed record CompletedFightSummary(
     int BlueIpponCount,
     int BlueWazaAriCount,
     int BlueYukoCount,
+    Guid? WhiteAthleteId,
+    Guid? BlueAthleteId,
     DateTimeOffset? StartedAtUtc,
     DateTimeOffset CompletedAtUtc,
     int? DurationSeconds);

@@ -264,6 +264,21 @@ Story points are rough relative estimates.
 
 **Implementation note:** Neuer `GET /api/tournaments/{tournamentId}/completed-fights` liefert angereicherte `CompletedFightSummary`-DTOs über `CompletedFightsService`; Frontend-Route `/combat-overview` mit `CombatOverviewComponent`. Golden-Score-Flag wird nicht angezeigt, da es für abgeschlossene Kämpfe nicht persistiert wird.
 
+### F-07 Ergebnis-Korrektur in der Kampfübersicht (P1, 5 SP) — ✅ Done
+**Story:** Als Admin möchte ich in der Kampfübersicht Wertungen (Ippon, Waza-ari, Yuko, Shido) und den Sieger eines abgeschlossenen Kampfes korrigieren können, damit Eingabefehler am Tisch im Notfall behoben werden.
+**Acceptance Criteria:**
+- Nur K.-o.-/Baum-Kämpfe (Hauptrunde, Trostrunde, Double-Elimination) sind editierbar. Gruppenphasen-Kämpfe bleiben schreibgeschützt.
+- Nur Admins können bearbeiten; Operatoren sehen einen entsprechenden Hinweis.
+- Inline-Bearbeitung im aufklappbaren Detailbereich: Zahlenfelder für alle acht Zähler + Sieger-Auswahl per Radio-Button.
+- Punktsumme wird automatisch aus den Zählern neu berechnet.
+- Wertungen und Sieger sind unabhängig frei setzbar (keine automatische Ableitung).
+- Vor dem Speichern wird geprüft, ob bereits gestartete/abgeschlossene Folgekämpfe betroffen sind. Wenn ja, Inline-Warnpanel mit der Liste betroffener Kämpfe und „Trotzdem speichern".
+- Betroffene gestartete Folgekämpfe werden auf „Ausstehend" zurückgesetzt (kaskadierend).
+- Audit-Eintrag „ResultEdited" mit Vorher/Nachher aller Werte und Anzahl zurückgesetzter Folgekämpfe.
+- Reine Wertungsänderungen ohne Sieger-Wechsel lösen keine Warnung aus.
+
+**Implementation note:** `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (`Authorize(Roles="Admin")`), `EditResultAsync` in `IMatchService`/`MatchService`, `EditFightResultRequest`/`EditFightResultResponse`-Contracts. In-Memory-Simulation der Bracket-Progression zur Affected-Fight-Erkennung. Frontend: `editState`-Signal in `CombatOverviewComponent`, Methoden `setEditCount`/`setEditWinner`/`save`/`cancelEdit`, i18n `combatOverview.edit.*`.
+
 ## Epic G - Public Display & Results
 
 ### G-01 Public screen view (P0, 5 SP) — ✅ Done

@@ -80,37 +80,134 @@
             <tr class="detail-row">
               <td></td>
               <td colspan="8">
-                <div class="detail-grid">
-                  <div class="detail-block">
-                    <h3>{{ 'match.whiteSide' | t }} — {{ fight.whiteAthleteName }}</h3>
-                    <dl>
-                      <dt>{{ 'combatOverview.detail.ippon' | t }}</dt><dd>{{ fight.whiteIpponCount }}</dd>
-                      <dt>{{ 'combatOverview.detail.wazaAri' | t }}</dt><dd>{{ fight.whiteWazaAriCount }}</dd>
-                      <dt>{{ 'combatOverview.detail.yuko' | t }}</dt><dd>{{ fight.whiteYukoCount }}</dd>
-                      <dt>{{ 'combatOverview.detail.shido' | t }}</dt><dd>{{ fight.whitePenalties }}</dd>
-                    </dl>
+                @if (editState()?.fightId === fight.fightId) {
+                  <!-- Edit mode -->
+                  <div class="edit-form">
+                    <div class="edit-scores">
+                      <div class="edit-side">
+                        <h3>{{ 'match.whiteSide' | t }} — {{ fight.whiteAthleteName }}</h3>
+                        <label>{{ 'combatOverview.detail.ippon' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whiteIpponCount"
+                            (ngModelChange)="setEditCount('whiteIpponCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.wazaAri' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whiteWazaAriCount"
+                            (ngModelChange)="setEditCount('whiteWazaAriCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.yuko' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whiteYukoCount"
+                            (ngModelChange)="setEditCount('whiteYukoCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.shido' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whitePenalties"
+                            (ngModelChange)="setEditCount('whitePenalties', $event)">
+                        </label>
+                      </div>
+                      <div class="edit-side">
+                        <h3>{{ accentLabelKey() | t }} — {{ fight.blueAthleteName }}</h3>
+                        <label>{{ 'combatOverview.detail.ippon' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.blueIpponCount"
+                            (ngModelChange)="setEditCount('blueIpponCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.wazaAri' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.blueWazaAriCount"
+                            (ngModelChange)="setEditCount('blueWazaAriCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.yuko' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.blueYukoCount"
+                            (ngModelChange)="setEditCount('blueYukoCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.shido' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.bluePenalties"
+                            (ngModelChange)="setEditCount('bluePenalties', $event)">
+                        </label>
+                      </div>
+                    </div>
+                    <div class="edit-winner">
+                      <span class="edit-winner-label">{{ 'combatOverview.edit.winner' | t }}</span>
+                      <label class="radio-label">
+                        <input type="radio" name="winner-{{fight.fightId}}"
+                          [value]="fight.whiteAthleteId"
+                          [ngModel]="editState()!.winnerId"
+                          (ngModelChange)="setEditWinner($event)">
+                        {{ fight.whiteAthleteName }}
+                      </label>
+                      <label class="radio-label">
+                        <input type="radio" name="winner-{{fight.fightId}}"
+                          [value]="fight.blueAthleteId"
+                          [ngModel]="editState()!.winnerId"
+                          (ngModelChange)="setEditWinner($event)">
+                        {{ fight.blueAthleteName }}
+                      </label>
+                    </div>
+                    @if (editState()?.saveError) {
+                      <p class="error-hint">{{ editState()!.saveError }}</p>
+                    }
+                    @if (editState()?.affectedFights && editState()!.affectedFights!.length > 0) {
+                      <div class="warn-panel">
+                        <p class="warn-text">{{ 'combatOverview.edit.warnAffected' | t }}</p>
+                        <ul>
+                          @for (af of editState()!.affectedFights!; track af.fightId) {
+                            <li>{{ af.categoryName }} — {{ 'draw.round' | t: { n: af.round } }} #{{ af.fightNumber }} ({{ af.status }})</li>
+                          }
+                        </ul>
+                        <div class="edit-actions">
+                          <button class="btn btn--danger" [disabled]="editState()!.saving"
+                            (click)="save(fight, true)">{{ 'combatOverview.edit.confirmSave' | t }}</button>
+                          <button class="btn btn--secondary" (click)="cancelEdit()">{{ 'common.cancel' | t }}</button>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="edit-actions">
+                        <button class="btn btn--primary" [disabled]="editState()!.saving"
+                          (click)="save(fight, false)">{{ 'common.save' | t }}</button>
+                        <button class="btn btn--secondary" (click)="cancelEdit()">{{ 'common.cancel' | t }}</button>
+                      </div>
+                    }
                   </div>
-                  <div class="detail-block">
-                    <h3>{{ accentLabelKey() | t }} — {{ fight.blueAthleteName }}</h3>
-                    <dl>
-                      <dt>{{ 'combatOverview.detail.ippon' | t }}</dt><dd>{{ fight.blueIpponCount }}</dd>
-                      <dt>{{ 'combatOverview.detail.wazaAri' | t }}</dt><dd>{{ fight.blueWazaAriCount }}</dd>
-                      <dt>{{ 'combatOverview.detail.yuko' | t }}</dt><dd>{{ fight.blueYukoCount }}</dd>
-                      <dt>{{ 'combatOverview.detail.shido' | t }}</dt><dd>{{ fight.bluePenalties }}</dd>
-                    </dl>
+                } @else {
+                  <!-- Read mode -->
+                  <div class="detail-grid">
+                    <div class="detail-block">
+                      <h3>{{ 'match.whiteSide' | t }} — {{ fight.whiteAthleteName }}</h3>
+                      <dl>
+                        <dt>{{ 'combatOverview.detail.ippon' | t }}</dt><dd>{{ fight.whiteIpponCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.wazaAri' | t }}</dt><dd>{{ fight.whiteWazaAriCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.yuko' | t }}</dt><dd>{{ fight.whiteYukoCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.shido' | t }}</dt><dd>{{ fight.whitePenalties }}</dd>
+                      </dl>
+                    </div>
+                    <div class="detail-block">
+                      <h3>{{ accentLabelKey() | t }} — {{ fight.blueAthleteName }}</h3>
+                      <dl>
+                        <dt>{{ 'combatOverview.detail.ippon' | t }}</dt><dd>{{ fight.blueIpponCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.wazaAri' | t }}</dt><dd>{{ fight.blueWazaAriCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.yuko' | t }}</dt><dd>{{ fight.blueYukoCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.shido' | t }}</dt><dd>{{ fight.bluePenalties }}</dd>
+                      </dl>
+                    </div>
+                    <div class="detail-block">
+                      <h3>{{ 'combatOverview.detail.meta' | t }}</h3>
+                      <dl>
+                        <dt>{{ 'combatOverview.detail.winner' | t }}</dt><dd>{{ fight.winnerName }}</dd>
+                        <dt>{{ 'combatOverview.detail.bracket' | t }}</dt><dd>{{ bracketTypeKey(fight) | t }}</dd>
+                        <dt>{{ 'combatOverview.detail.startedAt' | t }}</dt>
+                        <dd>{{ fight.startedAtUtc ? (fight.startedAtUtc | date: 'short') : '–' }}</dd>
+                        <dt>{{ 'combatOverview.detail.completedAt' | t }}</dt>
+                        <dd>{{ fight.completedAtUtc | date: 'short' }}</dd>
+                      </dl>
+                    </div>
                   </div>
-                  <div class="detail-block">
-                    <h3>{{ 'combatOverview.detail.meta' | t }}</h3>
-                    <dl>
-                      <dt>{{ 'combatOverview.detail.winner' | t }}</dt><dd>{{ fight.winnerName }}</dd>
-                      <dt>{{ 'combatOverview.detail.bracket' | t }}</dt><dd>{{ bracketTypeKey(fight) | t }}</dd>
-                      <dt>{{ 'combatOverview.detail.startedAt' | t }}</dt>
-                      <dd>{{ fight.startedAtUtc ? (fight.startedAtUtc | date: 'short') : '–' }}</dd>
-                      <dt>{{ 'combatOverview.detail.completedAt' | t }}</dt>
-                      <dd>{{ fight.completedAtUtc | date: 'short' }}</dd>
-                    </dl>
-                  </div>
-                </div>
+                  @if (canEdit(fight)) {
+                    <div class="detail-edit-action">
+                      <button class="btn btn--secondary btn--sm" (click)="startEdit(fight); $event.stopPropagation()">
+                        {{ 'combatOverview.edit.editButton' | t }}
+                      </button>
+                    </div>
+                  } @else if (!auth.isAdmin() && fight.bracketType !== 'GroupStage') {
+                    <p class="info-hint info-hint--sm">{{ 'combatOverview.edit.adminOnly' | t }}</p>
+                  }
+                }
               </td>
             </tr>
           }

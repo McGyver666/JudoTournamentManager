@@ -20,6 +20,7 @@ Already available:
   - athlete-driven classes by target athletes per class and max weight deviation
 - tatami assignment workflow (auto + manual)
 - combat overview of completed fights (Operator/Admin) with category/tatami filters and expandable score details
+- Admin-only result correction in combat overview: edit scores + winner inline, with downstream-fight warning and cascade reset
 - public display view with realtime updates (SignalR)
 - server-authoritative synchronized fight and osae-komi timing across operator and display views
 - tenth-second local display for running final fight seconds and active osae-komi countdowns

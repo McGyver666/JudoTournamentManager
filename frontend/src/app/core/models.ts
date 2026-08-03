@@ -417,9 +417,44 @@ export interface CompletedFightSummary {
   blueIpponCount: number;
   blueWazaAriCount: number;
   blueYukoCount: number;
+  whiteAthleteId: string | null;
+  blueAthleteId: string | null;
   startedAtUtc: string | null;
   completedAtUtc: string;
   durationSeconds: number | null;
+}
+
+export interface EditFightResultRequest {
+  whiteIpponCount: number;
+  whiteWazaAriCount: number;
+  whiteYukoCount: number;
+  whitePenalties: number;
+  blueIpponCount: number;
+  blueWazaAriCount: number;
+  blueYukoCount: number;
+  bluePenalties: number;
+  winnerId: string;
+  confirmed: boolean;
+}
+
+export type EditResultStatus =
+  | 'Success'
+  | 'FightNotFound'
+  | 'InvalidState'
+  | 'WinnerNotParticipant'
+  | 'ConfirmationRequired';
+
+export interface AffectedFightSummary {
+  fightId: string;
+  categoryName: string;
+  round: number;
+  fightNumber: number;
+  status: string;
+}
+
+export interface EditFightResultResponse {
+  status: EditResultStatus;
+  affectedFights: AffectedFightSummary[] | null;
 }
 export interface ServerTimeResponse {
   serverTimeUtc: string;

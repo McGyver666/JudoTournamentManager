@@ -20,6 +20,7 @@ Bereits verfuegbar:
   - athletengesteuerte Klassen nach Zielzahl von Athleten je Klasse und maximaler Gewichtsdifferenz
 - Ablauf zur Tatami-Zuordnung (automatisch und manuell)
 - Kampfuebersicht abgeschlossener Kaempfe (Operator/Admin) mit Filtern nach Gewichtsklasse/Matte und aufklappbaren Wertungsdetails
+- Admin-Ergebniskorrektur in der Kampfuebersicht: Wertungen und Sieger inline bearbeiten, mit Warnung bei betroffenen Folgekämpfen und kaskadendem Reset
 - oeffentliche Anzeigeansicht mit Echtzeitaktualisierungen (SignalR)
 - serverautorisierte synchronisierte Kampf- und Osae-komi-Zeit in Bedien- und Anzeigeansichten
 - lokale Zehntelsekundenanzeige fuer laufende Schlusssekunden des Kampfes und aktive Osae-komi-Zeiten
@@ -383,6 +384,7 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/correct`
 - `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; angereicherte Übersicht abgeschlossener Kämpfe)
+- `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; Wertungen und Sieger korrigieren mit Bestätigungsflow für betroffene Folgekämpfe)
 
 - `GET /api/tournaments/{tournamentId}/medal-table`
 - `GET /api/tournaments/{tournamentId}/audit-log`

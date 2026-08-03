@@ -531,6 +531,239 @@ public sealed class MatchService : IMatchService
         return MatchActionResult.Success;
     }
 
+    /// <inheritdoc />
+    public async Task<EditFightResultResponse> EditResultAsync(
+        Guid fightId,
+        EditFightResultRequest request,
+        string user,
+        CancellationToken cancellationToken)
+    {
+        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
+        if (fight is null) return new(EditResultStatus.FightNotFound);
+
+        // Group-stage fights are excluded from the edit-result feature (Q10).
+        if (fight.Status != Completed || fight.IsBye || fight.BracketType == GroupStageType)
+            return new(EditResultStatus.InvalidState);
+
+        if (request.WinnerId != fight.WhiteAthleteId && request.WinnerId != fight.BlueAthleteId)
+            return new(EditResultStatus.WinnerNotParticipant);
+
+        var winnerChanges = fight.WinnerId != request.WinnerId;
+
+        // Only simulate if winner changes; pure score edits don't affect bracket progression.
+        if (winnerChanges && !request.Confirmed)
+        {
+            var affected = await FindAffectedStartedFightsAsync(fight, request.WinnerId, cancellationToken);
+            if (affected.Count > 0)
+                return new(EditResultStatus.ConfirmationRequired, affected);
+        }
+
+        // Snapshot previous values for audit.
+        var prev = $"Winner={fight.WinnerId}; " +
+                   $"W:{fight.WhiteIpponCount}I/{fight.WhiteWazaAriCount}W/{fight.WhiteYukoCount}Y/{fight.WhitePenalties}S " +
+                   $"B:{fight.BlueIpponCount}I/{fight.BlueWazaAriCount}W/{fight.BlueYukoCount}Y/{fight.BluePenalties}S";
+
+        fight.WhiteIpponCount  = request.WhiteIpponCount;
+        fight.WhiteWazaAriCount = request.WhiteWazaAriCount;
+        fight.WhiteYukoCount   = request.WhiteYukoCount;
+        fight.WhitePenalties   = request.WhitePenalties;
+        fight.BlueIpponCount   = request.BlueIpponCount;
+        fight.BlueWazaAriCount = request.BlueWazaAriCount;
+        fight.BlueYukoCount    = request.BlueYukoCount;
+        fight.BluePenalties    = request.BluePenalties;
+        fight.WhiteScore = ScoreValue(fight.WhiteIpponCount, fight.WhiteWazaAriCount, fight.WhiteYukoCount);
+        fight.BlueScore  = ScoreValue(fight.BlueIpponCount, fight.BlueWazaAriCount, fight.BlueYukoCount);
+        fight.WinnerId = request.WinnerId;
+        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        int resetCount = 0;
+        if (winnerChanges)
+        {
+            resetCount = await ResetAffectedStartedFightsAsync(fight, cancellationToken);
+            await RecalculateProgressionAsync(fight.CategoryId, cancellationToken);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var next = $"Winner={fight.WinnerId}; " +
+                   $"W:{fight.WhiteIpponCount}I/{fight.WhiteWazaAriCount}W/{fight.WhiteYukoCount}Y/{fight.WhitePenalties}S " +
+                   $"B:{fight.BlueIpponCount}I/{fight.BlueWazaAriCount}W/{fight.BlueYukoCount}Y/{fight.BluePenalties}S; " +
+                   $"ResetDownstream={resetCount}";
+
+        await _auditLog.LogAsync(
+            fight.TournamentId, user, "ResultEdited", "Fight", fight.Id,
+            $"Previous=[{prev}] New=[{next}]", cancellationToken);
+
+        _ = _hub.Clients.Group(fight.TournamentId.ToString())
+            .SendAsync("CategoryFightsUpdated",
+                new { tournamentId = fight.TournamentId, categoryId = fight.CategoryId },
+                CancellationToken.None);
+
+        _logger.LogInformation("Fight {FightId} edited by {User}. Winner changed: {WinnerChanged}. Downstream reset: {ResetCount}.",
+            fightId, user, winnerChanges, resetCount);
+
+        return new(EditResultStatus.Success);
+    }
+
+    /// <summary>
+    /// Simulates progression to determine which already-started downstream fights would change participants.
+    /// Does not modify the database.
+    /// </summary>
+    private async Task<IReadOnlyList<AffectedFightSummary>> FindAffectedStartedFightsAsync(
+        FightRecord editedFight,
+        Guid newWinnerId,
+        CancellationToken cancellationToken)
+    {
+        // Load all fights + category names for the affected category.
+        var fights = await _dbContext.Fights
+            .Where(f => f.CategoryId == editedFight.CategoryId)
+            .ToListAsync(cancellationToken);
+
+        var categoryName = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == editedFight.CategoryId)
+            .Select(c => c.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+
+        var drawFormat = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == editedFight.CategoryId)
+            .Select(c => c.DrawFormat)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Snapshot current participants for all downstream fights.
+        var before = fights.ToDictionary(f => f.Id, f => (f.WhiteAthleteId, f.BlueAthleteId));
+
+        // Apply the hypothetical winner to a clone-set of fight records (in-memory only).
+        var cloned = fights.Select(f => new FightRecord
+        {
+            Id = f.Id, CategoryId = f.CategoryId, TournamentId = f.TournamentId,
+            BracketType = f.BracketType, Round = f.Round, FightNumber = f.FightNumber,
+            WhiteAthleteId = f.WhiteAthleteId, BlueAthleteId = f.BlueAthleteId,
+            WinnerId = f.Id == editedFight.Id ? newWinnerId : f.WinnerId,
+            Status = f.Status,
+            WhiteSourceFightId = f.WhiteSourceFightId, WhiteSourceOutcome = f.WhiteSourceOutcome,
+            BlueSourceFightId = f.BlueSourceFightId, BlueSourceOutcome = f.BlueSourceOutcome,
+            IsBye = f.IsBye,
+            UpdatedAtUtc = f.UpdatedAtUtc
+        }).ToList();
+
+        // Simulate progression on the clone.
+        SimulateProgression(cloned, drawFormat ?? string.Empty);
+
+        var affected = new List<AffectedFightSummary>();
+        foreach (var clone in cloned)
+        {
+            if (clone.Id == editedFight.Id) continue;
+            if (!before.TryGetValue(clone.Id, out var orig)) continue;
+
+            var participantsChanged =
+                orig.WhiteAthleteId != clone.WhiteAthleteId ||
+                orig.BlueAthleteId != clone.BlueAthleteId;
+
+            if (!participantsChanged) continue;
+
+            // Only warn about fights that are already started (have StartedAtUtc).
+            var original = fights.First(f => f.Id == clone.Id);
+            if (original.StartedAtUtc is null) continue;
+
+            affected.Add(new AffectedFightSummary(
+                clone.Id, categoryName, clone.Round, clone.FightNumber, original.Status));
+        }
+
+        return affected;
+    }
+
+    /// <summary>
+    /// Resets all already-started downstream fights whose participants would change after progression.
+    /// Returns the number of fights reset.
+    /// </summary>
+    private async Task<int> ResetAffectedStartedFightsAsync(
+        FightRecord editedFight,
+        CancellationToken cancellationToken)
+    {
+        // Determine affected fights using the already-updated WinnerId on editedFight.
+        var fights = await _dbContext.Fights
+            .Where(f => f.CategoryId == editedFight.CategoryId)
+            .ToListAsync(cancellationToken);
+
+        var drawFormat = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == editedFight.CategoryId)
+            .Select(c => c.DrawFormat)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var before = fights.ToDictionary(f => f.Id, f => (f.WhiteAthleteId, f.BlueAthleteId));
+
+        // Simulate with current (already-updated) fight list.
+        SimulateProgression(fights, drawFormat ?? string.Empty);
+
+        int count = 0;
+        foreach (var fight in fights)
+        {
+            if (fight.Id == editedFight.Id) continue;
+            if (!before.TryGetValue(fight.Id, out var orig)) continue;
+
+            var participantsChanged =
+                orig.WhiteAthleteId != fight.WhiteAthleteId ||
+                orig.BlueAthleteId != fight.BlueAthleteId;
+
+            if (!participantsChanged) continue;
+
+            // Find the tracked entity and reset if it was started.
+            var tracked = fights.First(f => f.Id == fight.Id);
+            if (tracked.StartedAtUtc is null) continue;
+
+            ResetDerivedFight(tracked);
+            // Restore the newly calculated athletes (progression already set them).
+            tracked.WhiteAthleteId = fight.WhiteAthleteId;
+            tracked.BlueAthleteId = fight.BlueAthleteId;
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Pure in-memory simulation of bracket progression on <paramref name="fights"/>.
+    /// Mirrors RecalculateProgressionAsync but operates entirely in memory.
+    /// </summary>
+    private static void SimulateProgression(List<FightRecord> fights, string drawFormat)
+    {
+        if (drawFormat == BracketFormat.RoundRobin.ToString()) return;
+
+        if (drawFormat == BracketFormat.DoubleElimination.ToString())
+        {
+            RecalculateDoubleEliminationProgression(fights);
+            return;
+        }
+
+        var main = fights.Where(f => f.BracketType == MainType).ToList();
+        if (main.Count == 0) return;
+
+        var maxRound = main.Max(f => f.Round);
+
+        FightRecord? FindMain(int round, int fightNumber) =>
+            main.FirstOrDefault(f => f.Round == round && f.FightNumber == fightNumber);
+
+        for (int round = 2; round <= maxRound; round++)
+        {
+            foreach (var fight in main.Where(f => f.Round == round))
+            {
+                fight.WhiteAthleteId = WinnerOf(FindMain(round - 1, fight.FightNumber * 2 - 1));
+                fight.BlueAthleteId  = WinnerOf(FindMain(round - 1, fight.FightNumber * 2));
+            }
+        }
+
+        var repechage = fights.FirstOrDefault(f => f.BracketType == RepechageType);
+        if (repechage is not null && maxRound >= 2)
+        {
+            var semi = maxRound - 1;
+            repechage.WhiteAthleteId = LoserOf(FindMain(semi, 1));
+            repechage.BlueAthleteId  = LoserOf(FindMain(semi, 2));
+        }
+    }
+
     private async Task UpdateAthletesLastFightMetadataAsync(
         FightRecord fight,
         DateTimeOffset completedAtUtc,

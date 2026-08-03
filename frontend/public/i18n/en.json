@@ -383,6 +383,13 @@
   "combatOverview.detail.startedAt": "Started",
   "combatOverview.detail.completedAt": "Completed",
 
+  "combatOverview.edit.editButton": "Correct result",
+  "combatOverview.edit.winner": "Winner:",
+  "combatOverview.edit.warnAffected": "Warning: The following fights have already been started and will be reset to Pending:",
+  "combatOverview.edit.confirmSave": "Save anyway",
+  "combatOverview.edit.saveError": "Failed to save correction.",
+  "combatOverview.edit.adminOnly": "Only administrators can correct results.",
+
   "tatamiAssignment.title": "Tatami Assignment",
   "tatamiAssignment.autoAssign": "Auto-distribute",
   "tatamiAssignment.openMatch": "Open match control",
