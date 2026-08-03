@@ -16,6 +16,8 @@ import {
   CategoryPresetItemRequest,
   Club,
   CompletedFightSummary,
+  EditFightResultRequest,
+  EditFightResultResponse,
   ConfirmResultRequest,
   CategoryGenerationApplyResponse,
   CategoryGenerationPreviewResponse,
@@ -283,6 +285,13 @@ export class ApiService {
   getCompletedFights(tournamentId: string): Observable<CompletedFightSummary[]> {
     return this.http.get<CompletedFightSummary[]>(
       `api/tournaments/${tournamentId}/completed-fights`);
+  }
+
+  /** Edits scores and winner of a completed fight (Admin only). Returns 409 with affected fights when confirmation is required. */
+  editFightResult(tournamentId: string, fightId: string, body: EditFightResultRequest): Observable<HttpResponse<EditFightResultResponse>> {
+    return this.http.post<EditFightResultResponse>(
+      `api/tournaments/${tournamentId}/completed-fights/${fightId}/edit-result`, body,
+      { observe: 'response' });
   }
 
   generateDraw(

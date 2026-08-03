@@ -385,6 +385,13 @@
   "combatOverview.detail.startedAt": "Gestartet",
   "combatOverview.detail.completedAt": "Beendet",
 
+  "combatOverview.edit.editButton": "Ergebnis korrigieren",
+  "combatOverview.edit.winner": "Sieger:",
+  "combatOverview.edit.warnAffected": "Achtung: Folgende Kämpfe wurden bereits gestartet und werden auf 'Ausstehend' zurückgesetzt:",
+  "combatOverview.edit.confirmSave": "Trotzdem speichern",
+  "combatOverview.edit.saveError": "Fehler beim Speichern der Korrektur.",
+  "combatOverview.edit.adminOnly": "Nur Administratoren können Ergebnisse korrigieren.",
+
   "tatamiAssignment.title": "Mattenzuordnung",
   "tatamiAssignment.autoAssign": "Automatisch verteilen",
   "tatamiAssignment.openMatch": "Kampfführung öffnen",

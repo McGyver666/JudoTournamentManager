@@ -2,9 +2,10 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
+import { AuthStateService } from '../../core/auth-state.service';
 import { extractApiError } from '../../core/http-error';
 import { I18nService } from '../../core/i18n.service';
-import { CompletedFightSummary } from '../../core/models';
+import { AffectedFightSummary, CompletedFightSummary, EditFightResultRequest } from '../../core/models';
 import { SideThemeService } from '../../core/side-theme.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -12,6 +13,24 @@ import { TranslatePipe } from '../../core/translate.pipe';
 interface FilterOption {
   id: string;
   name: string;
+}
+
+interface EditState {
+  fightId: string;
+  whiteAthleteId: string;
+  blueAthleteId: string;
+  winnerId: string;
+  whiteIpponCount: number;
+  whiteWazaAriCount: number;
+  whiteYukoCount: number;
+  whitePenalties: number;
+  blueIpponCount: number;
+  blueWazaAriCount: number;
+  blueYukoCount: number;
+  bluePenalties: number;
+  saving: boolean;
+  saveError: string | null;
+  affectedFights: AffectedFightSummary[] | null;
 }
 
 /**
@@ -28,6 +47,7 @@ interface FilterOption {
 export class CombatOverviewComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly i18n = inject(I18nService);
+  protected readonly auth = inject(AuthStateService);
   protected readonly context = inject(TournamentContextService);
   protected readonly sideTheme = inject(SideThemeService);
 
@@ -37,6 +57,7 @@ export class CombatOverviewComponent implements OnInit {
   protected readonly selectedCategoryId = signal<string>('');
   protected readonly selectedTatamiId = signal<string>('');
   protected readonly expanded = signal<Set<string>>(new Set());
+  protected readonly editState = signal<EditState | null>(null);
 
   protected readonly accentLabelKey = computed(() =>
     this.sideTheme.accentSideLabelKey(this.context.tournament()));
@@ -81,6 +102,7 @@ export class CombatOverviewComponent implements OnInit {
 
     this.loading.set(true);
     this.error.set(null);
+    this.editState.set(null);
     this.api.getCompletedFights(id).subscribe({
       next: (fights) => {
         this.fights.set(fights);
@@ -95,6 +117,9 @@ export class CombatOverviewComponent implements OnInit {
   }
 
   protected toggle(fightId: string): void {
+    const current = this.editState();
+    if (current?.fightId === fightId) return; // editing row: keep open, don't toggle
+
     const next = new Set(this.expanded());
     if (next.has(fightId)) {
       next.delete(fightId);
@@ -105,7 +130,92 @@ export class CombatOverviewComponent implements OnInit {
   }
 
   protected isExpanded(fightId: string): boolean {
-    return this.expanded().has(fightId);
+    return this.expanded().has(fightId) || this.editState()?.fightId === fightId;
+  }
+
+  /** Returns true if the fight can be edited (non-group-stage, Admin user). */
+  protected canEdit(fight: CompletedFightSummary): boolean {
+    return this.auth.isAdmin() && fight.bracketType !== 'GroupStage';
+  }
+
+  protected startEdit(fight: CompletedFightSummary): void {
+    this.editState.set({
+      fightId: fight.fightId,
+      whiteAthleteId: fight.whiteAthleteId ?? '',
+      blueAthleteId: fight.blueAthleteId ?? '',
+      winnerId: fight.winnerSide === 'White' ? (fight.whiteAthleteId ?? '') : (fight.blueAthleteId ?? ''),
+      whiteIpponCount: fight.whiteIpponCount,
+      whiteWazaAriCount: fight.whiteWazaAriCount,
+      whiteYukoCount: fight.whiteYukoCount,
+      whitePenalties: fight.whitePenalties,
+      blueIpponCount: fight.blueIpponCount,
+      blueWazaAriCount: fight.blueWazaAriCount,
+      blueYukoCount: fight.blueYukoCount,
+      bluePenalties: fight.bluePenalties,
+      saving: false,
+      saveError: null,
+      affectedFights: null,
+    });
+    // Ensure the detail row is open
+    const next = new Set(this.expanded());
+    next.add(fight.fightId);
+    this.expanded.set(next);
+  }
+
+  protected cancelEdit(): void {
+    this.editState.set(null);
+  }
+
+  protected setEditCount(field: keyof EditState, value: string): void {
+    this.editState.update((s) => s ? { ...s, [field]: Math.max(0, parseInt(value, 10) || 0) } : s);
+  }
+
+  protected setEditWinner(winnerId: string): void {
+    this.editState.update((s) => s ? { ...s, winnerId } : s);
+  }
+
+  protected save(fight: CompletedFightSummary, confirmed: boolean): void {
+    const state = this.editState();
+    const tournamentId = this.context.tournamentId();
+    if (!state || !tournamentId) return;
+
+    const request: EditFightResultRequest = {
+      whiteIpponCount: state.whiteIpponCount,
+      whiteWazaAriCount: state.whiteWazaAriCount,
+      whiteYukoCount: state.whiteYukoCount,
+      whitePenalties: state.whitePenalties,
+      blueIpponCount: state.blueIpponCount,
+      blueWazaAriCount: state.blueWazaAriCount,
+      blueYukoCount: state.blueYukoCount,
+      bluePenalties: state.bluePenalties,
+      winnerId: state.winnerId,
+      confirmed,
+    };
+
+    this.editState.update((s) => s ? { ...s, saving: true, saveError: null, affectedFights: null } : s);
+
+    this.api.editFightResult(tournamentId, fight.fightId, request).subscribe({
+      next: (response) => {
+        if (response.status === 204) {
+          this.editState.set(null);
+          this.load();
+        } else if (response.body?.status === 'ConfirmationRequired' && response.body.affectedFights) {
+          this.editState.update((s) => s ? {
+            ...s, saving: false, affectedFights: response.body!.affectedFights
+          } : s);
+        } else {
+          // Unexpected 2xx without a recognised body → treat as success
+          this.editState.set(null);
+          this.load();
+        }
+      },
+      error: (err) => {
+        this.editState.update((s) => s ? {
+          ...s, saving: false,
+          saveError: extractApiError(err, this.i18n.translate('combatOverview.edit.saveError'))
+        } : s);
+      },
+    });
   }
 
   protected bracketTypeKey(fight: CompletedFightSummary): string {

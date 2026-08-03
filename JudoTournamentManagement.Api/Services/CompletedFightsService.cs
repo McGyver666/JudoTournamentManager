@@ -159,6 +159,8 @@ public sealed class CompletedFightsService : ICompletedFightsService
                 f.BlueIpponCount,
                 f.BlueWazaAriCount,
                 f.BlueYukoCount,
+                f.WhiteAthleteId,
+                f.BlueAthleteId,
                 f.StartedAtUtc,
                 f.CompletedAtUtc!.Value,
                 DurationSeconds(f)))
