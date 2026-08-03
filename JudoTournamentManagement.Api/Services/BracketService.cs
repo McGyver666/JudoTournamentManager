@@ -534,28 +534,36 @@ public sealed class BracketService : IBracketService
             foreach (var fight in fights.Where(fight => fight.WhiteSourceFightId.HasValue || fight.BlueSourceFightId.HasValue)
                          .OrderBy(fight => fight.FightNumber))
             {
-                if (!TryResolveSlot(byId, fight.WhiteSourceFightId, fight.WhiteSourceOutcome, out var white)
-                    || !TryResolveSlot(byId, fight.BlueSourceFightId, fight.BlueSourceOutcome, out var blue))
+                bool whiteResolved = TryResolveSlot(byId, fight.WhiteSourceFightId, fight.WhiteSourceOutcome, out var white);
+                bool blueResolved = TryResolveSlot(byId, fight.BlueSourceFightId, fight.BlueSourceOutcome, out var blue);
+
+                // Advance a decided source into its slot even while the sibling slot is still
+                // undecided, so a bye winner moves forward immediately instead of waiting for
+                // the parallel fight to finish.
+                if (!whiteResolved && !blueResolved)
                 {
                     continue;
                 }
 
-                bool slotsChanged = fight.WhiteAthleteId != white || fight.BlueAthleteId != blue;
-                if (slotsChanged)
+                var desiredWhite = whiteResolved ? white : null;
+                var desiredBlue = blueResolved ? blue : null;
+
+                if (fight.WhiteAthleteId != desiredWhite || fight.BlueAthleteId != desiredBlue)
                 {
-                    fight.WhiteAthleteId = white;
-                    fight.BlueAthleteId = blue;
+                    fight.WhiteAthleteId = desiredWhite;
+                    fight.BlueAthleteId = desiredBlue;
                     fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
                 }
 
-                if (white is null || blue is null)
+                // A derived fight becomes a bye only once both sources are known and one side is empty.
+                if (whiteResolved && blueResolved && (desiredWhite is null || desiredBlue is null))
                 {
                     bool wasCompletedBye = fight.IsBye
                         && fight.Status == FightStatus.Completed.ToString()
-                        && fight.WinnerId == (white ?? blue);
+                        && fight.WinnerId == (desiredWhite ?? desiredBlue);
                     fight.IsBye = true;
                     fight.Status = FightStatus.Completed.ToString();
-                    fight.WinnerId = white ?? blue;
+                    fight.WinnerId = desiredWhite ?? desiredBlue;
                     changed |= !wasCompletedBye;
                 }
             }
