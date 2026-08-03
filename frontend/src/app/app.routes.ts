@@ -39,11 +39,24 @@ export const routes: Routes = [
     loadComponent: () => import('./features/draw/draw.component').then((m) => m.DrawComponent),
   },
   {
+    path: 'draw/print-match-lists',
+    canActivate: [requireOperatorGuard],
+    loadComponent: () =>
+      import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
+  },
+  {
     path: 'tatami-assignment',
     canActivate: [requireOperatorGuard],
     loadComponent: () =>
       import('./features/tatami-assignment/tatami-assignment.component').then(
         (m) => m.TatamiAssignmentComponent),
+  },
+  {
+    path: 'combat-overview',
+    canActivate: [requireOperatorGuard],
+    loadComponent: () =>
+      import('./features/combat-overview/combat-overview.component').then(
+        (m) => m.CombatOverviewComponent),
   },
   {
     path: 'match',
@@ -61,6 +74,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/display/display.component').then((m) => m.DisplayComponent),
   },
   {
+    path: 'display/match-lists',
+    canActivate: [requireDisplayGuard],
+    loadComponent: () =>
+      import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
+  },
+  {
     path: 'display/tatami/:tatamiId',
     canActivate: [requireDisplayGuard],
     loadComponent: () => import('./features/display/display.component').then((m) => m.DisplayComponent),
@@ -69,6 +88,13 @@ export const routes: Routes = [
     path: 'users',
     canActivate: [requireAdminGuard],
     loadComponent: () => import('./features/user-management/user-management.component').then((m) => m.UserManagementComponent),
+  },
+  {
+    // Anonymous guest access via QR share link (?tid=…&t=<token>).
+    // No guard: the bearer token is supplied in the URL and validated server-side.
+    path: 'public/match-lists',
+    loadComponent: () =>
+      import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
   },
   { path: '**', redirectTo: 'tournaments' },
 ];

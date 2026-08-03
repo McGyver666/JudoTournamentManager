@@ -1,0 +1,218 @@
+<section class="page-header">
+  <h1>{{ 'combatOverview.title' | t }}</h1>
+  <button class="btn btn--secondary" (click)="load()" [disabled]="loading()">
+    {{ 'combatOverview.refresh' | t }}
+  </button>
+</section>
+
+@if (!context.tournamentId()) {
+  <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
+} @else {
+  @if (error()) {
+    <p class="error-hint">{{ error() }}</p>
+  }
+
+  <div class="filter-bar">
+    <label>
+      {{ 'combatOverview.filter.category' | t }}
+      <select [ngModel]="selectedCategoryId()" (ngModelChange)="selectedCategoryId.set($event)">
+        <option value="">{{ 'combatOverview.filter.all' | t }}</option>
+        @for (option of categoryFilters(); track option.id) {
+          <option [value]="option.id">{{ option.name }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      {{ 'combatOverview.filter.tatami' | t }}
+      <select [ngModel]="selectedTatamiId()" (ngModelChange)="selectedTatamiId.set($event)">
+        <option value="">{{ 'combatOverview.filter.all' | t }}</option>
+        @for (option of tatamiFilters(); track option.id) {
+          <option [value]="option.id">{{ option.name }}</option>
+        }
+      </select>
+    </label>
+    <span class="result-count">{{ 'combatOverview.count' | t: { n: filteredFights().length } }}</span>
+  </div>
+
+  @if (loading()) {
+    <p class="loading-hint">{{ 'common.loading' | t }}</p>
+  } @else if (filteredFights().length === 0) {
+    <p class="info-hint">{{ 'combatOverview.empty' | t }}</p>
+  } @else {
+    <table class="overview-table">
+      <thead>
+        <tr>
+          <th class="col-toggle"></th>
+          <th>{{ 'combatOverview.col.category' | t }}</th>
+          <th>{{ 'combatOverview.col.tatami' | t }}</th>
+          <th>{{ 'combatOverview.col.fight' | t }}</th>
+          <th>{{ 'match.whiteSide' | t }}</th>
+          <th>{{ accentLabelKey() | t }}</th>
+          <th>{{ 'combatOverview.col.score' | t }}</th>
+          <th>{{ 'combatOverview.col.duration' | t }}</th>
+          <th>{{ 'combatOverview.col.completedAt' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (fight of filteredFights(); track fight.fightId) {
+          <tr class="fight-row" (click)="toggle(fight.fightId)">
+            <td class="col-toggle">
+              <span class="chevron" [class.open]="isExpanded(fight.fightId)" aria-hidden="true"></span>
+            </td>
+            <td>{{ fight.categoryName }}</td>
+            <td>{{ fight.tatamiName ?? '–' }}</td>
+            <td>{{ bracketTypeKey(fight) | t }} · {{ 'draw.round' | t: { n: fight.round } }} · #{{ fight.fightNumber }}</td>
+            <td [class.winner]="fight.winnerSide === 'White'">
+              <span class="athlete">{{ fight.whiteAthleteName }}</span>
+              @if (fight.winnerSide === 'White') { <span class="win-mark" aria-hidden="true">✓</span> }
+              <span class="club">{{ fight.whiteClubName }}</span>
+            </td>
+            <td [class.winner]="fight.winnerSide === 'Blue'">
+              <span class="athlete">{{ fight.blueAthleteName }}</span>
+              @if (fight.winnerSide === 'Blue') { <span class="win-mark" aria-hidden="true">✓</span> }
+              <span class="club">{{ fight.blueClubName }}</span>
+            </td>
+            <td class="col-score">{{ fight.whiteScore }}:{{ fight.blueScore }}</td>
+            <td>{{ formatDuration(fight.durationSeconds) }}</td>
+            <td>{{ fight.completedAtUtc | date: 'short' }}</td>
+          </tr>
+          @if (isExpanded(fight.fightId)) {
+            <tr class="detail-row">
+              <td></td>
+              <td colspan="8">
+                @if (editState()?.fightId === fight.fightId) {
+                  <!-- Edit mode -->
+                  <div class="edit-form">
+                    <div class="edit-scores">
+                      <div class="edit-side">
+                        <h3>{{ 'match.whiteSide' | t }} — {{ fight.whiteAthleteName }}</h3>
+                        <label>{{ 'combatOverview.detail.ippon' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whiteIpponCount"
+                            (ngModelChange)="setEditCount('whiteIpponCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.wazaAri' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whiteWazaAriCount"
+                            (ngModelChange)="setEditCount('whiteWazaAriCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.yuko' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whiteYukoCount"
+                            (ngModelChange)="setEditCount('whiteYukoCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.shido' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.whitePenalties"
+                            (ngModelChange)="setEditCount('whitePenalties', $event)">
+                        </label>
+                      </div>
+                      <div class="edit-side">
+                        <h3>{{ accentLabelKey() | t }} — {{ fight.blueAthleteName }}</h3>
+                        <label>{{ 'combatOverview.detail.ippon' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.blueIpponCount"
+                            (ngModelChange)="setEditCount('blueIpponCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.wazaAri' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.blueWazaAriCount"
+                            (ngModelChange)="setEditCount('blueWazaAriCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.yuko' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.blueYukoCount"
+                            (ngModelChange)="setEditCount('blueYukoCount', $event)">
+                        </label>
+                        <label>{{ 'combatOverview.detail.shido' | t }}
+                          <input type="number" min="0" [ngModel]="editState()!.bluePenalties"
+                            (ngModelChange)="setEditCount('bluePenalties', $event)">
+                        </label>
+                      </div>
+                    </div>
+                    <div class="edit-winner">
+                      <span class="edit-winner-label">{{ 'combatOverview.edit.winner' | t }}</span>
+                      <label class="radio-label">
+                        <input type="radio" name="winner-{{fight.fightId}}"
+                          [value]="fight.whiteAthleteId"
+                          [ngModel]="editState()!.winnerId"
+                          (ngModelChange)="setEditWinner($event)">
+                        {{ fight.whiteAthleteName }}
+                      </label>
+                      <label class="radio-label">
+                        <input type="radio" name="winner-{{fight.fightId}}"
+                          [value]="fight.blueAthleteId"
+                          [ngModel]="editState()!.winnerId"
+                          (ngModelChange)="setEditWinner($event)">
+                        {{ fight.blueAthleteName }}
+                      </label>
+                    </div>
+                    @if (editState()?.saveError) {
+                      <p class="error-hint">{{ editState()!.saveError }}</p>
+                    }
+                    @if (editState()?.affectedFights && editState()!.affectedFights!.length > 0) {
+                      <div class="warn-panel">
+                        <p class="warn-text">{{ 'combatOverview.edit.warnAffected' | t }}</p>
+                        <ul>
+                          @for (af of editState()!.affectedFights!; track af.fightId) {
+                            <li>{{ af.categoryName }} — {{ 'draw.round' | t: { n: af.round } }} #{{ af.fightNumber }} ({{ af.status }})</li>
+                          }
+                        </ul>
+                        <div class="edit-actions">
+                          <button class="btn btn--danger" [disabled]="editState()!.saving"
+                            (click)="save(fight, true)">{{ 'combatOverview.edit.confirmSave' | t }}</button>
+                          <button class="btn btn--secondary" (click)="cancelEdit()">{{ 'common.cancel' | t }}</button>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="edit-actions">
+                        <button class="btn btn--primary" [disabled]="editState()!.saving"
+                          (click)="save(fight, false)">{{ 'common.save' | t }}</button>
+                        <button class="btn btn--secondary" (click)="cancelEdit()">{{ 'common.cancel' | t }}</button>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <!-- Read mode -->
+                  <div class="detail-grid">
+                    <div class="detail-block">
+                      <h3>{{ 'match.whiteSide' | t }} — {{ fight.whiteAthleteName }}</h3>
+                      <dl>
+                        <dt>{{ 'combatOverview.detail.ippon' | t }}</dt><dd>{{ fight.whiteIpponCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.wazaAri' | t }}</dt><dd>{{ fight.whiteWazaAriCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.yuko' | t }}</dt><dd>{{ fight.whiteYukoCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.shido' | t }}</dt><dd>{{ fight.whitePenalties }}</dd>
+                      </dl>
+                    </div>
+                    <div class="detail-block">
+                      <h3>{{ accentLabelKey() | t }} — {{ fight.blueAthleteName }}</h3>
+                      <dl>
+                        <dt>{{ 'combatOverview.detail.ippon' | t }}</dt><dd>{{ fight.blueIpponCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.wazaAri' | t }}</dt><dd>{{ fight.blueWazaAriCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.yuko' | t }}</dt><dd>{{ fight.blueYukoCount }}</dd>
+                        <dt>{{ 'combatOverview.detail.shido' | t }}</dt><dd>{{ fight.bluePenalties }}</dd>
+                      </dl>
+                    </div>
+                    <div class="detail-block">
+                      <h3>{{ 'combatOverview.detail.meta' | t }}</h3>
+                      <dl>
+                        <dt>{{ 'combatOverview.detail.winner' | t }}</dt><dd>{{ fight.winnerName }}</dd>
+                        <dt>{{ 'combatOverview.detail.bracket' | t }}</dt><dd>{{ bracketTypeKey(fight) | t }}</dd>
+                        <dt>{{ 'combatOverview.detail.startedAt' | t }}</dt>
+                        <dd>{{ fight.startedAtUtc ? (fight.startedAtUtc | date: 'short') : '–' }}</dd>
+                        <dt>{{ 'combatOverview.detail.completedAt' | t }}</dt>
+                        <dd>{{ fight.completedAtUtc | date: 'short' }}</dd>
+                      </dl>
+                    </div>
+                  </div>
+                  @if (canEdit(fight)) {
+                    <div class="detail-edit-action">
+                      <button class="btn btn--secondary btn--sm" (click)="startEdit(fight); $event.stopPropagation()">
+                        {{ 'combatOverview.edit.editButton' | t }}
+                      </button>
+                    </div>
+                  } @else if (!auth.isAdmin() && fight.bracketType !== 'GroupStage') {
+                    <p class="info-hint info-hint--sm">{{ 'combatOverview.edit.adminOnly' | t }}</p>
+                  }
+                }
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  }
+}

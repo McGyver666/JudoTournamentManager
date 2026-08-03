@@ -137,14 +137,14 @@ Story points are rough relative estimates.
 - Category can be locked once draw is generated.
 
 ### C-04 Assisted category generation (P1, 8 SP) — ✅ Done
-**Story:** Als Admin möchte ich Kategorien per Assistent generieren, damit Standardklassen und meldungsbasierte Klassen schnell erstellt werden können.  
+**Story:** Als Admin möchte ich Gewichtsklassen per Assistent generieren, damit Standardklassen und meldungsbasierte Klassen schnell erstellt werden können.
 **Acceptance Criteria:**
-- In der Kategorie-Konfiguration gibt es einen "Kategorien generieren"-Button.
+- In der Gewichtsklassen-Konfiguration gibt es einen "Gewichtsklassen generieren"-Button.
 - Assistent erfasst Jahrgangsbereich, Geschlecht, Kampfzeit, Golden-Score-Einstellungen.
 - Zwei Strategien: Standardklassen 2026 und meldungsbasierte Zielgröße mit maximaler Gewichtsabweichung.
 - Vor dem Anlegen wird eine Vorschau angezeigt und erst nach Bestätigung gespeichert.
-- Beim Anwenden werden zuvor generierte, ungesperrte Kategorien ersetzt; gesperrte Kategorien bleiben erhalten.
-- Gemischte Kategorien werden als eigene Gender-Ausprägung unterstützt (Mixed).
+- Beim Anwenden werden zuvor generierte, ungesperrte Gewichtsklassen ersetzt; gesperrte Gewichtsklassen bleiben erhalten.
+- Gemischte Gewichtsklassen werden als eigene Gender-Ausprägung unterstützt (Mixed).
 
 ---
 
@@ -172,7 +172,7 @@ Story points are rough relative estimates.
 - Registration list exportable (CSV/PDF optional for MVP: CSV mandatory).
 
 ### D-04 Assisted category assignment (P1, 3 SP) — ✅ Done
-**Story:** Als Admin möchte ich Meldungen automatisch oder manuell Kategorien zuordnen können, damit die Auslosung schneller vorbereitet wird.  
+**Story:** Als Admin möchte ich Meldungen automatisch oder manuell Gewichtsklassen zuordnen können, damit die Auslosung schneller vorbereitet wird.  
 **Acceptance Criteria:**
 - Auto-assignment based on gender, birth year and weight.
 - Manual per-athlete category override.
@@ -183,7 +183,7 @@ Story points are rough relative estimates.
 ## Epic E - Draw/Bracket Engine
 
 ### E-01 Generate brackets (P0, 8 SP) — ✅ Done
-**Story:** Als Admin möchte ich pro Kategorie automatisch einen Turnierbaum erzeugen, damit Kämpfe gestartet werden können.  
+**Story:** Als Admin möchte ich pro Gewichtsklasse automatisch einen Turnierbaum erzeugen, damit Kämpfe gestartet werden können.  
 **Acceptance Criteria:**
 - Support single elimination.
 - Support repechage variant required by target tournament format (configurable preset).
@@ -217,12 +217,14 @@ Story points are rough relative estimates.
 - Confirm winner and end match.
 - Audit log entry for each result confirmation/change.
 
-### F-03 Result correction workflow (P1, 5 SP) — ✅ Done
+### F-03 Result correction workflow (P1, 5 SP) — ✅ Done (superseded by F-06 edit-result)
 **Story:** Als Admin möchte ich fehlerhafte Ergebnisse kontrolliert korrigieren, damit der Turnierbaum korrekt bleibt.  
 **Acceptance Criteria:**
 - Corrections require elevated role.
 - Previous and new values are both logged.
 - Bracket progression recalculated consistently.
+
+> **Note:** Der eigenständige `POST .../fights/{fightId}/correct`-Endpunkt (nur Sieger-Korrektur) wurde entfernt. Die Korrektur erfolgt jetzt über den umfassenderen Weg aus F-06: `POST .../completed-fights/{fightId}/edit-result` (Wertungen + Sieger, mit Bestätigungsflow für betroffene Folgekämpfe).
 
 ### F-04 Tatami assignment board (P1, 3 SP) — ✅ Done
 **Story:** Als Admin möchte ich Kämpfe automatisch und manuell Tatamis zuweisen können, damit der Ablauf effizient vorbereitet wird.  
@@ -250,6 +252,35 @@ Story points are rough relative estimates.
 
 **Implementation note:** Umgesetzt mit gemeinsamem Frontend-Zeitdienst, authentifiziertem `GET /api/time`, SignalR-Nachrichten mit Serverzeitstempel und serverseitigem `MatchClockEvaluator` fuer regelrelevante Timing-Entscheidungen.
 
+### F-06 Kampfübersicht abgeschlossener Kämpfe (P1, 3 SP) — ✅ Done
+**Story:** Als Turnierleitung möchte ich unter „Turnierleitung“ eine Kampfübersicht aller bereits abgeschlossenen Kämpfe sehen, damit ich den bisherigen Turnierverlauf mit allen gespeicherten Ergebnisdetails nachvollziehen kann.
+**Acceptance Criteria:**
+- Neuer Menüeintrag „Kampfübersicht“ im Bereich Turnierleitung (Operator/Admin).
+- Zeigt alle Kämpfe mit `status == Completed` an; Freilose (byes) werden ausgeschlossen.
+- Sortierung chronologisch nach Abschlusszeitpunkt (neueste zuerst); Filter nach Gewichtsklasse und Matte.
+- Kompakte Zeile je Kampf (Gewichtsklasse, Matte, Runde/Kampfnummer, Weiß:Akzent-Endstand, Dauer, Beendet-Zeitpunkt), Sieger hervorgehoben.
+- Aufklappbare Detailzeile mit allen gespeicherten Einzelwertungen (Ippon/Waza-ari/Yuko/Shido je Seite) und Zeitstempeln.
+- Namen (Athlet, Verein, Kategorie, Matte) werden serverseitig aufgelöst; keine technischen IDs in der Ansicht.
+- Statisches Laden mit manuellem Aktualisieren-Button (keine Live-Aktualisierung).
+- Unit-Tests decken Filterung (nur abgeschlossen, keine Freilose), Sieger-/Dauer-/Score-Auflösung, Sortierung und Turnier-Isolation ab.
+
+**Implementation note:** Neuer `GET /api/tournaments/{tournamentId}/completed-fights` liefert angereicherte `CompletedFightSummary`-DTOs über `CompletedFightsService`; Frontend-Route `/combat-overview` mit `CombatOverviewComponent`. Golden-Score-Flag wird nicht angezeigt, da es für abgeschlossene Kämpfe nicht persistiert wird.
+
+### F-07 Ergebnis-Korrektur in der Kampfübersicht (P1, 5 SP) — ✅ Done
+**Story:** Als Admin möchte ich in der Kampfübersicht Wertungen (Ippon, Waza-ari, Yuko, Shido) und den Sieger eines abgeschlossenen Kampfes korrigieren können, damit Eingabefehler am Tisch im Notfall behoben werden.
+**Acceptance Criteria:**
+- Nur K.-o.-/Baum-Kämpfe (Hauptrunde, Trostrunde, Double-Elimination) sind editierbar. Gruppenphasen-Kämpfe bleiben schreibgeschützt.
+- Nur Admins können bearbeiten; Operatoren sehen einen entsprechenden Hinweis.
+- Inline-Bearbeitung im aufklappbaren Detailbereich: Zahlenfelder für alle acht Zähler + Sieger-Auswahl per Radio-Button.
+- Punktsumme wird automatisch aus den Zählern neu berechnet.
+- Wertungen und Sieger sind unabhängig frei setzbar (keine automatische Ableitung).
+- Vor dem Speichern wird geprüft, ob bereits gestartete/abgeschlossene Folgekämpfe betroffen sind. Wenn ja, Inline-Warnpanel mit der Liste betroffener Kämpfe und „Trotzdem speichern".
+- Betroffene gestartete Folgekämpfe werden auf „Ausstehend" zurückgesetzt (kaskadierend).
+- Audit-Eintrag „ResultEdited" mit Vorher/Nachher aller Werte und Anzahl zurückgesetzter Folgekämpfe.
+- Reine Wertungsänderungen ohne Sieger-Wechsel lösen keine Warnung aus.
+
+**Implementation note:** `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (`Authorize(Roles="Admin")`), `EditResultAsync` in `IMatchService`/`MatchService`, `EditFightResultRequest`/`EditFightResultResponse`-Contracts. In-Memory-Simulation der Bracket-Progression zur Affected-Fight-Erkennung. Frontend: `editState`-Signal in `CombatOverviewComponent`, Methoden `setEditCount`/`setEditWinner`/`save`/`cancelEdit`, i18n `combatOverview.edit.*`.
+
 ## Epic G - Public Display & Results
 
 ### G-01 Public screen view (P0, 5 SP) — ✅ Done
@@ -260,7 +291,7 @@ Story points are rough relative estimates.
 - Auto-refresh via realtime channel.
 
 ### G-02 Category results/rankings (P0, 5 SP) — ✅ Done
-**Story:** Als Turnierleitung möchte ich Platzierungen je Kategorie sehen, damit Siegerehrungen vorbereitet werden können.  
+**Story:** Als Turnierleitung möchte ich Platzierungen je Gewichtsklasse sehen, damit Siegerehrungen vorbereitet werden können.  
 **Acceptance Criteria:**
 - Ranking generated from final bracket state.
 - Clearly displays 1st/2nd/3rd placements.
@@ -271,6 +302,156 @@ Story points are rough relative estimates.
 **Acceptance Criteria:**
 - Aggregates medals across categories.
 - Sort by gold/silver/bronze, then club name.
+
+### G-04 Anonyme QR-Freigabe der Wettkampflisten (P1) — ✅ Done
+**Story:** Als Turnierleitung möchte ich auf der Turnieransicht einen QR-Code anzeigen, über den Personen im lokalen Netzwerk zeitlich begrenzten, anonymen Nur-Lese-Zugriff auf die Wettkampflisten erhalten, damit Zuschauer und Betreuer die Kämpfe ohne eigenes Benutzerkonto verfolgen können.
+
+**Rahmen-Entscheidungen (Grilling-Ergebnis):**
+- Anonymer Zugriff über ein **eigenständiges Guest-Share-Token** (kein Benutzerkonto); read-only Pseudo-Rolle `Guest`.
+- Scope bewusst schmal: **nur** die Wettkampflisten-Ansicht.
+- **Ein** aktives Token pro Turnier; manueller An/Aus-Toggle + optionale TTL (Default „bis Mitternacht heute"); „Rotieren" invalidiert das alte Token sofort.
+- Verwaltung durch **Admin + Operator**; Aktionen werden auditiert; einzelne Gast-Zugriffe werden **nicht** protokolliert.
+- **Datensparsamkeit:** dedizierte, reduzierte Public-DTOs (`athletes = {id, clubId, firstName, lastName}`, `clubs = {id, name}`); die gesamte Wettkampflisten-Ansicht (Display + Gast) nutzt diese.
+- QR **serverseitig als SVG**; Basis-URL aus Host-Header (optionaler Override); nicht-lokaler/öffentlicher Host nur mit TLS.
+- Bei Backup/Restore ist die Freigabe immer deaktiviert; kein Token im Backup.
+
+#### G-04a Guest-Share-Token-Modell + Persistenz (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als System möchte ich Guest-Share-Tokens pro Turnier speichern und verwalten, damit anonymer Zugriff zustandsbasiert freigegeben, deaktiviert und rotiert werden kann.  
+**Acceptance Criteria:**
+- Neue Entität/Tabelle mit genau einem aktiven Token pro Turnier (`TournamentId`, `Token` Klartext, `IsEnabled`, `ExpiresAtUtc`, `CreatedUtc`, `RotatedAtUtc`).
+- Token wird mit `RandomNumberGenerator` (≥256 Bit, base64url) erzeugt.
+- EF-Core-Migration ergänzt; Legacy-DB-Adoption bleibt intakt.
+- Backup/Restore übernimmt den Token **nicht** (Restore ⇒ deaktiviert/kein Token).
+- Unit-Tests für Erzeugen/Rotieren/Deaktivieren/Ablauf; `Category=UnitTest`.
+
+#### G-04b Reduzierte Public-Read-Endpoints (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als anonymer Gast (und als Display-Client) möchte ich die Wettkampflisten über datenminimierte Endpoints laden, damit keine personenbezogenen Zusatzdaten übertragen werden.  
+**Acceptance Criteria:**
+- Neue Endpoints `GET /api/tournaments/{id}/public/{athletes,clubs,categories,fights,standings}` liefern reduzierte DTOs.
+- `athletes = {id, clubId, firstName, lastName}`, `clubs = {id, name}`; keine Lizenz-/Passnummer, kein Geburtsjahr, kein Gewicht, keine Kontaktdaten.
+- Autorisiert für `Admin, Operator, Display, Guest`; Guest nur bei aktiver, gültiger Freigabe.
+- Bestehende vollständige `getAthletes`/`getClubs` bleiben für Betreiber-Ansichten unverändert.
+- Unit-/Integrationstests für DTO-Form und Autorisierung.
+
+#### G-04c Guest-Authentifizierung im Bearer-Handler + Hub-Scope (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als System möchte ich Guest-Tokens erkennen und streng auf ihr Turnier begrenzen, damit anonymer Zugriff nicht über die Wettkampflisten hinausreicht.  
+**Status:** Vollständig umgesetzt. Handler + Scope-Absicherung (Guest-Principal, Gültigkeitsprüfung, DefaultPolicy zwingt echte Rolle für `[Authorize]`, Controller erzwingt Turnier-Scope). TLS-Erzwingung im `GuestShareLinkBuilder` (nicht-lokaler Host ohne HTTPS ⇒ `GuestShareInsecureHostException`; Controller liefert 400 bei `enable`/`rotate`/`qr`, Public-Link im Status entfällt). `TournamentHub` prüft Guest-Turnier-Scope und aktive Freigabe (Soft-Disconnect). Eigene `PublicPolicy` (per-IP Fixed-Window) auf dem `PublicController`. Neue Tests: Link-Builder-TLS-Theorie, Hub-Scope (4), Guest-Zugriff-Integration (3), Controller-TLS (2).  
+**Acceptance Criteria:**
+- ✅ `BearerTokenAuthenticationHandler` erzeugt für ein gültiges Guest-Token ein read-only `Guest`-Principal (turniergebunden).
+- ✅ Gültigkeitsprüfung: `IsEnabled` und nicht abgelaufen; deaktiviert/abgelaufen/rotiert ⇒ kein Zugriff.
+- ✅ Bloßes `[Authorize]` verlangt weiterhin eine Betreiberrolle (Admin/Operator/Display); Guest erreicht nur explizit freigegebene Public-Endpoints (Scope-Leak verhindert).
+- ✅ Nicht-lokaler/öffentlicher Host nur über TLS akzeptiert.
+- ✅ SignalR: Guest darf **nur** die Gruppe des eigenen Turniers joinen; Soft-Disconnect (keine neuen Verbindungen/Reconnects bei Deaktivierung, laufende laufen aus).
+- ✅ Eigene per-IP Rate-Limit-Policy für die Public-Endpoints.
+- ✅ Integrationstests für Zugriff/Verweigerung und Scope-Grenzen.
+
+#### G-04d Serverseitige QR-Erzeugung + Verwaltung (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als Admin/Operator möchte ich die Freigabe erzeugen, anzeigen, rotieren und deaktivieren, damit ich den anonymen Zugriff kontrolliert steuern kann.  
+**Status:** `GuestShareController` (Admin/Operator) mit `GET`, `enable`, `disable`, `rotate`, `qr` umgesetzt; QR serverseitig als SVG via QRCoder; Basis-URL aus Host-Header oder `GuestShare:PublicBaseUrl`-Override. Backup/Restore zieht die Freigabe bewusst nicht mit (kein Token im Backup, Restore ⇒ deaktiviert; Decision 13 erfüllt). TLS-Erzwingung für nicht-lokale Hosts ergänzt (siehe G-04c).  
+**Acceptance Criteria:**
+- ✅ Endpoints zum Erzeugen/Aktivieren, Deaktivieren, Rotieren und Abrufen des Status (Admin/Operator).
+- ✅ `GET .../guest-share/qr` liefert QR als SVG mit der Public-URL; Basis-URL aus Host-Header, optionaler konfigurierter Override.
+- ✅ Audit: `GuestShareEnabled`, `GuestShareDisabled`, `GuestShareRotated` mit auslösendem Betreiber; kein Token im Audit-Detail; keine Gast-Reads.
+- ✅ Unit-Tests für QR-Ausgabe (SVG), Verwaltungslogik, URL-Aufbau und tokenfreies Audit.
+
+#### G-04e Wettkampflisten auf reduziertes Modell umstellen (P1, 2 SP) — ✅ Umgesetzt
+**Story:** Als Nutzer der Wettkampflisten möchte ich, dass die Ansicht nur die tatsächlich angezeigten Daten lädt, damit weniger personenbezogene Daten übertragen werden.  
+**Status:** `MatchListsComponent` lädt Athleten/Vereine/Kategorien/Kämpfe/Stände über die reduzierten Public-Endpoints (`ApiService.getPublicAthletes/Clubs/Categories/Fights/Standings`) — ein Code-Pfad für Display **und** Gast. Neue TS-Modelle `PublicAthlete`/`PublicClub`. Keine sichtbare Funktionsänderung (weiterhin „Nachname, Vorname" + Verein). Frontend-Build grün.  
+**Acceptance Criteria:**
+- `MatchListsComponent` nutzt die reduzierten Public-Endpoints (Display + Gast, ein Code-Pfad).
+- Keine sichtbare Funktionsänderung (Name „Nachname, Vorname" + Verein wie bisher).
+- Frontend-Tests bleiben grün.
+
+#### G-04f Public-Route + QR-Anzeige im Frontend (P1, 3 SP) — ✅ Umgesetzt
+**Story:** Als Gast möchte ich über den gescannten QR eine fokussierte Nur-Listen-Seite ohne App-Navigation öffnen, und als Betreiber möchte ich den QR auf der Turnieransicht sehen.  
+**Status:** Route `public/match-lists?tid=…&t=<token>` (ohne Guard) rendert `MatchListsComponent` ohne App-Shell (`updateShellVisibility` blendet `/public` aus). Der Token wird via `AuthStateService.setGuestToken` als Bearer für API-Aufrufe genutzt (Gast-Modus verzichtet bewusst auf die Hub-Verbindung → statischer Snapshot). Die Turnieransicht (Admin/Operator) zeigt je Turnier ein aufklappbares Panel „Gäste-Zugriff" mit Status, Auto-Aus-Preset (Bis Mitternacht/4h/8h/kein Aus, Default Mitternacht), Freigeben/Deaktivieren/Rotieren, Ablaufanzeige, öffentlichem Link (kopierbar) und serverseitig geliefertem QR-SVG (inline). Deutsch-erste i18n-Keys `share.*` in `de.json`/`en.json`.  
+**Acceptance Criteria:**
+- Neue Route `public/match-lists?tournamentId=…&t=<token>` rendert die Wettkampflisten ohne App-Shell/Nav/Login; Token aus URL, als Bearer + Hub-`access_token` genutzt.
+- Turnieransicht (Admin/Operator) zeigt QR + Steuerung (Freigeben/Deaktivieren/Rotieren, TTL-Preset, Ablaufanzeige).
+- Deutsch-erste, lokalisierbare Labels (i18n-Keys, `en`-Platzhalter).
+- Ungültige/deaktivierte Freigabe zeigt eine verständliche Hinweisseite.
+
+#### G-04g Dokumentation (README DE/EN) (P2, 1 SP) — ✅ Umgesetzt
+**Story:** Als Betreiber möchte ich die anonyme QR-Freigabe dokumentiert haben, damit Einrichtung, TLS-Anforderung und Datenschutzverhalten klar sind.  
+**Status:** `README.md` und `README.de.md` enthalten einen Abschnitt „Guest access / Gastzugriff" (Freigabe-Workflow, Auto-Aus-Presets, Rotieren/Deaktivieren, Datensparsamkeit, TLS-Regel für öffentliche Hosts, Realtime/Soft-Disconnect, Audit, Backup-Verhalten, per-IP Rate-Limit) sowie die neuen Public- und Guest-Share-Endpoints in der API-Liste. Beide Sprachversionen sind strukturell konsistent.  
+**Acceptance Criteria:**
+- ✅ `README.md` und `README.de.md` beschreiben Freigabe-Workflow, TLS-Regel (öffentlich ⇒ TLS), Datensparsamkeit und Auto-Aus.
+- ✅ Beide Versionen strukturell/inhaltlich konsistent inkl. Sprach-Querverweise.
+
+### G-05 Vereinswertung pro Altersklasse und global (P1, 13 SP) — 🔜 Geplant
+**Story:** Als Turnierleitung möchte ich zusätzlich zu Ranglisten und Medaillenspiegel eine transparente Vereinswertung sehen, damit Teamleistung je Altersklasse und turnierweit nachvollziehbar vergleichbar ist.
+
+**Fachliche Leitregeln (Grilling-Ergebnis):**
+- Platzierungspunkte: 1. Platz = 7, 2. Platz = 5, 3. Platz = 3.
+- Zwei dritte Plätze zählen jeweils separat mit 3 Punkten.
+- Altersklassen-Endscore: Basispunkte x Siegquote der Altersklasse.
+- Globale Zusatzwertung: globale Basispunkte x globale Siegquote über das ganze Turnier.
+- Siegquote = gewonnene Kämpfe / absolvierte Kämpfe; Freilose zählen nicht als Kampf.
+- Sonderfall Nenner = 0: Siegquote = 0.0.
+- Interne Berechnung mit voller Präzision; Anzeige auf 2 Nachkommastellen.
+- Ranking erfolgt nach ungerundetem Wert; Gleichheit mit technischer Toleranz (1e-9).
+- Tie-break Reihenfolge: Endscore (ungerundet), Siegquote, Anzahl 1., Anzahl 2., Anzahl 3., sonst geteilter Rang.
+- Rangnummern bei Gleichstand im Wettbewerbsstil: 1, 2, 2, 4.
+- Athleten ohne Verein werden unter Sammelverein Ohne Verein geführt.
+
+#### G-05a Backend-Datenmodell und DTOs (P1, 3 SP)
+**Story:** Als System möchte ich strukturierte DTOs für Altersklassen- und Globalwertung bereitstellen, damit die Frontend-Anzeige vollständig und nachvollziehbar gerendert werden kann.
+**Acceptance Criteria:**
+- Neue Antwortmodelle für Vereinswertung enthalten mindestens: Verein, Rang, Status (Vorläufig/Final), Basispunkte, Siege, Kämpfe, Siegquote, Endscore (raw + display), Podestzähler (1/2/3).
+- Altersklassen-Antwort enthält zusätzlich Fortschritt (abgeschlossene Kämpfe vs geplante Kämpfe) und Altersklassen-Metadaten.
+- Alle gemeldeten Vereine erscheinen in der Liste, auch ohne Kämpfe oder mit 0.00.
+- API bleibt lokalisierungsfreundlich: keine fest verdrahteten UI-Texte in DTO-Feldern.
+
+#### G-05b RankingService-Erweiterung (P1, 3 SP)
+**Story:** Als System möchte ich Altersklassen- und Globalwertung aus den Turnierdaten berechnen, damit die Vereinsrangfolge jederzeit reproduzierbar ist.
+**Acceptance Criteria:**
+- Altersklassen-Siegquote nutzt nur Kämpfe der jeweiligen Altersklasse.
+- Globale Siegquote nutzt Kämpfe des gesamten Turniers.
+- Rechenlogik ignoriert Freilose vollständig in Zähler und Nenner.
+- Rechenlogik aktualisiert nach jedem beendeten Kampf (nicht nur nach Siegen).
+- Tie-break und Rangvergabe entsprechen exakt den Leitregeln inklusive geteilter Ränge.
+
+#### G-05c API-Endpunkte im Results-Bereich (P1, 2 SP)
+**Story:** Als Frontend möchte ich dedizierte Endpunkte für Vereinswertungen abrufen, damit die neue Ansicht unabhängig von Ranglisten/Medaillenspiegel geladen werden kann.
+**Acceptance Criteria:**
+- Neue autorisierte Endpunkte unter `api/tournaments/{id}` für:
+  - Vereinswertung je Altersklasse (eine Altersklasse oder alle Altersklassen),
+  - globale Vereinswertung.
+- 404 bei unbekanntem Turnier; 200 mit leerer, aber strukturierter Antwort bei noch fehlenden Kampfdaten.
+- Statuslabel-Logik:
+  - Altersklasse ist Final, sobald alle geplanten Kämpfe der Altersklasse beendet sind.
+  - Global ist Final, sobald alle geplanten Kämpfe aller Altersklassen beendet sind.
+
+#### G-05d Frontend-Ergebnisseite: dritter Tab Vereinswertung (P1, 3 SP)
+**Story:** Als Nutzer möchte ich im Ergebnisbereich einen dritten Tab Vereinswertung sehen, damit ich teambezogene Auswertungen direkt neben Ranglisten und Medaillenspiegel prüfen kann.
+**Acceptance Criteria:**
+- Results-Ansicht hat drei Tabs: Ranglisten, Medaillenspiegel, Vereinswertung.
+- Im Tab Vereinswertung werden zwei Blöcke untereinander angezeigt:
+  - Vereinswertung pro Altersklasse,
+  - globale Vereinswertung.
+- Je Block wird das Statuslabel Vorläufig/Final sichtbar angezeigt.
+- Je Altersklasse wird ein Fortschrittshinweis angezeigt: abgeschlossene Kämpfe vs geplant.
+- Darstellung der mittleren Rechentiefe pro Verein: Podestzähler 1/2/3, Basispunkte, Siege, Kämpfe, Siegquote, Endscore.
+- Deutsche Standardtexte mit i18n-Keys; englische Platzhalter ergänzen.
+
+#### G-05e Live-Aktualisierung und Konsistenz (P1, 1 SP)
+**Story:** Als Turnierleitung möchte ich, dass die Vereinswertung live den aktuellen Stand zeigt, damit die Anzeige jederzeit mit den Kampfergebnissen übereinstimmt.
+**Acceptance Criteria:**
+- Nach Abschluss eines Kampfes wird die Vereinswertung neu geladen oder per Event aktualisiert.
+- Vorläufig/Final-Status kippt automatisch bei Erreichen der Abschlussbedingungen.
+- Es wird keine manuelle Abschaltlogik für die Wertung benötigt.
+
+#### G-05f Tests (Unit + Integration + Frontend) (P1, 1 SP)
+**Story:** Als Team möchten wir die Wertungslogik und Anzeige automatisiert absichern, damit Regeländerungen keine unbemerkten fachlichen Regressionen auslösen.
+**Acceptance Criteria:**
+- Unit-Tests für Berechnung:
+  - Basispunkte inkl. zwei dritter Plätze,
+  - Siegquote ohne Freilos,
+  - Nenner=0 Verhalten,
+  - Tie-break Reihenfolge und geteilte Ränge (1,2,2,4).
+- Integrationstests für Endpunkte: Datenform, Autorisierung, Statuslabel, 404/200-Verhalten.
+- Frontend-Tests für neuen Tab und Kernfelder der Tabellen.
+- Neue Tests sind mit `Category=UnitTest` markiert (Backend) und im bestehenden Frontend-Testlauf enthalten.
 
 ---
 
@@ -297,7 +478,7 @@ Story points are rough relative estimates.
 ### I-01 Audit logging for critical actions (P0, 5 SP) — ✅ Done
 **Story:** Als Admin möchte ich kritische Änderungen nachvollziehen können, damit Streitfälle auflösbar sind.  
 **Acceptance Criteria:**
-- ✅ Log: login attempts (LoginFailed/LoginSucceeded), draw generation (DrawGenerated), result confirmations (ResultConfirmed), result corrections (ResultCorrected), user/role changes (UserCreated/UserActivated/UserDeactivated/PasswordReset), tournament backup/restore (TournamentBackedUp/TournamentRestored).
+- ✅ Log: login attempts (LoginFailed/LoginSucceeded), draw generation (DrawGenerated), result confirmations (ResultConfirmed), result edits (ResultEdited), user/role changes (UserCreated/UserActivated/UserDeactivated/PasswordReset), tournament backup/restore (TournamentBackedUp/TournamentRestored).
 - ✅ Log entries contain timestamp, user, action, entity reference (stored in AuditLogRecord).
 - ✅ Sensitive data not written to logs (passwords, tokens, PII not logged).
 
@@ -312,7 +493,7 @@ Story points are rough relative estimates.
 ### I-03 Basic test suite for critical flows (P0, 8 SP) — ✅ Done
 **Story:** Als Team möchte ich zentrale Abläufe abgesichert testen, damit Änderungen keine Turnierabbrüche verursachen.  
 **Acceptance Criteria:**
-- ✅ Automated tests for: registration (create/assign/auto-assign/delete via integration tests), draw generation (single elimination + repechage via 52 bracket tests), result progression (score/correction/confirmation via match service tests), role authorization (8 authorization integration tests).
+- ✅ Automated tests for: registration (create/assign/auto-assign/delete via integration tests), draw generation (single elimination + repechage via 52 bracket tests), result progression (score/edit/confirmation via match service tests), role authorization (8 authorization integration tests).
 - ✅ End-to-end smoke test for complete tournament flow (setup → clubs/athletes → registration with weight → draw generation → tatami assignment → fight start (triggers category lock) → score adjustment → result confirmation → rankings → medal table). TournamentFlowSmokeTests.FullTournamentFlow_SetupToRankings_CompletesSuccessfully.
 - ✅ Smoke test script for local startup: `.\start-local.ps1` + `.\test-draw-lock-flow.ps1`.
 - ✅ Total tests: 181 unit tests passing (Category=UnitTest), build clean (0 errors, 0 warnings).
@@ -443,7 +624,7 @@ This section tracks the verified current state.
 - Full setup/admin flow: tournaments, tatamis, categories, clubs, athletes.
 - Registration flow: register/unregister, CSV export, category assignment (auto + manual).
 - Draw and bracket flow: generation (single elimination, repechage, round-robin, round-robin-with-knockout), manual swap before lock.
-- Fight operations: tatami queue, assignment board, match control, result confirmation/correction.
+- Fight operations: tatami queue, assignment board, match control, result confirmation/editing.
 - Public and reporting flow: display screen, category rankings, medal table.
 - Realtime updates with SignalR (fight and category updates).
 - German-first UI with runtime i18n and English fallback.

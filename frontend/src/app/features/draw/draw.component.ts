@@ -1,6 +1,6 @@
 import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -41,6 +41,7 @@ export class DrawComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthStateService);
   private readonly i18n = inject(I18nService);
+  private readonly router = inject(Router);
   protected readonly context = inject(TournamentContextService);
   protected readonly canOperate = this.auth.canOperate;
 
@@ -68,6 +69,9 @@ export class DrawComponent implements OnInit {
 
   private readonly clubMap = computed(() =>
     new Map(this.clubs().map((c) => [c.id, c])));
+
+  protected readonly categoriesWithFights = computed(() =>
+    this.categories().filter((category) => this.hasFights(category.id)));
 
   ngOnInit(): void {
     if (this.context.tournamentId()) {
@@ -180,6 +184,15 @@ export class DrawComponent implements OnInit {
 
   protected hasFights(categoryId: string): boolean {
     return this.fightsForCategory(categoryId).length > 0;
+  }
+
+  protected exportAllMatchListsPdf(): void {
+    const categoryIds = this.categoriesWithFights().map((category) => category.id);
+    this.openMatchListsPrint(categoryIds);
+  }
+
+  protected exportCategoryMatchListPdf(categoryId: string): void {
+    this.openMatchListsPrint([categoryId]);
   }
 
   protected isCategoryRoundRobin(categoryId: string): boolean {
@@ -558,6 +571,24 @@ export class DrawComponent implements OnInit {
     };
 
     run(0);
+  }
+
+  private openMatchListsPrint(categoryIds: string[]): void {
+    const tournamentId = this.tournamentId;
+    if (!tournamentId || categoryIds.length === 0) {
+      return;
+    }
+
+    const urlTree = this.router.createUrlTree(['/draw/print-match-lists'], {
+      queryParams: {
+        tournamentId,
+        categoryIds: categoryIds.join(','),
+        autoPrint: '1',
+      },
+    });
+
+    const url = this.router.serializeUrl(urlTree);
+    window.open(url, '_blank', 'noopener');
   }
 
   protected toggleSwap(categoryId: string, athleteId: string | null): void {

@@ -111,6 +111,7 @@ export class TournamentContextService {
       osaeKomiYukoSeconds: typeof x['osaeKomiYukoSeconds'] === 'number' ? x['osaeKomiYukoSeconds'] : 5,
       osaeKomiYukoEnabled: typeof x['osaeKomiYukoEnabled'] === 'boolean' ? x['osaeKomiYukoEnabled'] : true,
       minimumRestBetweenFightsSeconds: typeof x['minimumRestBetweenFightsSeconds'] === 'number' ? x['minimumRestBetweenFightsSeconds'] : 180,
+      twoThirdPlacesInRoundRobin: typeof x['twoThirdPlacesInRoundRobin'] === 'boolean' ? x['twoThirdPlacesInRoundRobin'] : false,
       createdAtUtc: x['createdAtUtc'],
       updatedAtUtc: x['updatedAtUtc'],
     };

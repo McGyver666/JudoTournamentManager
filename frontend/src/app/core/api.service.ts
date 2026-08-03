@@ -8,12 +8,16 @@ import {
   AssignCategoryRequest,
   AssignTatamiRequest,
   AutoAssignResult,
+  AgeGroupClubScoringResponse,
   BulkAssignTatamiRequest,
   BulkTatamiAssignment,
   Category,
   CategoryPreset,
   CategoryPresetItemRequest,
   Club,
+  CompletedFightSummary,
+  EditFightResultRequest,
+  EditFightResultResponse,
   ConfirmResultRequest,
   CategoryGenerationApplyResponse,
   CategoryGenerationPreviewResponse,
@@ -27,12 +31,16 @@ import {
   Fight,
   GenerateCategoriesRequest,
   GenerateDrawRequest,
+  GlobalClubScoringResponse,
   LocalUserAccount,
   LoginRequest,
   LoginResponse,
   MedalEntry,
+  GuestShareResponse,
   MoveFightInQueueRequest,
   OsaeKomiRequest,
+  PublicAthlete,
+  PublicClub,
   QueueMoveDirection,
   RankingEntry,
   RecordScoreRequest,
@@ -273,6 +281,19 @@ export class ApiService {
       `api/tournaments/${tournamentId}/categories/${categoryId}/fights`);
   }
 
+  /** Returns all completed (non-bye) fights of a tournament for the combat overview. */
+  getCompletedFights(tournamentId: string): Observable<CompletedFightSummary[]> {
+    return this.http.get<CompletedFightSummary[]>(
+      `api/tournaments/${tournamentId}/completed-fights`);
+  }
+
+  /** Edits scores and winner of a completed fight (Admin only). Returns 409 with affected fights when confirmation is required. */
+  editFightResult(tournamentId: string, fightId: string, body: EditFightResultRequest): Observable<HttpResponse<EditFightResultResponse>> {
+    return this.http.post<EditFightResultResponse>(
+      `api/tournaments/${tournamentId}/completed-fights/${fightId}/edit-result`, body,
+      { observe: 'response' });
+  }
+
   generateDraw(
     tournamentId: string,
     categoryId: string,
@@ -412,6 +433,72 @@ export class ApiService {
 
   getMedalTable(tournamentId: string): Observable<MedalEntry[]> {
     return this.http.get<MedalEntry[]>(`api/tournaments/${tournamentId}/medal-table`);
+  }
+
+  getAgeGroupClubScoring(tournamentId: string): Observable<AgeGroupClubScoringResponse> {
+    return this.http.get<AgeGroupClubScoringResponse>(
+      `api/tournaments/${tournamentId}/club-scoring/age-groups`);
+  }
+
+  getGlobalClubScoring(tournamentId: string): Observable<GlobalClubScoringResponse> {
+    return this.http.get<GlobalClubScoringResponse>(
+      `api/tournaments/${tournamentId}/club-scoring/global`);
+  }
+
+  // Public / guest access --------------------------------------------------
+  // Privacy-reduced projections shared by the public match-lists view for both
+  // Display clients and anonymous guests (single code path).
+
+  getPublicTournament(tournamentId: string): Observable<Tournament> {
+    return this.http.get<Tournament>(`api/tournaments/${tournamentId}/public/tournament`);
+  }
+
+  getPublicAthletes(tournamentId: string): Observable<PublicAthlete[]> {
+    return this.http.get<PublicAthlete[]>(`api/tournaments/${tournamentId}/public/athletes`);
+  }
+
+  getPublicClubs(tournamentId: string): Observable<PublicClub[]> {
+    return this.http.get<PublicClub[]>(`api/tournaments/${tournamentId}/public/clubs`);
+  }
+
+  getPublicCategories(tournamentId: string): Observable<Category[]> {
+    return this.http.get<Category[]>(`api/tournaments/${tournamentId}/public/categories`);
+  }
+
+  getPublicFights(tournamentId: string, categoryId: string): Observable<Fight[]> {
+    return this.http.get<Fight[]>(
+      `api/tournaments/${tournamentId}/public/categories/${categoryId}/fights`);
+  }
+
+  getPublicStandings(tournamentId: string, categoryId: string): Observable<RoundRobinStanding[]> {
+    return this.http.get<RoundRobinStanding[]>(
+      `api/tournaments/${tournamentId}/public/categories/${categoryId}/standings`);
+  }
+
+  // Guest share management (Admin/Operator) --------------------------------
+
+  getGuestShare(tournamentId: string): Observable<GuestShareResponse> {
+    return this.http.get<GuestShareResponse>(`api/tournaments/${tournamentId}/guest-share`);
+  }
+
+  enableGuestShare(tournamentId: string, expiresAtUtc: string | null): Observable<GuestShareResponse> {
+    return this.http.post<GuestShareResponse>(
+      `api/tournaments/${tournamentId}/guest-share/enable`, { expiresAtUtc });
+  }
+
+  disableGuestShare(tournamentId: string): Observable<GuestShareResponse> {
+    return this.http.post<GuestShareResponse>(
+      `api/tournaments/${tournamentId}/guest-share/disable`, {});
+  }
+
+  rotateGuestShare(tournamentId: string, expiresAtUtc: string | null): Observable<GuestShareResponse> {
+    return this.http.post<GuestShareResponse>(
+      `api/tournaments/${tournamentId}/guest-share/rotate`, { expiresAtUtc });
+  }
+
+  /** Fetches the guest-share QR code as inline SVG markup (empty when no share exists). */
+  getGuestShareQr(tournamentId: string): Observable<string> {
+    return this.http.get(`api/tournaments/${tournamentId}/guest-share/qr`, { responseType: 'text' });
   }
 
   // Authentication --------------------------------------------------------

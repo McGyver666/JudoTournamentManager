@@ -16,6 +16,12 @@
   --side-accent-muted: #8fd4ff;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --text-strong: #111827;
+  --text-medium: #4b5563;
+  --text-muted: #6b7280;
+  --surface-muted: #f3f4f6;
+  --border-muted: #d8dee6;
+  --border-soft: #d7dce1;
 }
 
 * {
@@ -216,6 +222,66 @@ tr:last-child td {
   padding: 2rem;
   text-align: center;
   color: var(--c-muted);
+}
+
+/* Shared design-system primitives (used across match, results, display, match-lists). */
+.btn {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition: transform 120ms ease, opacity 120ms ease, background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary { background: #1565c0; color: #fff; }
+.btn--secondary { background: #e5e7eb; color: var(--text-strong); }
+.btn--fight-start-stop { border-color: #000000; min-height: 96px; }
+.btn--full { width: 100%; }
+.btn--white { background: var(--surface-muted); color: var(--text-strong); border-color: var(--text-medium); }
+.btn--blue { background: var(--side-accent-soft); color: var(--side-accent); border-color: var(--side-accent); }
+.btn--confirm { padding: 0.65rem 0.8rem; }
+.btn--tiny { padding: 0.34rem 0.55rem; border-radius: 10px; font-size: 0.72rem; }
+.btn--tiny.btn--positive { padding-left: 2rem; padding-right: 2rem; }
+.btn--positive { background: #f0fdf4; color: #166534; border-color: #3fb968; }
+.btn--negative { background: #fef2f2; color: #b91c1c; border-color: #df8383; }
+
+.badge-offline {
+  background: #fff0ef;
+  color: var(--c-danger);
+  border: 1px solid #f5c4c0;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.74rem;
+}
+
+.shido-bubbles {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.shido-bubble {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  border: 1.5px solid #9ca3af;
+  background: var(--surface-muted);
+}
+
+.shido-bubble--active {
+  background: #f2c94c;
+  border-color: #d97706;
 }
 
 app-display .tatami-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}

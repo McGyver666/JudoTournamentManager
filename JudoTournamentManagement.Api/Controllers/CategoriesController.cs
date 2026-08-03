@@ -123,8 +123,8 @@ public sealed class CategoriesController : ControllerBase
         {
             return Conflict(new ProblemDetails
             {
-                Title = "Kategorie bereits vorhanden.",
-                Detail = "Eine Kategorie mit dieser Altersklasse, diesem Geschlecht und dieser Gewichtsklasse existiert bereits in diesem Turnier.",
+                Title = "Gewichtsklasse bereits vorhanden.",
+                Detail = "Eine Gewichtsklasse mit dieser Altersklasse, diesem Geschlecht und dieser Gewichtsklasse existiert bereits in diesem Turnier.",
                 Status = StatusCodes.Status409Conflict
             });
         }

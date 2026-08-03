@@ -24,6 +24,7 @@
               <a routerLink="/category-assignment" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.categoryAssignment' | t }}</a>
               <a routerLink="/draw" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.draw' | t }}</a>
               <a routerLink="/tatami-assignment" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.tatamiAssignment' | t }}</a>
+              <a routerLink="/combat-overview" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.combatOverview' | t }}</a>
             </div>
           </div>
           <div class="nav-dropdown" [class.open]="mattenrichterMenuOpen()">
@@ -71,6 +72,12 @@
                 rel="noopener"
                 role="menuitem"
                 (click)="closeDisplayMenu()">{{ 'display.menuOverview' | t }}</a>
+              <a
+                [href]="matchListsUrl(tid)"
+                target="_blank"
+                rel="noopener"
+                role="menuitem"
+                (click)="closeDisplayMenu()">{{ 'display.menuMatchLists' | t }}</a>
               @for (tatami of displayTatamis(); track tatami.id) {
                 <a
                   [href]="tatamiDisplayUrl(tid, tatami.id)"

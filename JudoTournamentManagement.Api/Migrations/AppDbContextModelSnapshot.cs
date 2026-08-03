@@ -432,6 +432,46 @@ namespace JudoTournamentManagement.Api.Migrations
                     b.ToTable("Fights", (string)null);
                 });
 
+            modelBuilder.Entity("JudoTournamentManagement.Api.Data.GuestShareRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ExpiresAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("RotatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("TournamentId")
+                        .IsUnique();
+
+                    b.ToTable("GuestShares", (string)null);
+                });
+
             modelBuilder.Entity("JudoTournamentManagement.Api.Data.RegistrationRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -572,6 +612,11 @@ namespace JudoTournamentManagement.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(5);
+
+                    b.Property<bool>("TwoThirdPlacesInRoundRobin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("TEXT");
@@ -724,6 +769,17 @@ namespace JudoTournamentManagement.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+
+                    b.Navigation("Tournament");
+                });
+
+            modelBuilder.Entity("JudoTournamentManagement.Api.Data.GuestShareRecord", b =>
+                {
+                    b.HasOne("JudoTournamentManagement.Api.Data.TournamentRecord", "Tournament")
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Tournament");
                 });

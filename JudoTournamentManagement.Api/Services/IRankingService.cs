@@ -33,4 +33,18 @@ public interface IRankingService
         Guid tournamentId,
         Guid categoryId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns club scoring grouped by age group for a tournament.
+    /// </summary>
+    Task<AgeGroupClubScoringResponse> GetAgeGroupClubScoringAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns turnier-wide (global) club scoring for a tournament.
+    /// </summary>
+    Task<GlobalClubScoringResponse> GetGlobalClubScoringAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken);
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { ATHLETE_GRADE_OPTIONS, athleteGradeLabelKey } from '../../core/athlete-grade';
 import { AuthStateService } from '../../core/auth-state.service';
@@ -20,6 +20,7 @@ import {
   CategoryPresetItemRequest,
   Club,
   CreateAthleteRequest,
+  CreateClubRequest,
   CreateCategoryRequest,
   GenerateCategoriesRequest,
   Gender,
@@ -109,6 +110,30 @@ export class ConfigComponent implements OnInit {
 
   protected gradeLabel(grade: number): string {
     return this.i18n.translate(athleteGradeLabelKey(grade));
+  }
+
+  protected exportAthletesCsv(): void {
+    const athletes = this.athletes();
+    const tournamentName = this.context.tournament()?.name ?? 'athleten';
+    const sep = ';';
+    const header = ['Nachname', 'Vorname', 'Jahrgang', 'Geschlecht', 'Verein', 'Graduierung', 'Gewicht'].join(sep);
+    const rows = athletes.map((a) => {
+      const gender = a.gender === 'Male' ? 'm' : a.gender === 'Female' ? 'w' : '';
+      const club = this.clubName()(a.clubId);
+      // Strip parenthetical color description, e.g. "9. Kyu (weißer Gürtel)" → "9. Kyu"
+      const grade = this.gradeLabel(a.grade).split(' (')[0];
+      const weight = a.weightKg != null ? String(a.weightKg) : '';
+      return [a.lastName, a.firstName, String(a.birthYear), gender, club, grade, weight].join(sep);
+    });
+    const csv = [header, ...rows].join('\n');
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `athleten-${tournamentName}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // Form models per entity.
@@ -660,7 +685,7 @@ export class ConfigComponent implements OnInit {
     }
 
     const lowerName = file.name.toLowerCase();
-    if (!lowerName.endsWith('.dm4') && !lowerName.endsWith('.dmf')) {
+    if (!lowerName.endsWith('.dm4') && !lowerName.endsWith('.dmf') && !lowerName.endsWith('.csv')) {
       this.error.set(this.i18n.translate('athletes.importInvalidExtension'));
       this.athleteImportInfo.set(null);
       input.value = '';
@@ -669,6 +694,11 @@ export class ConfigComponent implements OnInit {
 
     this.error.set(null);
     this.athleteImportInfo.set(null);
+
+    if (lowerName.endsWith('.csv')) {
+      this.importAthletesFromCsv(id, file, input, allowDuplicate);
+      return;
+    }
 
     this.api.importAthletesFromFile(id, file, allowDuplicate).subscribe({
       next: (created) => {
@@ -695,6 +725,133 @@ export class ConfigComponent implements OnInit {
         this.onSaveError(err);
       },
     });
+  }
+
+  private importAthletesFromCsv(
+    tournamentId: string,
+    file: File,
+    input: HTMLInputElement,
+    allowDuplicate: boolean,
+  ): void {
+    this.doImportAthletesFromCsv(tournamentId, file, allowDuplicate)
+      .then((count) => {
+        this.athleteImportInfo.set(this.i18n.translate('athletes.importSuccess', { count }));
+        input.value = '';
+        this.api.getAthletes(tournamentId).subscribe({ next: (x) => this.athletes.set(x) });
+      })
+      .catch((err: unknown) => {
+        input.value = '';
+        if ((err as { isCsvFormatError?: boolean }).isCsvFormatError) {
+          this.error.set(this.i18n.translate('athletes.importCsvInvalidFormat'));
+          return;
+        }
+        if (this.isConflict(err) && !allowDuplicate) {
+          if (confirm(this.i18n.translate('athletes.importDuplicateConfirm'))) {
+            this.importAthletesFromCsv(tournamentId, file, input, true);
+          } else {
+            this.error.set(null);
+          }
+          return;
+        }
+        this.onSaveError(err);
+      });
+  }
+
+  private async doImportAthletesFromCsv(
+    tournamentId: string,
+    file: File,
+    allowDuplicate: boolean,
+  ): Promise<number> {
+    const text = await file.text();
+    const rows = this.parseCsvRows(text);
+    if (!rows) {
+      throw Object.assign(new Error('invalid-csv'), { isCsvFormatError: true });
+    }
+
+    // Ensure all clubs referenced in the CSV exist, creating them if necessary
+    const uniqueClubNames = [...new Set(rows.map((r) => r.club).filter(Boolean))];
+    for (const name of uniqueClubNames) {
+      const exists = this.clubs().some((c) => c.name.toLowerCase() === name.toLowerCase());
+      if (!exists) {
+        const req: CreateClubRequest = { name, contactName: null, contactEmail: null, contactPhone: null };
+        try {
+          const club = await firstValueFrom(this.api.createClub(tournamentId, req));
+          this.clubs.update((list) => [...list, club]);
+        } catch (err) {
+          if (this.isConflict(err)) {
+            // Created concurrently; reload to get the id
+            const clubs = await firstValueFrom(this.api.getClubs(tournamentId));
+            this.clubs.set(clubs);
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
+
+    const clubMap = new Map(this.clubs().map((c) => [c.name.toLowerCase(), c.id]));
+    let created = 0;
+    for (const row of rows) {
+      const clubId = clubMap.get(row.club.toLowerCase());
+      if (!clubId) continue;
+      const req: CreateAthleteRequest = {
+        clubId,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        birthYear: row.birthYear,
+        gender: row.gender,
+        licenseId: null,
+        weightKg: row.weightKg,
+        grade: row.grade,
+      };
+      await firstValueFrom(this.api.createAthlete(tournamentId, req, allowDuplicate));
+      created++;
+    }
+    return created;
+  }
+
+  private parseCsvRows(text: string): Array<{
+    lastName: string;
+    firstName: string;
+    birthYear: number;
+    gender: Gender;
+    club: string;
+    grade: number;
+    weightKg: number | null;
+  }> | null {
+    // Remove UTF-8 BOM if present
+    if (text.charCodeAt(0) === 0xfeff) {
+      text = text.slice(1);
+    }
+    const lines = text
+      .split('\n')
+      .map((l) => l.replace(/\r$/, '').trim())
+      .filter(Boolean);
+    if (lines.length < 2) return null;
+
+    const gradeMap = this.buildGradeReverseMap();
+    const rows = [];
+    for (const line of lines.slice(1)) {
+      const parts = line.split(';');
+      if (parts.length < 7) return null;
+      const [lastName, firstName, birthYearStr, genderStr, club, gradeStr, weightStr] = parts;
+      const birthYear = parseInt(birthYearStr, 10);
+      if (isNaN(birthYear)) return null;
+      const gender: Gender = genderStr === 'm' ? 'Male' : genderStr === 'w' ? 'Female' : 'Mixed';
+      const grade = gradeMap.get(gradeStr.trim()) ?? 1;
+      const weightKg = weightStr?.trim() ? parseFloat(weightStr) : null;
+      rows.push({ lastName, firstName, birthYear, gender, club: club.trim(), grade, weightKg });
+    }
+    return rows;
+  }
+
+  private buildGradeReverseMap(): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const opt of ATHLETE_GRADE_OPTIONS) {
+      const fullLabel = this.i18n.translate(opt.labelKey);
+      map.set(fullLabel.split(' (')[0], opt.value);
+    }
+    return map;
   }
 
   private isConflict(err: unknown): boolean {
