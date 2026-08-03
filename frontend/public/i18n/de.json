@@ -424,6 +424,9 @@
   "results.clubScoring.score": "Score",
   "results.noResults": "Noch keine abgeschlossenen Kämpfe.",
 
+  "draw.printAllMatchListsPdf": "PDF Wettkampflisten",
+  "draw.printMatchListPdf": "PDF Kampfliste",
+
   "registrations.scan": "QR-Code scannen",
   "registrations.startCamera": "Kamera starten",
   "registrations.stopCamera": "Kamera stoppen",

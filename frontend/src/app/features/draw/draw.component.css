@@ -34,9 +34,11 @@
   margin-bottom: 0.75rem;
 }
 
-.category-generate {
+.category-generate-actions {
   display: flex;
   align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .double-elimination-limit {

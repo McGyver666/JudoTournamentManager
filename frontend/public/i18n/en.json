@@ -422,6 +422,9 @@
   "results.clubScoring.score": "Score",
   "results.noResults": "No completed fights yet.",
 
+  "draw.printAllMatchListsPdf": "Match lists PDF",
+  "draw.printMatchListPdf": "Match list PDF",
+
   "registrations.scan": "Scan QR code",
   "registrations.startCamera": "Start camera",
   "registrations.stopCamera": "Stop camera",
