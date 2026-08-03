@@ -15,6 +15,9 @@
       <button class="primary" (click)="generateAll()" [disabled]="!canOperate() || generatingAll()">
         {{ (generatingAll() ? 'common.loading' : 'draw.generateAll') | t }}
       </button>
+      <button (click)="exportAllMatchListsPdf()" [disabled]="!canOperate() || categoriesWithFights().length === 0">
+        {{ 'draw.printAllMatchListsPdf' | t }}
+      </button>
     </div>
   </div>
 
@@ -67,7 +70,12 @@
             }
           </div>
           @if (canOperate()) {
-            <div class="category-generate">
+            <div class="category-generate-actions">
+              <button
+                (click)="exportCategoryMatchListPdf(cat.id)"
+                [disabled]="!hasFights(cat.id)">
+                {{ 'draw.printMatchListPdf' | t }}
+              </button>
               <button
                 class="primary"
                 (click)="generateForCategory(cat)"

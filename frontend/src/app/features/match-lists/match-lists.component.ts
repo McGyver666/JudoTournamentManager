@@ -55,6 +55,7 @@ export class MatchListsComponent implements OnInit, OnDestroy {
 
   /** True when opened via a guest share link (anonymous read-only access). */
   protected readonly guestMode = signal<boolean>(false);
+  protected readonly printMode = signal<boolean>(false);
   /** True when a guest link is invalid, disabled or expired (server rejected access). */
   protected readonly accessDenied = signal<boolean>(false);
   protected readonly tournamentId = signal<string | null>(null);
@@ -69,6 +70,8 @@ export class MatchListsComponent implements OnInit, OnDestroy {
   protected readonly allMatchesLoading = signal<boolean>(false);
   protected readonly allMatchesError = signal<string | null>(null);
   protected readonly hubConnected = computed(() => this.hub.connected());
+  private readonly selectedCategoryIds = signal<Set<string>>(new Set());
+  private readonly autoPrint = signal<boolean>(false);
 
   protected readonly categoriesWithFights = computed(() => {
     const fightsByCategory = this.fightsByCategory();
@@ -83,15 +86,22 @@ export class MatchListsComponent implements OnInit, OnDestroy {
   private querySub?: Subscription;
   private readonly connectorRefreshVersion = signal(0);
   private connectorRefreshHandle: number | null = null;
+  private autoPrintTriggered = false;
 
   ngOnInit(): void {
+    this.printMode.set(this.route.snapshot.routeConfig?.path === 'draw/print-match-lists');
+
     this.querySub = this.route.queryParamMap.subscribe((queryParamMap) => {
       // The Display route uses ?tournamentId=…; the guest share link uses
       // ?tid=…&t=<token>. Support both so a single component serves both cases.
       const guestToken = queryParamMap.get('t') ?? undefined;
       const tid = queryParamMap.get('tournamentId') ?? queryParamMap.get('tid') ?? undefined;
+      const requestedCategoryIds = this.parseCategoryIds(queryParamMap.get('categoryIds'));
 
       this.guestMode.set(!!guestToken);
+      this.selectedCategoryIds.set(requestedCategoryIds);
+      this.autoPrint.set(this.printMode() && queryParamMap.get('autoPrint') === '1');
+      this.autoPrintTriggered = false;
       if (guestToken) {
         this.auth.setGuestToken(guestToken);
       }
@@ -101,7 +111,7 @@ export class MatchListsComponent implements OnInit, OnDestroy {
         this.loadData(tid);
         // Guests get a static snapshot; the realtime hub stays scoped to
         // authenticated Display clients (guest hub scope is handled separately).
-        if (!guestToken) {
+        if (!guestToken && !this.printMode()) {
           void this.hub.connect(tid);
         }
       } else {
@@ -146,6 +156,9 @@ export class MatchListsComponent implements OnInit, OnDestroy {
       next: (t) => {
         this.tournament.set(t);
         this.tournamentName.set(t.name);
+        if (this.printMode()) {
+          document.title = `${t.name} - ${this.i18n.translate('display.matchListsTitle')}`;
+        }
         this.sideTheme.applyTheme(document.documentElement, t);
       },
       error: () => {
@@ -187,7 +200,9 @@ export class MatchListsComponent implements OnInit, OnDestroy {
   private refreshCategoriesAndMatches(tid: string): void {
     this.api.getPublicCategories(tid).subscribe({
       next: categories => {
-        const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
+        const sortedCategories = this
+          .filterSelectedCategories(categories)
+          .sort((a, b) => a.name.localeCompare(b.name));
         this.categoryList.set(sortedCategories);
         this.categories.set(new Map(sortedCategories.map(category => [category.id, category])));
         this.loadMatchesForCategories(tid, sortedCategories);
@@ -204,6 +219,7 @@ export class MatchListsComponent implements OnInit, OnDestroy {
       this.fightsByCategory.set(new Map());
       this.standingsByCategory.set(new Map());
       this.allMatchesLoading.set(false);
+      this.maybeTriggerAutoPrint();
       return;
     }
 
@@ -238,6 +254,7 @@ export class MatchListsComponent implements OnInit, OnDestroy {
       this.standingsByCategory.set(new Map());
       this.allMatchesLoading.set(false);
       this.deferConnectorRefresh();
+      this.maybeTriggerAutoPrint();
       return;
     }
 
@@ -253,13 +270,66 @@ export class MatchListsComponent implements OnInit, OnDestroy {
         this.standingsByCategory.set(nextStandings);
         this.allMatchesLoading.set(false);
         this.deferConnectorRefresh();
+        this.maybeTriggerAutoPrint();
       },
       error: () => {
         this.standingsByCategory.set(new Map());
         this.allMatchesLoading.set(false);
         this.deferConnectorRefresh();
+        this.maybeTriggerAutoPrint();
       },
     });
+  }
+
+  protected printPage(): void {
+    window.print();
+  }
+
+  private parseCategoryIds(raw: string | null): Set<string> {
+    if (!raw) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      raw
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    );
+  }
+
+  private filterSelectedCategories(categories: Category[]): Category[] {
+    const selectedCategoryIds = this.selectedCategoryIds();
+    if (selectedCategoryIds.size === 0) {
+      return [...categories];
+    }
+
+    return categories.filter((category) => selectedCategoryIds.has(category.id));
+  }
+
+  private maybeTriggerAutoPrint(): void {
+    if (!this.printMode() || !this.autoPrint() || this.autoPrintTriggered) {
+      return;
+    }
+
+    if (this.allMatchesLoading() || this.allMatchesError() || this.categoriesWithFights().length === 0) {
+      return;
+    }
+
+    this.autoPrintTriggered = true;
+    // Align the brackets first and print only after the aligned layout has been
+    // painted. Printing on its own rAF chain used to race the deferred
+    // alignment, so the first print showed the fight boxes pushed to the top
+    // until the dialog was cancelled and the pending alignment finally ran.
+    window.setTimeout(() => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          this.alignAllBracketContainers();
+          this.connectorRefreshVersion.update((value) => value + 1);
+          window.requestAnimationFrame(() => this.printPage());
+        });
+      });
+    }, 0);
   }
 
   private compareFights(a: Fight, b: Fight): number {

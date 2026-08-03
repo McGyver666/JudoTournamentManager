@@ -179,7 +179,10 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private updateShellVisibility(url: string): void {
-    const hideShell = url.startsWith('/display') || url.startsWith('/public');
+    const hideShell =
+      url.startsWith('/display') ||
+      url.startsWith('/public') ||
+      url.startsWith('/draw/print-match-lists');
     const params = this.router.parseUrl(url).queryParams;
     const tatamiId = typeof params['tatamiId'] === 'string' ? params['tatamiId'] : null;
     this.routeTatamiId.set(tatamiId);

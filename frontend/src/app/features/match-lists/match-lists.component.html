@@ -1,9 +1,12 @@
-<div class="match-lists-page">
-  <header class="match-lists-header">
+<div class="match-lists-page" [class.match-lists-page--print]="printMode()">
+  <header class="match-lists-header" [class.no-print]="printMode()">
     <h1 class="tournament-title">{{ tournamentName() }}</h1>
     <div class="match-lists-meta">
       @if (!guestMode() && !hubConnected()) {
         <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
+      }
+      @if (printMode()) {
+        <button class="btn btn--secondary" (click)="printPage()">{{ 'results.print' | t }}</button>
       }
     </div>
   </header>
@@ -27,9 +30,14 @@
       } @else {
         <div class="all-categories-list">
           @for (cat of categoriesWithFights(); track cat.id) {
-            <article class="match-category-card">
+            <article class="match-category-card" [class.match-category-card--print]="printMode()">
               <header class="match-category-header">
-                <h3 class="match-category-name">{{ cat.name }}</h3>
+                <div class="match-category-titles">
+                  @if (printMode()) {
+                    <div class="print-tournament-name">{{ tournamentName() }}</div>
+                  }
+                  <h3 class="match-category-name">{{ cat.name }}</h3>
+                </div>
                 <span class="match-category-count">{{ fightsForCategory(cat.id).length }} {{ 'draw.fightsCount' | t }}</span>
               </header>
 
@@ -245,7 +253,7 @@
                 </div>
 
                 @if (repechageRoundsForCategory(cat.id).length > 0) {
-                  <section class="pool-block">
+                  <section class="pool-block print-repechage-section">
                     <h4 class="round-title">{{ 'draw.repechageSection' | t }}</h4>
                     <div class="bracket-shell">
                       <div class="bracket" [attr.id]="connectorContainerId(cat.id, 'Repechage')" (scroll)="onBracketScrolled()">

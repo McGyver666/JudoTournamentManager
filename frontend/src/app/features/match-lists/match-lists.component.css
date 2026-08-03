@@ -8,6 +8,10 @@
   box-shadow: 0 18px 32px rgba(28, 34, 48, 0.08);
 }
 
+.match-lists-page--print {
+  min-height: auto;
+}
+
 .match-lists-header {
   display: flex;
   justify-content: space-between;
@@ -51,8 +55,10 @@
 }
 
 .match-category-header {margin-bottom:.7rem}
+.match-category-titles {display:flex;flex-direction:column;gap:.2rem}
 .match-category-name {margin:0;font-size:1rem;color:#1d2a3d}
 .match-category-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#728198}
+.print-tournament-name {font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5f7290}
 .pool-block {margin-top:.85rem;padding-top:.75rem;border-top:1px solid #e0e8f2}
 .ko-phase-block {margin-top:.85rem}
 .bracket {display:flex;gap:1.25rem;overflow-x:auto;padding-bottom:1rem;margin-bottom:1.25rem;position:relative;z-index:1}
@@ -98,4 +104,99 @@
   .match-lists-header {flex-direction:column;align-items:flex-start;gap:.65rem}
   .rounds-grid {grid-template-columns:1fr}
   .round {min-width:190px}
+}
+
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+
+  .match-lists-page {
+    background: #fff;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .match-lists-header {
+    display: none !important;
+  }
+
+  .all-matches-header-row {
+    display: none;
+  }
+
+  .all-categories-list {
+    gap: 0.45rem;
+  }
+
+  .match-category-card {
+    box-shadow: none;
+    break-inside: auto;
+    page-break-inside: auto;
+    padding: 0.55rem;
+  }
+
+  /* Each weight class starts on its own A4 page; the first one keeps page 1. */
+  .match-category-card--print {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .match-category-card--print:first-of-type {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  .match-category-card--print .match-category-header,
+  .match-category-card--print .standings-wrap,
+  .match-category-card--print .rounds-grid,
+  .match-category-card--print .pool-block,
+  .match-category-card--print .ko-phase-block,
+  .match-category-card--print .bracket-shell {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .print-repechage-section {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  .match-category-count {
+    font-size: 0.68rem;
+  }
+
+  .standings-table {
+    font-size: 0.7rem;
+  }
+
+  .standings-table :is(th, td) {
+    padding: 0.25rem 0.3rem;
+  }
+
+  /* Keep the bracket geometry identical to the on-screen layout so the
+     JS-measured SVG connectors stay valid when printing. Only relax the
+     scroll container so wide brackets are not clipped. */
+  .bracket {
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .fight {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .bracket-connectors path {
+    stroke: #7d8fa8;
+    stroke-width: 1.1;
+  }
 }

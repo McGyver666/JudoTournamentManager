@@ -39,6 +39,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/draw/draw.component').then((m) => m.DrawComponent),
   },
   {
+    path: 'draw/print-match-lists',
+    canActivate: [requireOperatorGuard],
+    loadComponent: () =>
+      import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
+  },
+  {
     path: 'tatami-assignment',
     canActivate: [requireOperatorGuard],
     loadComponent: () =>
