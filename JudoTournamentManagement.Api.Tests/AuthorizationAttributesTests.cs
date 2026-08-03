@@ -50,7 +50,6 @@ public sealed class AuthorizationAttributesTests
 
     [Theory]
     [InlineData(nameof(MatchController.AssignTatamiAsync))]
-    [InlineData(nameof(MatchController.CorrectResultAsync))]
     public void MatchController_AdminOnlyEndpoints_AreExplicitlyRestricted(string methodName)
     {
         var method = FindMethod(typeof(MatchController), methodName);

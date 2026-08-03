@@ -386,8 +386,8 @@ are served at `/i18n/{lang}.json`.
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/correct`
 - `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; enriched summaries of finished fights)
+- `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; correct scores and winner with a confirmation flow for affected downstream fights)
 
 - `GET /api/tournaments/{tournamentId}/medal-table`
 - `GET /api/tournaments/{tournamentId}/audit-log`
