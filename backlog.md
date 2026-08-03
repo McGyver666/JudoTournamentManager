@@ -217,12 +217,14 @@ Story points are rough relative estimates.
 - Confirm winner and end match.
 - Audit log entry for each result confirmation/change.
 
-### F-03 Result correction workflow (P1, 5 SP) — ✅ Done
+### F-03 Result correction workflow (P1, 5 SP) — ✅ Done (superseded by F-06 edit-result)
 **Story:** Als Admin möchte ich fehlerhafte Ergebnisse kontrolliert korrigieren, damit der Turnierbaum korrekt bleibt.  
 **Acceptance Criteria:**
 - Corrections require elevated role.
 - Previous and new values are both logged.
 - Bracket progression recalculated consistently.
+
+> **Note:** Der eigenständige `POST .../fights/{fightId}/correct`-Endpunkt (nur Sieger-Korrektur) wurde entfernt. Die Korrektur erfolgt jetzt über den umfassenderen Weg aus F-06: `POST .../completed-fights/{fightId}/edit-result` (Wertungen + Sieger, mit Bestätigungsflow für betroffene Folgekämpfe).
 
 ### F-04 Tatami assignment board (P1, 3 SP) — ✅ Done
 **Story:** Als Admin möchte ich Kämpfe automatisch und manuell Tatamis zuweisen können, damit der Ablauf effizient vorbereitet wird.  
@@ -476,7 +478,7 @@ Story points are rough relative estimates.
 ### I-01 Audit logging for critical actions (P0, 5 SP) — ✅ Done
 **Story:** Als Admin möchte ich kritische Änderungen nachvollziehen können, damit Streitfälle auflösbar sind.  
 **Acceptance Criteria:**
-- ✅ Log: login attempts (LoginFailed/LoginSucceeded), draw generation (DrawGenerated), result confirmations (ResultConfirmed), result corrections (ResultCorrected), user/role changes (UserCreated/UserActivated/UserDeactivated/PasswordReset), tournament backup/restore (TournamentBackedUp/TournamentRestored).
+- ✅ Log: login attempts (LoginFailed/LoginSucceeded), draw generation (DrawGenerated), result confirmations (ResultConfirmed), result edits (ResultEdited), user/role changes (UserCreated/UserActivated/UserDeactivated/PasswordReset), tournament backup/restore (TournamentBackedUp/TournamentRestored).
 - ✅ Log entries contain timestamp, user, action, entity reference (stored in AuditLogRecord).
 - ✅ Sensitive data not written to logs (passwords, tokens, PII not logged).
 
@@ -491,7 +493,7 @@ Story points are rough relative estimates.
 ### I-03 Basic test suite for critical flows (P0, 8 SP) — ✅ Done
 **Story:** Als Team möchte ich zentrale Abläufe abgesichert testen, damit Änderungen keine Turnierabbrüche verursachen.  
 **Acceptance Criteria:**
-- ✅ Automated tests for: registration (create/assign/auto-assign/delete via integration tests), draw generation (single elimination + repechage via 52 bracket tests), result progression (score/correction/confirmation via match service tests), role authorization (8 authorization integration tests).
+- ✅ Automated tests for: registration (create/assign/auto-assign/delete via integration tests), draw generation (single elimination + repechage via 52 bracket tests), result progression (score/edit/confirmation via match service tests), role authorization (8 authorization integration tests).
 - ✅ End-to-end smoke test for complete tournament flow (setup → clubs/athletes → registration with weight → draw generation → tatami assignment → fight start (triggers category lock) → score adjustment → result confirmation → rankings → medal table). TournamentFlowSmokeTests.FullTournamentFlow_SetupToRankings_CompletesSuccessfully.
 - ✅ Smoke test script for local startup: `.\start-local.ps1` + `.\test-draw-lock-flow.ps1`.
 - ✅ Total tests: 181 unit tests passing (Category=UnitTest), build clean (0 errors, 0 warnings).
@@ -622,7 +624,7 @@ This section tracks the verified current state.
 - Full setup/admin flow: tournaments, tatamis, categories, clubs, athletes.
 - Registration flow: register/unregister, CSV export, category assignment (auto + manual).
 - Draw and bracket flow: generation (single elimination, repechage, round-robin, round-robin-with-knockout), manual swap before lock.
-- Fight operations: tatami queue, assignment board, match control, result confirmation/correction.
+- Fight operations: tatami queue, assignment board, match control, result confirmation/editing.
 - Public and reporting flow: display screen, category rankings, medal table.
 - Realtime updates with SignalR (fight and category updates).
 - German-first UI with runtime i18n and English fallback.

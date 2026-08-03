@@ -122,16 +122,6 @@ public interface IMatchService
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Corrects the winner of an already completed fight. The previous winner is preserved in the audit log,
-    /// and downstream bracket progression is recalculated consistently (F-03).
-    /// </summary>
-    Task<MatchActionResult> CorrectResultAsync(
-        Guid fightId,
-        Guid newWinnerId,
-        string user,
-        CancellationToken cancellationToken);
-
-    /// <summary>
     /// Edits scores (Ippon/Waza-ari/Yuko/Shido) and winner of an already completed, non-group-stage fight.
     /// When downstream fights that are already started would be affected and <paramref name="confirmed"/> is false,
     /// returns <see cref="Contracts.EditResultStatus.ConfirmationRequired"/> without saving.

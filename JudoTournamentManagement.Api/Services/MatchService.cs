@@ -495,43 +495,6 @@ public sealed class MatchService : IMatchService
     }
 
     /// <inheritdoc />
-    public async Task<MatchActionResult> CorrectResultAsync(
-        Guid fightId,
-        Guid newWinnerId,
-        string user,
-        CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
-
-        if (fight.Status != Completed || fight.IsBye) return MatchActionResult.InvalidState;
-        if (newWinnerId != fight.WhiteAthleteId && newWinnerId != fight.BlueAthleteId)
-            return MatchActionResult.WinnerNotParticipant;
-
-        var previousWinnerId = fight.WinnerId;
-        if (previousWinnerId == newWinnerId) return MatchActionResult.Success;
-
-        fight.WinnerId = newWinnerId;
-        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
-
-        await RecalculateProgressionAsync(fight.CategoryId, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await _auditLog.LogAsync(
-            fight.TournamentId, user, "ResultCorrected", "Fight", fight.Id,
-            $"PreviousWinnerId={previousWinnerId}; NewWinnerId={newWinnerId}", cancellationToken);
-
-        _ = _hub.Clients.Group(fight.TournamentId.ToString())
-            .SendAsync("CategoryFightsUpdated",
-                new { tournamentId = fight.TournamentId, categoryId = fight.CategoryId },
-                CancellationToken.None);
-
-        _logger.LogInformation(
-            "Fight {FightId} corrected: {Previous} -> {New}.", fightId, previousWinnerId, newWinnerId);
-        return MatchActionResult.Success;
-    }
-
-    /// <inheritdoc />
     public async Task<EditFightResultResponse> EditResultAsync(
         Guid fightId,
         EditFightResultRequest request,

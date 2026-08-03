@@ -382,7 +382,6 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/correct`
 - `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; angereicherte Übersicht abgeschlossener Kämpfe)
 - `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; Wertungen und Sieger korrigieren mit Bestätigungsflow für betroffene Folgekämpfe)
 

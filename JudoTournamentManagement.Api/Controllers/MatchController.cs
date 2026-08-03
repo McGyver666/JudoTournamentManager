@@ -219,28 +219,6 @@ public sealed class MatchController : ControllerBase
         return MapResult(result);
     }
 
-    /// <summary>
-    /// Corrects the winner of an already completed fight. Requires the Admin role.
-    /// </summary>
-    [Authorize(Roles = "Admin")]
-    [HttpPost("correct")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CorrectResultAsync(
-        Guid tournamentId,
-        Guid fightId,
-        [FromBody] CorrectResultRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!await FightBelongsToTournamentAsync(tournamentId, fightId, cancellationToken)) return NotFound();
-
-        var result = await _matchService.CorrectResultAsync(fightId, request.NewWinnerId, CurrentUser(), cancellationToken);
-        return MapResult(result);
-    }
-
     private IActionResult MapResult(MatchActionResult result) => result switch
     {
         MatchActionResult.Success => NoContent(),
