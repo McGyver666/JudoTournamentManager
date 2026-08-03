@@ -250,6 +250,20 @@ Story points are rough relative estimates.
 
 **Implementation note:** Umgesetzt mit gemeinsamem Frontend-Zeitdienst, authentifiziertem `GET /api/time`, SignalR-Nachrichten mit Serverzeitstempel und serverseitigem `MatchClockEvaluator` fuer regelrelevante Timing-Entscheidungen.
 
+### F-06 Kampfübersicht abgeschlossener Kämpfe (P1, 3 SP) — ✅ Done
+**Story:** Als Turnierleitung möchte ich unter „Turnierleitung“ eine Kampfübersicht aller bereits abgeschlossenen Kämpfe sehen, damit ich den bisherigen Turnierverlauf mit allen gespeicherten Ergebnisdetails nachvollziehen kann.
+**Acceptance Criteria:**
+- Neuer Menüeintrag „Kampfübersicht“ im Bereich Turnierleitung (Operator/Admin).
+- Zeigt alle Kämpfe mit `status == Completed` an; Freilose (byes) werden ausgeschlossen.
+- Sortierung chronologisch nach Abschlusszeitpunkt (neueste zuerst); Filter nach Gewichtsklasse und Matte.
+- Kompakte Zeile je Kampf (Gewichtsklasse, Matte, Runde/Kampfnummer, Weiß:Akzent-Endstand, Dauer, Beendet-Zeitpunkt), Sieger hervorgehoben.
+- Aufklappbare Detailzeile mit allen gespeicherten Einzelwertungen (Ippon/Waza-ari/Yuko/Shido je Seite) und Zeitstempeln.
+- Namen (Athlet, Verein, Kategorie, Matte) werden serverseitig aufgelöst; keine technischen IDs in der Ansicht.
+- Statisches Laden mit manuellem Aktualisieren-Button (keine Live-Aktualisierung).
+- Unit-Tests decken Filterung (nur abgeschlossen, keine Freilose), Sieger-/Dauer-/Score-Auflösung, Sortierung und Turnier-Isolation ab.
+
+**Implementation note:** Neuer `GET /api/tournaments/{tournamentId}/completed-fights` liefert angereicherte `CompletedFightSummary`-DTOs über `CompletedFightsService`; Frontend-Route `/combat-overview` mit `CombatOverviewComponent`. Golden-Score-Flag wird nicht angezeigt, da es für abgeschlossene Kämpfe nicht persistiert wird.
+
 ## Epic G - Public Display & Results
 
 ### G-01 Public screen view (P0, 5 SP) — ✅ Done

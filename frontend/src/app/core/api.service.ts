@@ -15,6 +15,7 @@ import {
   CategoryPreset,
   CategoryPresetItemRequest,
   Club,
+  CompletedFightSummary,
   ConfirmResultRequest,
   CategoryGenerationApplyResponse,
   CategoryGenerationPreviewResponse,
@@ -276,6 +277,12 @@ export class ApiService {
   getFights(tournamentId: string, categoryId: string): Observable<Fight[]> {
     return this.http.get<Fight[]>(
       `api/tournaments/${tournamentId}/categories/${categoryId}/fights`);
+  }
+
+  /** Returns all completed (non-bye) fights of a tournament for the combat overview. */
+  getCompletedFights(tournamentId: string): Observable<CompletedFightSummary[]> {
+    return this.http.get<CompletedFightSummary[]>(
+      `api/tournaments/${tournamentId}/completed-fights`);
   }
 
   generateDraw(
