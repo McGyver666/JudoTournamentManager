@@ -196,7 +196,69 @@
   }
 
   .bracket-connectors path {
-    stroke: #7d8fa8;
+    stroke: #000;
     stroke-width: 1.1;
+  }
+
+  /* High-contrast black/white overrides for printing. Only colours are
+     changed here (no sizes/spacing) so the JS-measured bracket connector
+     geometry stays valid. */
+  .tournament-title,
+  .print-tournament-name,
+  .all-matches-title,
+  .match-category-name,
+  .match-category-count,
+  .round-title,
+  .round :is(h3, h4, h5),
+  .slot-name {
+    color: #000;
+  }
+
+  .match-category-card {
+    border-color: #000;
+    background: #fff;
+  }
+
+  .fight {
+    border-color: #000;
+    background: #fff;
+  }
+
+  .fight-no {
+    background: #000;
+    color: #fff;
+  }
+
+  .slot {
+    color: #000;
+    background: #fff;
+    border-bottom-color: #000;
+  }
+
+  .slot.white {
+    border-left-color: #999;
+  }
+
+  .slot.blue {
+    border-left-color: #000;
+    color: #000;
+  }
+
+  .slot.winner {
+    color: #000;
+    background: #fff;
+  }
+
+  .standings-table {
+    border-color: #000;
+  }
+
+  .standings-table :is(th, td) {
+    border-bottom-color: #000;
+  }
+
+  .standings-table th {
+    background: #000;
+    color: #fff;
   }
 }
