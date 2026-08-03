@@ -11,17 +11,21 @@ namespace JudoTournamentManagement.Api.Services;
 public sealed class BearerTokenAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IAuthService _authService;
+    private readonly IGuestShareService _guestShareService;
 
     /// <summary>Initializes a new handler instance.</summary>
     public BearerTokenAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IAuthService authService)
+        IAuthService authService,
+        IGuestShareService guestShareService)
         : base(options, logger, encoder)
     {
         ArgumentNullException.ThrowIfNull(authService);
+        ArgumentNullException.ThrowIfNull(guestShareService);
         _authService = authService;
+        _guestShareService = guestShareService;
     }
 
     /// <inheritdoc />
@@ -39,18 +43,37 @@ public sealed class BearerTokenAuthenticationHandler : AuthenticationHandler<Aut
         }
 
         var user = await _authService.ValidateTokenAsync(token, Context.RequestAborted);
-        if (user is null)
+        if (user is not null)
         {
-            return AuthenticateResult.Fail("Token ist ungültig oder abgelaufen.");
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            return Success(claims);
         }
 
-        var claims = new[]
+        var guestTournamentId = await _guestShareService.ValidateTokenAsync(token, Context.RequestAborted);
+        if (guestTournamentId is not null)
         {
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName),
-            new Claim(ClaimTypes.Role, user.Role)
-        };
+            var guestClaims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, $"guest:{guestTournamentId}"),
+                new Claim(ClaimTypes.Name, "guest"),
+                new Claim(ClaimTypes.Role, IGuestShareService.GuestRole),
+                new Claim(IGuestShareService.TournamentClaimType, guestTournamentId.Value.ToString())
+            };
 
+            return Success(guestClaims);
+        }
+
+        return AuthenticateResult.Fail("Token ist ungültig oder abgelaufen.");
+    }
+
+    private AuthenticateResult Success(Claim[] claims)
+    {
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, Scheme.Name);

@@ -5,6 +5,10 @@
         "npm --prefix ./frontend": true,
         "dotnet test": true,
         "npm --prefix frontend": true,
-        "dotnet build": true
+        "dotnet build": true,
+        "npx ng build": true,
+        "Push-Location frontend; npx ng build": true,
+        "Pop-Location": true,
+        "npm run build": true
     }
 }

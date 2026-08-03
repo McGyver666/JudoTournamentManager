@@ -1,0 +1,131 @@
+.weigh-panel {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 5;
+}
+
+.weigh-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 2.2fr) minmax(240px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.weigh-search-block,
+.weigh-input-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.weigh-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.filter-reset-wrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.athlete-list {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 0.2rem;
+  max-height: 13.4rem;
+  min-height: 13.4rem;
+  overflow-y: auto;
+}
+
+.athlete-list-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0.5rem 0.6rem;
+}
+
+.athlete-list-item:hover {
+  background: #edf3fb;
+}
+
+.athlete-list-item.active {
+  background: #dce9f9;
+  border: 1px solid #b8d1f2;
+}
+
+.no-matches {
+  padding: 0.5rem;
+  margin: 0;
+}
+
+.list-hint {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.selected-athlete {
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius);
+  background: #f7f9fc;
+  padding: 0.55rem 0.65rem;
+  min-height: 2.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.qr-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.success {
+  color: var(--c-success);
+}
+
+.weigh-actions {
+  margin-top: auto;
+}
+
+.weigh-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.1rem;
+  transform: translateX(-50%);
+  background: #1e7d4d;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  z-index: 50;
+}
+
+@media (max-width: 1000px) {
+  .weigh-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .weigh-filters {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+  }
+
+  .filter-reset-wrap {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .weigh-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .athlete-list {
+    max-height: 13.4rem;
+    min-height: 13.4rem;
+  }
+}

@@ -12,13 +12,15 @@ Bereits verfuegbar:
 - .NET-10-Backendloesung mit SQLite-Persistenz (EF Core)
 - lokales Startskript
 - Health-Endpunkt
-- APIs fuer Turniere, Tatamis, Kategorien, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
+- APIs fuer Turniere, Tatamis, Gewichtsklassen, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
 - Athleten-Dateiimport ueber DM4 und DMF (mit automatischer Formaterkennung)
-- Ablauf zur Kategoriezuordnung (automatisch und manuell)
-- unterstuetzte Kategoriegenerierung (Vorschau und Anwenden) mit zwei Strategien:
+- Ablauf zur Gewichtsklassenzuordnung (automatisch und manuell)
+- unterstuetzte Gewichtsklassengenerierung (Vorschau und Anwenden) mit zwei Strategien:
   - Standardklassen 2026 (Quelle: `altersklassen_2026.md`)
   - athletengesteuerte Klassen nach Zielzahl von Athleten je Klasse und maximaler Gewichtsdifferenz
 - Ablauf zur Tatami-Zuordnung (automatisch und manuell)
+- Kampfuebersicht abgeschlossener Kaempfe (Operator/Admin) mit Filtern nach Gewichtsklasse/Matte und aufklappbaren Wertungsdetails
+- Admin-Ergebniskorrektur in der Kampfuebersicht: Wertungen und Sieger inline bearbeiten, mit Warnung bei betroffenen Folgekämpfen und kaskadendem Reset
 - oeffentliche Anzeigeansicht mit Echtzeitaktualisierungen (SignalR)
 - serverautorisierte synchronisierte Kampf- und Osae-komi-Zeit in Bedien- und Anzeigeansichten
 - lokale Zehntelsekundenanzeige fuer laufende Schlusssekunden des Kampfes und aktive Osae-komi-Zeiten
@@ -380,10 +382,23 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/correct`
+- `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; angereicherte Übersicht abgeschlossener Kämpfe)
+- `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; Wertungen und Sieger korrigieren mit Bestätigungsflow für betroffene Folgekämpfe)
 
 - `GET /api/tournaments/{tournamentId}/medal-table`
 - `GET /api/tournaments/{tournamentId}/audit-log`
+
+- `GET /api/tournaments/{tournamentId}/public/athletes` (datenminimiert; Admin/Operator/Display/Gast)
+- `GET /api/tournaments/{tournamentId}/public/clubs`
+- `GET /api/tournaments/{tournamentId}/public/categories`
+- `GET /api/tournaments/{tournamentId}/public/tournament`
+- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/fights`
+- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/standings`
+- `GET /api/tournaments/{tournamentId}/guest-share` (Admin/Operator)
+- `POST /api/tournaments/{tournamentId}/guest-share/enable`
+- `POST /api/tournaments/{tournamentId}/guest-share/disable`
+- `POST /api/tournaments/{tournamentId}/guest-share/rotate`
+- `GET /api/tournaments/{tournamentId}/guest-share/qr` (SVG)
 
 - `POST /api/auth/bootstrap-admin`
 - `POST /api/auth/login`
@@ -409,6 +424,52 @@ Beispielanforderung fuer `POST /api/tournaments`:
   "organizer": "JC Essen"
 }
 ```
+
+## Gastzugriff (oeffentliche Wettkampflisten)
+
+Zuschauer im lokalen Netzwerk koennen die Wettkampflisten per QR-Code als
+Nur-Lese-Ansicht oeffnen — ohne Benutzerkonto und ohne die App-Navigation.
+
+Ablauf:
+- In der Turnieransicht oeffnet ein Administrator oder Operator das Panel
+  **Gaeste-Zugriff** und klickt auf **Freigeben**. Damit entsteht genau ein
+  Gast-Token pro Turnier; angezeigt werden ein QR-Code und ein teilbarer Link
+  (`/public/match-lists?tid=…&t=<token>`).
+- Das Auto-Aus-Preset steuert eine optionale Gueltigkeitsgrenze: **bis Mitternacht
+  heute** (Standard), **4h**, **8h** oder **kein Auto-Aus**.
+- **Rotieren** erzeugt ein neues Token und macht den vorherigen QR sofort
+  ungueltig. **Deaktivieren** schaltet die Freigabe aus, ohne das Token zu
+  verwerfen.
+- Gaeste erreichen ausschliesslich die oeffentlichen Nur-Lese-Wettkampflisten
+  dieses einen Turniers. Ein blosser authentifizierter Endpunkt verlangt weiterhin
+  eine Betreiberrolle; der Gastzugriff reicht damit nie ueber die Wettkampflisten
+  hinaus.
+
+Datensparsamkeit:
+- Die Public-Endpoints liefern nur reduzierte DTOs (Athleten = Id, Verein, Vor-/
+  Nachname; Vereine = Id, Name). Keine Lizenz-/Passnummer, kein Geburtsjahr, kein
+  Gewicht, kein Grad, keine Kontaktdaten. Die gesamte Wettkampflisten-Ansicht
+  (Display und Gast) nutzt dasselbe reduzierte Modell.
+
+TLS-Regel:
+- Auf einem lokalen/LAN-Host (localhost, private IP-Bereiche, einteilige oder
+  `.local`/`.lan`-Hostnamen) wird einfaches HTTP akzeptiert.
+- Auf einem nicht-lokalen/oeffentlichen Host werden Gast-Link und QR nur ueber
+  **HTTPS** ausgeliefert; ein Abruf ueber einfaches HTTP liefert `400 Bad Request`.
+  In Produktion terminiert nginx das TLS vor der App. Eine explizite Basis-URL
+  laesst sich ueber `GuestShare:PublicBaseUrl` konfigurieren.
+
+Realtime und Lebenszyklus:
+- Gaeste treten dem bestehenden reinen Broadcast-SignalR-Hub bei, aber nur der
+  Gruppe des eigenen Turniers und nur solange die Freigabe aktiv ist
+  (Soft-Disconnect: nach dem Deaktivieren werden keine neuen Verbindungen oder
+  Beitritte mehr akzeptiert; laufende Verbindungen laufen einfach aus).
+- Gast-Zugriffe werden nicht protokolliert; Freigeben, Deaktivieren und Rotieren
+  werden auditiert (`GuestShareEnabled`/`GuestShareDisabled`/`GuestShareRotated`)
+  — ohne das Token.
+- Backups enthalten das Gast-Token nie; nach einem Restore ist die Freigabe immer
+  deaktiviert (zum erneuten Teilen neu freigeben).
+- Die Public-Endpoints haben ein eigenes per-IP-Rate-Limit-Fenster.
 
 ## Lokalisierung
 

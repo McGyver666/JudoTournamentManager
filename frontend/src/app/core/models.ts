@@ -48,6 +48,7 @@ export interface Tournament {
   osaeKomiYukoSeconds: number;
   osaeKomiYukoEnabled: boolean;
   minimumRestBetweenFightsSeconds: number;
+  twoThirdPlacesInRoundRobin: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -63,6 +64,7 @@ export interface CreateTournamentRequest {
   osaeKomiYukoSeconds: number;
   osaeKomiYukoEnabled: boolean;
   minimumRestBetweenFightsSeconds: number;
+  twoThirdPlacesInRoundRobin: boolean;
 }
 
 export type UpdateTournamentRequest = CreateTournamentRequest;
@@ -207,6 +209,38 @@ export interface Athlete {
   lastFightEndedAtUtc: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
+}
+
+/**
+ * Privacy-reduced athlete projection served by the public/guest endpoints.
+ * Only the fields required to render the match lists ("Nachname, Vorname"
+ * plus club affiliation) are exposed — no birth year, license, weight or grade.
+ */
+export interface PublicAthlete {
+  id: string;
+  clubId: string;
+  firstName: string;
+  lastName: string;
+}
+
+/** Privacy-reduced club projection served by the public/guest endpoints. */
+export interface PublicClub {
+  id: string;
+  name: string;
+}
+
+/**
+ * State of a tournament's guest share link (anonymous read-only access to the
+ * match lists via QR code). Mirrors the backend <c>GuestShareResponse</c>.
+ */
+export interface GuestShareResponse {
+  tournamentId: string;
+  exists: boolean;
+  isEnabled: boolean;
+  isActive: boolean;
+  token: string | null;
+  expiresAtUtc: string | null;
+  publicUrl: string | null;
 }
 
 export interface CreateAthleteRequest {
@@ -356,6 +390,72 @@ export interface FightUpdatedMessage {
   serverNowUtc: string;
 }
 
+/** Enriched summary of a completed fight for the tournament-wide combat overview (Kampfübersicht). */
+export interface CompletedFightSummary {
+  fightId: string;
+  categoryId: string;
+  categoryName: string;
+  bracketType: FightBracketType;
+  round: number;
+  fightNumber: number;
+  poolNumber: number | null;
+  tatamiId: string | null;
+  tatamiName: string | null;
+  whiteAthleteName: string;
+  whiteClubName: string;
+  blueAthleteName: string;
+  blueClubName: string;
+  winnerSide: 'White' | 'Blue' | null;
+  winnerName: string;
+  whiteScore: number;
+  blueScore: number;
+  whitePenalties: number;
+  bluePenalties: number;
+  whiteIpponCount: number;
+  whiteWazaAriCount: number;
+  whiteYukoCount: number;
+  blueIpponCount: number;
+  blueWazaAriCount: number;
+  blueYukoCount: number;
+  whiteAthleteId: string | null;
+  blueAthleteId: string | null;
+  startedAtUtc: string | null;
+  completedAtUtc: string;
+  durationSeconds: number | null;
+}
+
+export interface EditFightResultRequest {
+  whiteIpponCount: number;
+  whiteWazaAriCount: number;
+  whiteYukoCount: number;
+  whitePenalties: number;
+  blueIpponCount: number;
+  blueWazaAriCount: number;
+  blueYukoCount: number;
+  bluePenalties: number;
+  winnerId: string;
+  confirmed: boolean;
+}
+
+export type EditResultStatus =
+  | 'Success'
+  | 'FightNotFound'
+  | 'InvalidState'
+  | 'WinnerNotParticipant'
+  | 'ConfirmationRequired';
+
+export interface AffectedFightSummary {
+  fightId: string;
+  categoryName: string;
+  round: number;
+  fightNumber: number;
+  status: string;
+}
+
+export interface EditFightResultResponse {
+  status: EditResultStatus;
+  affectedFights: AffectedFightSummary[] | null;
+}
 export interface ServerTimeResponse {
   serverTimeUtc: string;
 }
@@ -435,6 +535,46 @@ export interface MedalEntry {
   gold: number;
   silver: number;
   bronze: number;
+}
+
+export interface ClubScoringEntry {
+  rank: number;
+  isSharedRank: boolean;
+  clubId: string;
+  clubName: string;
+  firstPlaces: number;
+  secondPlaces: number;
+  thirdPlaces: number;
+  basePoints: number;
+  wins: number;
+  fights: number;
+  winRateRaw: number;
+  winRateDisplay: number;
+  scoreRaw: number;
+  scoreDisplay: number;
+}
+
+export interface AgeGroupClubScoringItem {
+  ageGroup: string;
+  status: 'Provisional' | 'Final';
+  completedFights: number;
+  plannedFights: number;
+  clubs: ClubScoringEntry[];
+}
+
+export interface AgeGroupClubScoringResponse {
+  tournamentId: string;
+  generatedAtUtc: string;
+  items: AgeGroupClubScoringItem[];
+}
+
+export interface GlobalClubScoringResponse {
+  tournamentId: string;
+  generatedAtUtc: string;
+  status: 'Provisional' | 'Final';
+  completedFights: number;
+  plannedFights: number;
+  clubs: ClubScoringEntry[];
 }
 
 export type UserRole = 'Admin' | 'Operator' | 'Display';

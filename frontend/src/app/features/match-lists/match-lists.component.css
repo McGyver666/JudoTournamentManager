@@ -1,0 +1,264 @@
+.match-lists-page {
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f6fb 58%, #eef3f9 100%);
+  color: var(--c-text);
+  min-height: 100vh;
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid #dbe3ef;
+  box-shadow: 0 18px 32px rgba(28, 34, 48, 0.08);
+}
+
+.match-lists-page--print {
+  min-height: auto;
+}
+
+.match-lists-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.1rem;
+}
+
+.tournament-title {
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  font-weight: 700;
+  margin: 0;
+  color: #123c70;
+}
+
+.match-lists-meta {display:flex;gap:.65rem;align-items:center}
+
+.info-hint {
+  color: #617186;
+  font-style: italic;
+  background: #f3f7fd;
+  border: 1px dashed #c7d4e6;
+  border-radius: 10px;
+  padding: .65rem .8rem;
+}
+
+.all-matches-section {padding-top:.25rem}
+:is(.all-matches-header-row,.match-category-header) {display:flex;align-items:center;justify-content:space-between;gap:.75rem}
+.all-matches-header-row {margin-bottom:.75rem}
+.all-matches-title {margin:0;font-size:1.1rem;letter-spacing:.02em;color:#123c70}
+
+:is(.all-categories-list,.fights-list) {display:flex;flex-direction:column}
+.fights-list {gap:.45rem}
+.all-categories-list {gap:1rem}
+
+.match-category-card {
+  background:#fff;
+  border:1px solid #d8e2ef;
+  border-radius:12px;
+  padding:.85rem;
+  box-shadow: 0 8px 18px rgba(22, 45, 77, 0.06);
+}
+
+.match-category-header {margin-bottom:.7rem}
+.match-category-titles {display:flex;flex-direction:column;gap:.2rem}
+.match-category-name {margin:0;font-size:1rem;color:#1d2a3d}
+.match-category-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#728198}
+.print-tournament-name {font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5f7290}
+.pool-block {margin-top:.85rem;padding-top:.75rem;border-top:1px solid #e0e8f2}
+.ko-phase-block {margin-top:.85rem}
+.bracket {display:flex;gap:1.25rem;overflow-x:auto;padding-bottom:1rem;margin-bottom:1.25rem;position:relative;z-index:1}
+.bracket-shell {position:relative;margin-bottom:1.1rem}
+.bracket-shell .bracket {margin-bottom:0}
+.bracket-connectors {position:absolute;top:0;left:0;pointer-events:none;z-index:-1}
+.bracket-connectors path {fill:none;stroke:#90a6c3;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:1}
+.round.progression-round {gap:0}
+.round.progression-round :is(h3,h4,h5) {margin-bottom:1rem}
+.round {min-width:220px;display:flex;flex-direction:column;gap:.85rem}
+:is(.round :is(h3,h4,h5),.round-title) {font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:#6b7d95}
+.round :is(h3,h4,h5) {margin:0}
+.round-title {margin:0 0 .45rem}
+.fight {border:1px solid #d5e1f0;border-radius:8px;background:#f8fbff;overflow:hidden}
+.fight-no {font-size:.7rem;padding:.25rem .5rem;background:#eef4fc;color:#5f7290}
+.slot {padding:.5rem .7rem;border-bottom:1px solid #e2eaf5;transition:background .15s}
+:is(.slot:last-child,.standings-table tr:last-child td) {border-bottom:none}
+.slot.white {border-left:5px solid #d7dee8;color:#1f2b3d}
+.slot.blue {border-left:5px solid var(--side-accent);color:var(--side-accent)}
+.slot.winner {font-weight:700;color:#1e7d4d;background:#effbf4}
+.rounds-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.7rem}
+:is(.round-title,.slot-name) {line-height:1.2}
+.slot-name {font-size:.84rem;font-weight:600}
+.slot.placeholder .slot-name {color:#728198;font-weight:500;opacity:.78}
+.slot-club {font-size:.72rem;color:#728198}
+.standings-wrap {margin-bottom:.8rem}
+
+.standings-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:.78rem;
+  background:#fff;
+  border:1px solid #d8e2ef;
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.standings-table :is(th,td) {padding:.35rem .45rem;border-bottom:1px solid #e1e8f3;text-align:left}
+.standings-table th {color:#5f7290;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;background:#eef4fc}
+
+@media (max-width:700px) {
+  .match-lists-page {padding: .9rem; border-radius: 10px;}
+  .match-lists-header {flex-direction:column;align-items:flex-start;gap:.65rem}
+  .rounds-grid {grid-template-columns:1fr}
+  .round {min-width:190px}
+}
+
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+
+  .match-lists-page {
+    background: #fff;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .match-lists-header {
+    display: none !important;
+  }
+
+  .all-matches-header-row {
+    display: none;
+  }
+
+  .all-categories-list {
+    gap: 0.45rem;
+  }
+
+  .match-category-card {
+    box-shadow: none;
+    break-inside: auto;
+    page-break-inside: auto;
+    padding: 0.55rem;
+  }
+
+  /* Each weight class starts on its own A4 page; the first one keeps page 1. */
+  .match-category-card--print {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .match-category-card--print:first-of-type {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  .match-category-card--print .match-category-header,
+  .match-category-card--print .standings-wrap,
+  .match-category-card--print .rounds-grid,
+  .match-category-card--print .pool-block,
+  .match-category-card--print .ko-phase-block,
+  .match-category-card--print .bracket-shell {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .print-repechage-section {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  .match-category-count {
+    font-size: 0.68rem;
+  }
+
+  .standings-table {
+    font-size: 0.7rem;
+  }
+
+  .standings-table :is(th, td) {
+    padding: 0.25rem 0.3rem;
+  }
+
+  /* Keep the bracket geometry identical to the on-screen layout so the
+     JS-measured SVG connectors stay valid when printing. Only relax the
+     scroll container so wide brackets are not clipped. */
+  .bracket {
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .fight {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .bracket-connectors path {
+    stroke: #000;
+    stroke-width: 1.1;
+  }
+
+  /* High-contrast black/white overrides for printing. Only colours are
+     changed here (no sizes/spacing) so the JS-measured bracket connector
+     geometry stays valid. */
+  .tournament-title,
+  .print-tournament-name,
+  .all-matches-title,
+  .match-category-name,
+  .match-category-count,
+  .round-title,
+  .round :is(h3, h4, h5),
+  .slot-name {
+    color: #000;
+  }
+
+  .match-category-card {
+    border-color: #000;
+    background: #fff;
+  }
+
+  .fight {
+    border-color: #000;
+    background: #fff;
+  }
+
+  .fight-no {
+    background: #000;
+    color: #fff;
+  }
+
+  .slot {
+    color: #000;
+    background: #fff;
+    border-bottom-color: #000;
+  }
+
+  .slot.white {
+    border-left-color: #999;
+  }
+
+  .slot.blue {
+    border-left-color: #000;
+    color: #000;
+  }
+
+  .slot.winner {
+    color: #000;
+    background: #fff;
+  }
+
+  .standings-table {
+    border-color: #000;
+  }
+
+  .standings-table :is(th, td) {
+    border-bottom-color: #000;
+  }
+
+  .standings-table th {
+    background: #000;
+    color: #fff;
+  }
+}

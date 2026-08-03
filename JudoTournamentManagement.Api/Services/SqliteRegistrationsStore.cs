@@ -402,7 +402,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             return "Kein Gewicht erfasst und keine offene Gewichtsklasse verfügbar.";
         }
 
-        return $"Kein passendes Kategorie für Jahrgang {athlete.BirthYear}, {athlete.Gender}, {weightKg} kg gefunden.";
+        return $"Keine passende Gewichtsklasse für Jahrgang {athlete.BirthYear}, {athlete.Gender}, {weightKg} kg gefunden.";
     }
 
     private static Registration MapToModel(RegistrationRecord record) =>

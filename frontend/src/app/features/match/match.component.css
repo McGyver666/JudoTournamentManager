@@ -42,7 +42,7 @@
   transform: translate(-50%, -50%);
   width: min(32rem, calc(100vw - 2rem));
   background: #fff;
-  border: 1px solid #d7dce1;
+  border: 1px solid var(--border-soft);
   border-radius: 18px;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
   padding: 1.25rem;
@@ -67,7 +67,7 @@
 
 .modal-next-fight__category {
   font-weight: 700;
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .modal-next-fight__athletes {
@@ -75,7 +75,7 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   align-items: center;
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .fight-athlete-meta {
@@ -100,7 +100,7 @@
   font-size: 0.74rem;
   font-weight: 600;
   color: #374151;
-  background: #f3f4f6;
+  background: var(--surface-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -110,7 +110,7 @@
 }
 
 .modal-next-fight__empty {
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .modal-actions {
@@ -126,7 +126,7 @@
 }
 
 .fight-card {
-  border: 1px solid #d7dce1;
+  border: 1px solid var(--border-soft);
   border-radius: 18px;
   background: #fff;
   padding: 1rem;
@@ -163,12 +163,11 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .badge-bracket,
-.badge-status,
-.badge-offline {
+.badge-status {
   border-radius: 999px;
   padding: 0.2rem 0.65rem;
   font-size: 0.75rem;
@@ -181,12 +180,12 @@
 }
 
 .badge-status {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--surface-muted);
+  color: var(--text-strong);
 }
 
 .fight-status {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -204,7 +203,7 @@
   border: 1px solid #d9dee5;
   border-radius: 16px;
   background: #ffffff;
-  color: #111827;
+  color: var(--text-strong);
   padding: 1rem;
   min-height: 100%;
 }
@@ -236,7 +235,7 @@
 }
 
 .athlete-card--white .athlete-card__side {
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .athlete-card--blue .athlete-card__side {
@@ -250,7 +249,7 @@
 .athlete-card__name {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .athlete-card--blue .athlete-card__club {
@@ -272,9 +271,9 @@
   min-height: 4.9rem;
   padding: 0.7rem 0.5rem;
   border-radius: 12px;
-  border: 1px solid #d8dee6;
+  border: 1px solid var(--border-muted);
   background: #f8fafc;
-  color: #4b5563;
+  color: var(--text-medium);
 }
 
 .athlete-score-counter span {
@@ -287,7 +286,7 @@
 .athlete-score-counter strong {
   font-size: 1.9rem;
   line-height: 1;
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .athlete-score-counter--ippon.athlete-score-counter--active {
@@ -301,7 +300,7 @@
 }
 
 .athlete-card--blue .athlete-score-counter {
-  border-color: color-mix(in srgb, var(--side-accent) 18%, #d8dee6);
+  border-color: color-mix(in srgb, var(--side-accent) 18%, var(--border-muted));
   color: var(--side-accent);
 }
 
@@ -316,7 +315,7 @@
   gap: 0.75rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #4b5563;
+  color: var(--text-medium);
 }
 
 .score-stack {
@@ -340,7 +339,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  color: #111827;
+  color: var(--text-strong);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -363,7 +362,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.4rem 0.6rem;
-  color: #4b5563;
+  color: var(--text-medium);
   font-size: 0.74rem;
   line-height: 1.35;
 }
@@ -380,7 +379,7 @@
 }
 
 .fight-context__category {
-  color: #111827;
+  color: var(--text-strong);
   font-weight: 700;
 }
 
@@ -396,7 +395,7 @@
   min-height: 58px;
   border-radius: 18px;
   background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
-  color: #111827;
+  color: var(--text-strong);
   font-size: 1.9rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -410,7 +409,7 @@
   min-width: 7.5rem;
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
-  background: #111827;
+  background: var(--text-strong);
   color: #fff;
   font-size: 1.5rem;
   font-weight: 800;
@@ -423,7 +422,7 @@
 
 .timer--golden {
   background: #f2c94c;
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .timer--paused {
@@ -439,7 +438,7 @@
 .osae-card {
   display: grid;
   gap: 0.65rem;
-  border: 1px solid #d8dee6;
+  border: 1px solid var(--border-muted);
   border-radius: 14px;
   padding: 0.85rem;
   background: #f8fafc;
@@ -450,13 +449,13 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  color: #111827;
+  color: var(--text-strong);
   font-weight: 700;
 }
 
 .osae-card__timer {
   font-variant-numeric: tabular-nums;
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .osae-card__controls {
@@ -466,7 +465,7 @@
 }
 
 .osae-card__note {
-  color: #4b5563;
+  color: var(--text-medium);
   font-size: 0.85rem;
 }
 
@@ -553,7 +552,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--text-muted);
   margin-bottom: 0;
 }
 
@@ -567,43 +566,12 @@
 
 .fight-athletes-compact {
   font-size: 0.92rem;
-  color: #111827;
+  color: var(--text-strong);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
 }
-
-.btn {
-  padding: 0.55rem 0.9rem;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 0.86rem;
-  font-weight: 700;
-  transition: transform 120ms ease, opacity 120ms ease, background-color 120ms ease, color 120ms ease, border-color 120ms ease;
-}
-
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn--primary { background: #1565c0; color: #fff; }
-.btn--secondary { background: #e5e7eb; color: #111827; }
-.btn--fight-start-stop { border-color: #000000; min-height: 96px; }
-.btn--full { width: 100%; }
-.btn--white { background: #f3f4f6; color: #111827; border-color: #4b5563; }
-.btn--blue { background: var(--side-accent-soft); color: var(--side-accent); border-color: var(--side-accent); }
-.btn--confirm { padding: 0.65rem 0.8rem; }
-.btn--tiny { padding: 0.34rem 0.55rem; border-radius: 10px; font-size: 0.72rem; }
-.btn--tiny.btn--positive { padding-left: 2rem; padding-right: 2rem; }
-.btn--positive { background: #f0fdf4; color: #166534; border-color: #3fb968; }
-.btn--negative { background: #fef2f2; color: #b91c1c; border-color: #df8383; }
 
 .error-banner {
   display: flex;
@@ -625,33 +593,8 @@
   color: inherit;
 }
 
-.badge-offline {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #f4c3c3;
-}
-
-.athlete--white { color: #111827; }
+.athlete--white { color: var(--text-strong); }
 .athlete--blue { color: var(--side-accent); }
-
-.shido-bubbles {
-  display: inline-flex;
-  gap: 0.25rem;
-  align-items: center;
-}
-
-.shido-bubble {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 999px;
-  border: 1.5px solid #9ca3af;
-  background: #f3f4f6;
-}
-
-.shido-bubble--active {
-  background: #f2c94c;
-  border-color: #d97706;
-}
 
 @media (max-width: 1100px) {
   .fight-grid {

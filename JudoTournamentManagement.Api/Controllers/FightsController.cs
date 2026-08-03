@@ -161,7 +161,7 @@ public sealed class FightsController : ControllerBase
             SwapResult.AthleteNotInBracket => Conflict(new ProblemDetails
             {
                 Title = "Athleten nicht in der Auslosung.",
-                Detail = "Einer oder beide Athleten sind nicht in der Auslosung dieser Kategorie vorhanden.",
+                Detail = "Einer oder beide Athleten sind nicht in der Auslosung dieser Gewichtsklasse vorhanden.",
                 Status = StatusCodes.Status409Conflict
             }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)

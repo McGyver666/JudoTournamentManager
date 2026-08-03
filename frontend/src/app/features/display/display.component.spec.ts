@@ -100,6 +100,17 @@ describe('DisplayComponent', () => {
           provide: ApiService,
           useValue: {
             getServerTime: () => of({ serverTimeUtc: new Date().toISOString() }),
+            getGuestShare: () =>
+              of({
+                tournamentId: 'tournament-1',
+                exists: false,
+                isEnabled: false,
+                isActive: false,
+                token: null,
+                expiresAtUtc: null,
+                publicUrl: null,
+              }),
+            getGuestShareQr: () => of(''),
             ...apiCalls,
           },
         },
@@ -223,7 +234,7 @@ describe('DisplayComponent', () => {
     fightUpdates.next(createFight({ status: 'Completed', completedAtUtc: new Date().toISOString() }));
 
     expect(apiCalls.getTatamiQueue).toHaveBeenCalledTimes(2);
-    expect(apiCalls.getCategories).toHaveBeenCalledTimes(2);
+    expect(apiCalls.getCategories).toHaveBeenCalledTimes(1);
     expect(apiCalls.getFights).toHaveBeenCalledTimes(0);
 
     fixture.destroy();
