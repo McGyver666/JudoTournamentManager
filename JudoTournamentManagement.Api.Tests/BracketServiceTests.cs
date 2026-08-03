@@ -269,6 +269,56 @@ public sealed class BracketServiceTests
         Assert.True(preFilled > 0, "Bye winners should propagate into R2 slots.");
     }
 
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Generate_DoubleElimination_ByeWinnerAdvancesWhileSiblingUndecided()
+    {
+        // 9 athletes → bracketSize 16: round 1 has one real fight and several byes,
+        // so a later fight combines a decided bye winner with a still-pending real fight.
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid, _) = await SeedAsync(ctx, 9);
+
+        var fights = await CreateService(ctx).GenerateAsync(
+            tid, cid, BracketFormat.DoubleElimination, CancellationToken.None);
+
+        var byId = fights.ToDictionary(f => f.Id);
+        var advancedWhileSiblingUndecided = false;
+
+        foreach (var fight in fights.Where(f => f.WhiteSourceFightId.HasValue || f.BlueSourceFightId.HasValue))
+        {
+            var whiteBye = fight.WhiteSourceFightId is { } ws
+                && fight.WhiteSourceOutcome == FightSlotSourceOutcome.Winner
+                && byId[ws].Status == FightStatus.Completed;
+            var blueBye = fight.BlueSourceFightId is { } bs
+                && fight.BlueSourceOutcome == FightSlotSourceOutcome.Winner
+                && byId[bs].Status == FightStatus.Completed;
+
+            if (whiteBye)
+            {
+                Assert.Equal(byId[fight.WhiteSourceFightId!.Value].WinnerId, fight.WhiteAthleteId);
+                if (!blueBye)
+                {
+                    advancedWhileSiblingUndecided = true;
+                }
+            }
+
+            if (blueBye)
+            {
+                Assert.Equal(byId[fight.BlueSourceFightId!.Value].WinnerId, fight.BlueAthleteId);
+                if (!whiteBye)
+                {
+                    advancedWhileSiblingUndecided = true;
+                }
+            }
+        }
+
+        Assert.True(
+            advancedWhileSiblingUndecided,
+            "A decided bye winner must advance into the next fight even while its sibling source is undecided.");
+    }
+
     // ─── Repechage ────────────────────────────────────────────────────────────
 
     [Fact]
