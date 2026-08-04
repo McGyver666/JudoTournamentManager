@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Eine Turnierverwaltungsanwendung fuer Judo-Veranstaltungen vor Ort. Sie ist fuer einen zuverlaessigen Betrieb ohne Internetzugang ausgelegt und verwendet Deutsch als primaere Produktsprache. Sie kombiniert offline-faehige ASP.NET-Core-Backenddienste, SQLite-Persistenz und ein Angular-Frontend fuer Turnierplanung, Kampfbetrieb, Meldungen und Echtzeit-Anzeigeablaeufe.
+Eine Turnierverwaltungsanwendung fuer Judo-Veranstaltungen vor Ort. Sie ist fuer einen zuverlaessigen Betrieb offline auf einem einzelnen Laptop oder im lokalen LAN ausgelegt, kann aber auch internet-gehostet hinter einem nginx-Reverse-Proxy betrieben werden, und verwendet Deutsch als primaere Produktsprache. Sie kombiniert offline-faehige ASP.NET-Core-Backenddienste, SQLite-Persistenz und ein Angular-Frontend fuer Turnierplanung, Kampfbetrieb, Meldungen und Echtzeit-Anzeigeablaeufe.
 
 ## Projektstatus
 
@@ -44,9 +44,10 @@ Bereits verfuegbar:
 ## Architektur
 
 ## Zielbild
-- **Offline-first**
-- **Ein Host-Laptop** als Standardmodus
+- **Offline-faehig** (keine harte Cloud-Abhaengigkeit zur Laufzeit)
+- **Ein Host-Laptop** als Standardmodus vor Ort
 - **Optionale LAN-Clients** im selben lokalen Netzwerk
+- **Auch internet-gehostet betreibbar** hinter einem nginx-Reverse-Proxy mit TLS (siehe `deploy/`)
 - **Deutschsprachige Benutzeroberflaeche**
 - **Von Beginn an lokalisierbar**
 
@@ -64,7 +65,7 @@ Bereits verfuegbar:
 - **Frontend:** SPA, die lokal durch den Host bereitgestellt wird
 - **Datenbank:** SQLite
 - **Echtzeitaktualisierungen:** SignalR/WebSockets
-- **Betriebsmodus:** Nur lokaler Rechner oder lokales LAN
+- **Betriebsmodus:** lokaler Rechner oder lokales LAN, oder internet-gehostet hinter einem nginx-Reverse-Proxy (siehe `deploy/`)
 
 ## Projektstruktur
 
@@ -73,11 +74,12 @@ JudoTournamentManagement.sln
 JudoTournamentManagement.Api/
 JudoTournamentManagement.Api.Tests/
 frontend/
-backlog.md
+deploy/
+docs/
+AGENTS.md
+CONTEXT.md
 start-local.ps1
 start-local.sh
-.github/
-  copilot-instructions.md
 ```
 
 ## Voraussetzungen
@@ -167,6 +169,19 @@ Nuetzliche Endpunkte:
 
 Bei einer aelteren lokalen Datenbank ergaenzt der Start fehlende Legacy-Spalten, die von aktuellen Funktionen benoetigt werden.
 Bei groesseren lokalen Schemaabweichungen die lokale Datenbank durch Loeschen von `JudoTournamentManagement.Api/App_Data/judo-tournament.db*` zuruecksetzen und anschliessend neu starten.
+
+## Produktivbetrieb (internet-gehostet)
+
+Fuer einen internet-erreichbaren Betrieb laeuft die App hinter einem nginx-Reverse-Proxy,
+der TLS (Let's Encrypt) terminiert und Anfragen an die API auf `127.0.0.1:5080` weiterleitet.
+Der oeffentliche Hostname wird zur Bereitstellungszeit gesetzt — die mitgelieferte
+nginx-Konfiguration verwendet einen Platzhalter `__SERVER_NAME__`, der bei der Installation
+ersetzt wird. Siehe `deploy/README.md` und `deploy/judo-tournament.nginx.conf` fuer systemd-Unit,
+nginx-Konfiguration und Certbot-Einrichtung.
+
+Anders als im Offline-/LAN-Modus ist dieser Modus oeffentlich erreichbar und verlaesst sich
+nicht auf ein vertrauenswuerdiges lokales Netzwerk — TLS erzwingen und Geheimnisse
+(z. B. `Security:AuthTokenHmacSecret`) ueber die Konfiguration einspeisen statt sie zu hartcodieren.
 
 ## Bootstrap des Administratorpassworts
 
@@ -485,18 +500,19 @@ Aktuelle Kultureinstellung des Backends:
 
 ## Entwicklungsprinzipien
 
-- Offline-first vor Cloud-first
+- Offline-faehig vor Cloud-abhaengig
 - einfache Architektur vor verteilter Architektur
 - deutschsprachige UX zuerst
 - lokalisierbare UI ab dem ersten Bildschirm
 - explizite Validierung fuer alle schreibenden Endpunkte
 - keine stille Fehlerunterdrueckung
-- Arbeit am `backlog.md` ausrichten
+- Arbeit in GitHub Issues verfolgen; Entscheidungen in `docs/adr/` und Domänenkontext in `CONTEXT.md` pflegen
 
 ## Sicherheit und Betriebsmodell
 
-- Keine verpflichtende Internetabhaengigkeit fuer die Turnierdurchfuehrung
-- Nur lokaler/LAN-Betrieb fuer das MVP
+- Keine verpflichtende Internetabhaengigkeit fuer die Turnierdurchfuehrung vor Ort
+- Unterstuetzt Offline-/LAN-Betrieb sowie eine internet-gehostete Bereitstellung hinter nginx (siehe `deploy/`)
+- Der internet-gehostete Modus ist oeffentlich erreichbar: TLS erzwingen und das Netzwerk als nicht vertrauenswuerdig behandeln (nicht auf die Trusted-LAN-Annahme verlassen)
 - Alle kuenftigen Funktionen fuer Authentifizierung, Audit-Logging und Sicherungen muessen dem Backlog folgen
 - Geheimnisse duerfen bei spaeteren externen Integrationen niemals hartcodiert sein
 - SignalR-Hub-Zugriff erfordert Authentifizierung; das Frontend uebergibt fuer den Echtzeitkanal ein Bearer-Token
@@ -507,10 +523,10 @@ Aktuelle Kultureinstellung des Backends:
 
 Dieser Arbeitsbereich ist fuer die kuenftige Verwendung von GitHub Copilot vorbereitet mit:
 - `README.md` als Projektkontext
-- `.github/copilot-instructions.md` als stets geltende Arbeitsbereichsanleitung
+- `AGENTS.md` als stets geltende Arbeitsbereichsanleitung
 
 Bei der weiteren Umsetzung mit Copilot:
-1. `README.md` lesen
-2. `backlog.md` lesen
-3. den naechstkleineren Backlog-Schnitt umsetzen
-4. `backlog.md` aktualisieren, wenn sich Umfang oder Umsetzungsstatus wesentlich aendern
+1. `AGENTS.md` und `CONTEXT.md` lesen
+2. ein offenes GitHub Issue auswaehlen (siehe `docs/agents/issue-tracker.md`)
+3. den naechstkleineren Ende-zu-Ende-Schnitt umsetzen
+4. schwer umkehrbare Entscheidungen als ADRs in `docs/adr/` festhalten und `CONTEXT.md` aktuell halten
