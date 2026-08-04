@@ -76,8 +76,9 @@ JudoTournamentManagement.Api/
 JudoTournamentManagement.Api.Tests/
 frontend/
 deploy/
+docs/
 AGENTS.md
-backlog.md
+CONTEXT.md
 start-local.ps1
 start-local.sh
 ```
@@ -504,7 +505,7 @@ Current backend culture setup:
 - localizable UI from the first screen
 - explicit validation on all write endpoints
 - no silent error swallowing
-- keep work aligned with `backlog.md`
+- track work in GitHub Issues; keep decisions in `docs/adr/` and domain context in `CONTEXT.md`
 
 ## Security and Operating Model
 
@@ -524,7 +525,7 @@ This workspace is initialized for future GitHub Copilot use with:
 - `AGENTS.md` for always-on workspace guidance
 
 When continuing implementation with Copilot:
-1. read `README.md`
-2. read `backlog.md`
-3. implement the next smallest backlog slice
-4. update `backlog.md` when scope or implementation status changes materially
+1. read `AGENTS.md` and `CONTEXT.md`
+2. pick an open GitHub Issue (see `docs/agents/issue-tracker.md`)
+3. implement the next smallest end-to-end slice
+4. record hard-to-reverse decisions as ADRs in `docs/adr/` and keep `CONTEXT.md` current
