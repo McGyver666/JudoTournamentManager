@@ -273,6 +273,7 @@
   "errors.licenseRequired": "Die Lizenznummer ist erforderlich.",
   "errors.licenseConfirmationRequired": "Die Lizenzbestätigung ist erforderlich.",
   "errors.delete": "Löschen fehlgeschlagen.",
+  "errors.clubHasAthletes": "Der Verein kann nicht gelöscht werden, solange ihm Athleten zugeordnet sind. Bitte Athleten zuerst entfernen oder einem anderen Verein zuordnen.",
   "errors.conflict": "Aktion nicht möglich (Konflikt).",
   "errors.minTwoAthletes": "Für eine Auslosung werden mindestens zwei Athleten benötigt.",
 
