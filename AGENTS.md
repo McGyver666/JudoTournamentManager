@@ -27,9 +27,9 @@
 ## Implementation Conventions
 - Keep visible product text German by default.
 - New UI and API-facing labels must be localization-ready.
-- Follow the MVP backlog in `backlog.md`.
+- Track work in GitHub Issues (see `docs/agents/issue-tracker.md`); read domain context in `CONTEXT.md` and decisions in `docs/adr/`.
 - Prefer small, end-to-end slices over speculative broad scaffolding.
-- Update `backlog.md` when implementation status changes materially.
+- Record hard-to-reverse decisions as ADRs in `docs/adr/`; keep `CONTEXT.md` current when domain terms or scope change.
 - Keep `README.md` (English) and `README.de.md` (German) current whenever setup, architecture, developer workflow, APIs, or operational behavior changes.
 - Keep both README versions consistent: synchronize their structure, commands, endpoints, technical facts, and bidirectional language links while preserving the language of each document.
 
@@ -43,7 +43,7 @@
 ## Current State Notes
 - Persistence runs on SQLite via EF Core with migrations (not in-memory).
 - Implemented areas include: tournaments, clubs, athletes, registrations, categories (+ presets), tatami management and queue, fights/brackets and results, authentication and roles, audit logging, guest share, and backup/restore.
-- See `backlog.md` for the authoritative, up-to-date status of remaining MVP work.
+- See GitHub Issues for open work; `CONTEXT.md` lists delivered capabilities and the domain glossary.
 
 ## Agent skills
 
