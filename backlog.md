@@ -1,4 +1,4 @@
-# Judo Tournament Management - MVP Backlog (Offline, On-Site)
+# Judo Tournament Management - MVP Backlog (Offline-Capable, On-Site)
 
 ## 1) Scope (Reworked)
 
@@ -6,9 +6,10 @@
 Build a practical, reliable **on-site tournament app** for judo events, comparable in spirit to TUMAG, focused only on MVP functionality.
 
 ## Operating Constraints
-- Must run **locally** without cloud dependency.
+- Must be **offline-capable**: no hard cloud dependency at runtime.
 - Must work on **one laptop** (single-device mode).
 - Should also support **multiple laptops in local LAN** (one host + clients), even with unstable/no internet.
+- May also be **deployed internet-hosted** behind an nginx reverse proxy with TLS (see `deploy/`); both models must stay supported.
 - Primary UI language is **German**.
 - Application must be **localizable** (i18n-ready for additional languages later).
 
@@ -22,7 +23,7 @@ Build a practical, reliable **on-site tournament app** for judo events, comparab
 
 ---
 
-## 2) Simple MVP Architecture (Offline-First)
+## 2) Simple MVP Architecture (Offline-Capable)
 
 ## Deployment Model
 - **Local Host Laptop** runs:
@@ -30,7 +31,8 @@ Build a practical, reliable **on-site tournament app** for judo events, comparab
   - Database
   - Frontend (served locally)
 - Optional **Client Laptops** connect over local network to host.
-- No mandatory internet connection.
+- No mandatory internet connection for on-site operation.
+- **Alternative internet-hosted deployment:** the same app runs on a server behind an nginx reverse proxy with Let's Encrypt TLS (see `deploy/`). This mode is internet-facing, so the trusted-LAN assumption no longer holds and the security posture must be evaluated accordingly.
 
 ## Suggested Simple Stack
 - **Backend:** .NET 10 Web API (modular monolith)
@@ -378,7 +380,7 @@ Story points are rough relative estimates.
 - ✅ `README.md` und `README.de.md` beschreiben Freigabe-Workflow, TLS-Regel (öffentlich ⇒ TLS), Datensparsamkeit und Auto-Aus.
 - ✅ Beide Versionen strukturell/inhaltlich konsistent inkl. Sprach-Querverweise.
 
-### G-05 Vereinswertung pro Altersklasse und global (P1, 13 SP) — 🔜 Geplant
+### G-05 Vereinswertung pro Altersklasse und global (P1, 13 SP) — 🟡 Weitgehend umgesetzt
 **Story:** Als Turnierleitung möchte ich zusätzlich zu Ranglisten und Medaillenspiegel eine transparente Vereinswertung sehen, damit Teamleistung je Altersklasse und turnierweit nachvollziehbar vergleichbar ist.
 
 **Fachliche Leitregeln (Grilling-Ergebnis):**
@@ -394,7 +396,7 @@ Story points are rough relative estimates.
 - Rangnummern bei Gleichstand im Wettbewerbsstil: 1, 2, 2, 4.
 - Athleten ohne Verein werden unter Sammelverein Ohne Verein geführt.
 
-#### G-05a Backend-Datenmodell und DTOs (P1, 3 SP)
+#### G-05a Backend-Datenmodell und DTOs (P1, 3 SP) — ✅ Umgesetzt
 **Story:** Als System möchte ich strukturierte DTOs für Altersklassen- und Globalwertung bereitstellen, damit die Frontend-Anzeige vollständig und nachvollziehbar gerendert werden kann.
 **Acceptance Criteria:**
 - Neue Antwortmodelle für Vereinswertung enthalten mindestens: Verein, Rang, Status (Vorläufig/Final), Basispunkte, Siege, Kämpfe, Siegquote, Endscore (raw + display), Podestzähler (1/2/3).
@@ -402,7 +404,9 @@ Story points are rough relative estimates.
 - Alle gemeldeten Vereine erscheinen in der Liste, auch ohne Kämpfe oder mit 0.00.
 - API bleibt lokalisierungsfreundlich: keine fest verdrahteten UI-Texte in DTO-Feldern.
 
-#### G-05b RankingService-Erweiterung (P1, 3 SP)
+**Status:** Umgesetzt mit `AgeGroupClubScoringResponse`, `GlobalClubScoringResponse` und `ClubScoringEntry` (inkl. Raw+Display-Werten sowie Podestzählern).
+
+#### G-05b RankingService-Erweiterung (P1, 3 SP) — ✅ Umgesetzt
 **Story:** Als System möchte ich Altersklassen- und Globalwertung aus den Turnierdaten berechnen, damit die Vereinsrangfolge jederzeit reproduzierbar ist.
 **Acceptance Criteria:**
 - Altersklassen-Siegquote nutzt nur Kämpfe der jeweiligen Altersklasse.
@@ -411,7 +415,9 @@ Story points are rough relative estimates.
 - Rechenlogik aktualisiert nach jedem beendeten Kampf (nicht nur nach Siegen).
 - Tie-break und Rangvergabe entsprechen exakt den Leitregeln inklusive geteilter Ränge.
 
-#### G-05c API-Endpunkte im Results-Bereich (P1, 2 SP)
+**Status:** Umgesetzt im `RankingService` (7/5/3-Punkte, Siegquote mit Nenner-0-Fallback, Raw-Ranking mit Toleranz `1e-9`, Wettbewerbsränge inkl. Gleichstand).
+
+#### G-05c API-Endpunkte im Results-Bereich (P1, 2 SP) — 🟡 Teilweise umgesetzt
 **Story:** Als Frontend möchte ich dedizierte Endpunkte für Vereinswertungen abrufen, damit die neue Ansicht unabhängig von Ranglisten/Medaillenspiegel geladen werden kann.
 **Acceptance Criteria:**
 - Neue autorisierte Endpunkte unter `api/tournaments/{id}` für:
@@ -422,7 +428,9 @@ Story points are rough relative estimates.
   - Altersklasse ist Final, sobald alle geplanten Kämpfe der Altersklasse beendet sind.
   - Global ist Final, sobald alle geplanten Kämpfe aller Altersklassen beendet sind.
 
-#### G-05d Frontend-Ergebnisseite: dritter Tab Vereinswertung (P1, 3 SP)
+**Status:** Umgesetzt sind `GET /api/tournaments/{id}/club-scoring/age-groups` (alle Altersklassen) und `GET /api/tournaments/{id}/club-scoring/global`. Noch offen ist ein dedizierter Endpoint für „eine Altersklasse“.
+
+#### G-05d Frontend-Ergebnisseite: dritter Tab Vereinswertung (P1, 3 SP) — ✅ Umgesetzt
 **Story:** Als Nutzer möchte ich im Ergebnisbereich einen dritten Tab Vereinswertung sehen, damit ich teambezogene Auswertungen direkt neben Ranglisten und Medaillenspiegel prüfen kann.
 **Acceptance Criteria:**
 - Results-Ansicht hat drei Tabs: Ranglisten, Medaillenspiegel, Vereinswertung.
@@ -434,14 +442,18 @@ Story points are rough relative estimates.
 - Darstellung der mittleren Rechentiefe pro Verein: Podestzähler 1/2/3, Basispunkte, Siege, Kämpfe, Siegquote, Endscore.
 - Deutsche Standardtexte mit i18n-Keys; englische Platzhalter ergänzen.
 
-#### G-05e Live-Aktualisierung und Konsistenz (P1, 1 SP)
+**Status:** Umgesetzt im Results-Tab `Vereinswertung` mit beiden Blöcken (pro Altersklasse + global), Statusbadge, Fortschritt und Tabellenfeldern inkl. i18n-Keys.
+
+#### G-05e Live-Aktualisierung und Konsistenz (P1, 1 SP) — ✅ Umgesetzt
 **Story:** Als Turnierleitung möchte ich, dass die Vereinswertung live den aktuellen Stand zeigt, damit die Anzeige jederzeit mit den Kampfergebnissen übereinstimmt.
 **Acceptance Criteria:**
 - Nach Abschluss eines Kampfes wird die Vereinswertung neu geladen oder per Event aktualisiert.
 - Vorläufig/Final-Status kippt automatisch bei Erreichen der Abschlussbedingungen.
 - Es wird keine manuelle Abschaltlogik für die Wertung benötigt.
 
-#### G-05f Tests (Unit + Integration + Frontend) (P1, 1 SP)
+**Status:** Umgesetzt über SignalR-Subscriptions (`fightUpdated`, `categoryFightsUpdated`, Reconnect) mit automatischem Reload der Vereinswertung.
+
+#### G-05f Tests (Unit + Integration + Frontend) (P1, 1 SP) — 🟡 Teilweise umgesetzt
 **Story:** Als Team möchten wir die Wertungslogik und Anzeige automatisiert absichern, damit Regeländerungen keine unbemerkten fachlichen Regressionen auslösen.
 **Acceptance Criteria:**
 - Unit-Tests für Berechnung:
@@ -452,6 +464,8 @@ Story points are rough relative estimates.
 - Integrationstests für Endpunkte: Datenform, Autorisierung, Statuslabel, 404/200-Verhalten.
 - Frontend-Tests für neuen Tab und Kernfelder der Tabellen.
 - Neue Tests sind mit `Category=UnitTest` markiert (Backend) und im bestehenden Frontend-Testlauf enthalten.
+
+**Status:** Backend-Unittests für Berechnung sind vorhanden (u.a. `RankingServiceTests`) und Controller-Tests für 404/200 ebenfalls. Noch offen: dedizierte Integrationstests inkl. Autorisierung für die neuen Endpunkte sowie Frontend-Tests für den neuen Vereinswertung-Tab.
 
 ---
 
@@ -502,9 +516,10 @@ Story points are rough relative estimates.
 
 ## Epic J - Security Hardening & Code Quality (Post-MVP)
 
-> Findings from the full security & code-quality review on 2026-07-02. Scope reflects the
-> offline-first LAN deployment model (trusted local network), so items are prioritized
-> proportionately rather than as a public-web-app checklist.
+> Findings from the full security & code-quality review on 2026-07-02. This scope originally
+> assumed an offline/LAN deployment model (trusted local network). The app is now also deployed
+> internet-hosted behind nginx (see `deploy/`), so for that mode the security posture must be
+> re-evaluated against a public-web-app checklist rather than the trusted-LAN assumption.
 
 ### J-01 Authenticate SignalR hub (P0, 2 SP) — ✅ Done
 **Story:** Als System möchte ich, dass nur authentifizierte Clients Echtzeit-Kampfupdates empfangen, damit Turnierdaten nicht ungeschützt verteilt werden.  
@@ -620,7 +635,7 @@ This section tracks the verified current state.
 - Frontend build: Angular output previously generated into `JudoTournamentManagement.Api/wwwroot`
 
 ### Delivered capabilities
-- Offline-first local deployment with SQLite persistence.
+- Offline-capable local deployment with SQLite persistence.
 - Full setup/admin flow: tournaments, tatamis, categories, clubs, athletes.
 - Registration flow: register/unregister, CSV export, category assignment (auto + manual).
 - Draw and bracket flow: generation (single elimination, repechage, round-robin, round-robin-with-knockout), manual swap before lock.

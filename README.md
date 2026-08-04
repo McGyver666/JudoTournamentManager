@@ -2,7 +2,7 @@
 
 [Deutsch](README.de.md)
 
-A tournament management application for on-site judo events, designed to run reliably without internet and with German as the primary user language. It combines offline-capable ASP.NET Core backend services, SQLite persistence, and an Angular frontend to support tournament planning, match operation, registration, and real-time display workflows.
+A tournament management application for on-site judo events, designed to run reliably offline on a single laptop or local LAN, deployable internet-hosted behind an nginx reverse proxy, and with German as the primary user language. It combines offline-capable ASP.NET Core backend services, SQLite persistence, and an Angular frontend to support tournament planning, match operation, registration, and real-time display workflows.
 
 ## Project Status
 
@@ -45,9 +45,10 @@ Already available:
 
 ## Target Vision
 
-- **Offline-first**
-- **Single host laptop** as default mode
+- **Offline-capable** (no hard cloud dependency at runtime)
+- **Single host laptop** as default on-site mode
 - **Optional LAN clients** on the same local network
+- **Also deployable internet-hosted** behind an nginx reverse proxy with TLS (see `deploy/`)
 - **German-first UI**
 - **Localizable from the start**
 
@@ -65,7 +66,7 @@ Already available:
 - **Frontend:** SPA served locally by the host machine
 - **Database:** SQLite
 - **Realtime updates:** SignalR/WebSockets
-- **Operation mode:** local machine or local LAN only
+- **Operation mode:** local machine or local LAN, or internet-hosted behind an nginx reverse proxy (see `deploy/`)
 
 ## Project Structure
 
@@ -74,11 +75,11 @@ JudoTournamentManagement.sln
 JudoTournamentManagement.Api/
 JudoTournamentManagement.Api.Tests/
 frontend/
+deploy/
+AGENTS.md
 backlog.md
 start-local.ps1
 start-local.sh
-.github/
-  copilot-instructions.md
 ```
 
 ## Prerequisites
@@ -168,6 +169,18 @@ Useful endpoints:
 
 If you run an older local database, startup will auto-add missing legacy columns needed by current features.
 For larger local schema drifts, reset the local database by deleting `JudoTournamentManagement.Api/App_Data/judo-tournament.db*` and restart the API.
+
+## Production Deployment (internet-hosted)
+
+For an internet-facing deployment, the app runs behind an nginx reverse proxy that
+terminates TLS (Let's Encrypt) and forwards to the API on `127.0.0.1:5080`. The public
+hostname is set at deploy time — the shipped nginx config uses a `__SERVER_NAME__`
+placeholder that is substituted during installation. See `deploy/README.md` and
+`deploy/judo-tournament.nginx.conf` for the systemd unit, nginx config, and Certbot setup.
+
+Unlike the offline/LAN mode, this mode is public-facing and does not rely on a trusted
+local network — keep TLS enforced and inject secrets (e.g. `Security:AuthTokenHmacSecret`)
+via configuration rather than hardcoding them.
 
 ## Admin-Passwort Bootstrap
 
@@ -485,7 +498,7 @@ Current backend culture setup:
 
 ## Development Principles
 
-- offline-first before cloud-first
+- offline-capable before cloud-dependent
 - simple architecture before distributed architecture
 - German-first UX
 - localizable UI from the first screen
@@ -495,8 +508,9 @@ Current backend culture setup:
 
 ## Security and Operating Model
 
-- no mandatory internet dependency for tournament execution
-- local/LAN deployment only for MVP
+- no mandatory internet dependency for on-site tournament execution
+- supports offline/LAN operation and an internet-hosted deployment behind nginx (see `deploy/`)
+- the internet-hosted mode is public-facing: enforce TLS and treat the network as untrusted (do not rely on the trusted-LAN assumption)
 - all future auth, audit logging, and backup features must follow the backlog
 - secrets must never be hardcoded if external integrations are added later
 - SignalR hub access requires authentication; frontend passes bearer token for realtime channel setup
@@ -507,7 +521,7 @@ Current backend culture setup:
 
 This workspace is initialized for future GitHub Copilot use with:
 - `README.md` for project context
-- `.github/copilot-instructions.md` for always-on workspace guidance
+- `AGENTS.md` for always-on workspace guidance
 
 When continuing implementation with Copilot:
 1. read `README.md`
