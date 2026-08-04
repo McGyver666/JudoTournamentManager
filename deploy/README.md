@@ -10,7 +10,7 @@ These files are intended for a Debian/Ubuntu container that will host the Judo T
 - The application is deployed under `/opt/judo-tournament`
 - The API will listen on `127.0.0.1:5080`
 - nginx terminates TLS and forwards requests to the app
-- The public hostname is `tournament.example.com`
+- The public hostname is provided at deploy time via the `DOMAIN` variable (the nginx config ships with a `__SERVER_NAME__` placeholder)
 
 ## 1) Install prerequisites
 ```bash
@@ -35,9 +35,12 @@ sudo rsync -a /path/to/your/repo/ /opt/judo-tournament/
 ```
 
 ## 4) Copy service and nginx config
+Set `DOMAIN` to your public hostname; it is substituted into the nginx config's `__SERVER_NAME__` placeholder.
 ```bash
+export DOMAIN=tournament.example.com
 sudo cp /opt/judo-tournament/deploy/judo-tournament.service /etc/systemd/system/judo-tournament.service
 sudo cp /opt/judo-tournament/deploy/judo-tournament.nginx.conf /etc/nginx/sites-available/judo-tournament
+sudo sed -i "s/__SERVER_NAME__/$DOMAIN/g" /etc/nginx/sites-available/judo-tournament
 sudo ln -s /etc/nginx/sites-available/judo-tournament /etc/nginx/sites-enabled/judo-tournament
 ```
 
@@ -52,7 +55,7 @@ EOF
 ## 6) Obtain TLS certificate
 Use the HTTP-only nginx config above for the first run. Certbot will then add the HTTPS server block and the certificate paths for you.
 ```bash
-sudo certbot --nginx -d janet.duckdns.org
+sudo certbot --nginx -d "$DOMAIN"
 ```
 
 ## 7) Enable and start services
