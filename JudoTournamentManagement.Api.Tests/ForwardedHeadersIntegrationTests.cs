@@ -13,6 +13,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace JudoTournamentManagement.Api.Tests;
 
+/// <summary>
+/// Integration tests for the <c>UseForwardedHeaders</c> middleware (issue #12): verifies that an
+/// <c>X-Forwarded-Proto: https</c> header from a trusted proxy yields an <c>https</c> request scheme
+/// (so the guest-share public URL is HTTPS), while a request without the header keeps the local
+/// <c>http</c> scheme.
+/// </summary>
 [Trait("Category", "UnitTest")]
 public sealed class ForwardedHeadersIntegrationTests : IClassFixture<ForwardedHeadersIntegrationTests.ApiFactory>
 {

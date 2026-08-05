@@ -179,6 +179,12 @@ hostname is set at deploy time — the shipped nginx config uses a `__SERVER_NAM
 placeholder that is substituted during installation. See `deploy/README.md` and
 `deploy/judo-tournament.nginx.conf` for the systemd unit, nginx config, and Certbot setup.
 
+The API trusts the `X-Forwarded-Proto` and `X-Forwarded-For` headers only from the
+loopback proxy (`127.0.0.1`), so `HttpContext.Request.Scheme` reflects the original HTTPS
+request and generated links (e.g. the guest-share public URL) use `https://`. In
+offline/LAN mode without a proxy, no forwarded headers are present and the scheme stays
+`http`.
+
 Unlike the offline/LAN mode, this mode is public-facing and does not rely on a trusted
 local network — keep TLS enforced and inject secrets (e.g. `Security:AuthTokenHmacSecret`)
 via configuration rather than hardcoding them.
