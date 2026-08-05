@@ -17,6 +17,12 @@ Prefer to review the script first? Download it, inspect it, then run it locally
 instead of piping into `sudo bash`. See `release-README.md` for the full
 `bootstrap_install.sh` reference and the inspect-before-run alternative.
 
+On a fresh install, `install_release.sh` also creates an initial `admin` account
+with a random password (>= 12 chars, mixed case + digits + special) and prints
+it once at the very end in a clearly marked block — save it, it is not shown
+again. Re-running on an existing install leaves the account untouched and prints
+nothing.
+
 The manual steps below remain available for source-based or customised installs.
 
 ## Files
