@@ -6,9 +6,14 @@ These files are intended for a Debian/Ubuntu container that will host the Judo T
 
 For a released build, the fastest path is the bootstrap script, which downloads
 the latest (or a pinned `--version vX.Y.Z`) GitHub release, verifies its
-`release.zip.sha256` checksum, and runs `install_release.sh` for you:
+`release.zip.sha256` checksum, and runs `install_release.sh` for you.
+
+On a fresh Debian/Ubuntu host, the bootstrap fetch itself needs the downloader
+prerequisites available first:
 
 ```bash
+sudo apt-get update
+sudo apt-get install -y curl ca-certificates unzip
 curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
   | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 ```

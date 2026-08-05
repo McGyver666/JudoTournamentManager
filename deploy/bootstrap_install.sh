@@ -5,8 +5,11 @@ set -euo pipefail
 #
 # Downloads a published GitHub release, verifies its integrity, and hands the
 # extracted package to deploy/install_release.sh — turning a fresh Debian/Ubuntu
-# container into a running instance with a single command:
+# container into a running instance with a single command once the fetch
+# prerequisites are present on the host:
 #
+#   sudo apt-get update
+#   sudo apt-get install -y curl ca-certificates unzip
 #   curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
 #     | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 #
@@ -19,7 +22,8 @@ CHECKSUM_NAME="release.zip.sha256"
 
 usage() {
   cat <<'EOF'
-Usage: curl -fsSL <raw-url>/deploy/bootstrap_install.sh | sudo bash -s -- --hostname NAME [options]
+Usage: sudo apt-get update && sudo apt-get install -y curl ca-certificates unzip && \
+       curl -fsSL <raw-url>/deploy/bootstrap_install.sh | sudo bash -s -- --hostname NAME [options]
 
 Download the latest (or a pinned) GitHub release and run the bundled installer.
 
@@ -115,7 +119,27 @@ else
 fi
 
 if ! release_json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$api_url")"; then
-  die "Could not query the GitHub API at ${api_url} (release not found, network error, or rate limit)."
+  if [[ -z "$VERSION" ]]; then
+    fallback_url="https://api.github.com/repos/${REPO}/releases"
+    if release_list_json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$fallback_url")"; then
+      if [[ "$release_list_json" == "[]" ]]; then
+        die "No published GitHub Releases are available for ${REPO}. The one-command installer requires a published GitHub Release with release.zip and release.zip.sha256 assets. Publish a release first or use the manual install path from the repository source."
+      fi
+
+      download_url="$(asset_url "$release_list_json" "$ASSET_NAME")"
+      checksum_url="$(asset_url "$release_list_json" "$CHECKSUM_NAME")"
+      if [[ -n "$download_url" && -n "$checksum_url" ]]; then
+        warn "GitHub's 'latest' endpoint is not available for this repository state; falling back to the newest release entry in the releases list."
+        release_json="$release_list_json"
+      else
+        die "No published GitHub Release assets are available for ${REPO}. The one-command installer requires release.zip and release.zip.sha256 in the release metadata. Publish a release with those assets or use the manual install path from the repository source."
+      fi
+    else
+      die "Could not query the GitHub API at ${fallback_url} (network error or rate limit)."
+    fi
+  else
+    die "Could not query the GitHub API at ${api_url} (release not found, network error, or rate limit)."
+  fi
 fi
 
 download_url="$(asset_url "$release_json" "$ASSET_NAME")"
