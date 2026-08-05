@@ -7,11 +7,14 @@ No .NET SDK or Node.js installation is required on the target host.
 ## One-command install (recommended)
 
 On a fresh, minimal Debian/Ubuntu LXC host you can go from "empty container" to
-"running app" with a single command. It installs its own prerequisites
-(`curl`, `unzip`, `ca-certificates`), downloads the latest release, verifies its
-checksum, and runs the bundled installer for you:
+"running app" with a single command once the bootstrap fetch prerequisites are
+available. The bootstrap script installs its own runtime prerequisites inside
+the download/verification phase, but the outer shell still needs a downloader
+available on the host (`curl` is not preinstalled on a minimal Debian 13 image):
 
 ```bash
+sudo apt-get update
+sudo apt-get install -y curl ca-certificates unzip
 curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
   | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 ```
