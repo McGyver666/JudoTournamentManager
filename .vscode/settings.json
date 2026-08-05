@@ -10,6 +10,8 @@
         "Push-Location frontend; npx ng build": true,
         "Pop-Location": true,
         "npm run build": true,
-        "gh issue view": true
+        "gh issue view": true,
+        "git fetch": true,
+        "git checkout": true
     }
 }

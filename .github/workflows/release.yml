@@ -78,6 +78,9 @@ jobs:
       - name: Create release archive
         run: zip -r release.zip release
 
+      - name: Create release checksum
+        run: sha256sum release.zip > release.zip.sha256
+
       - name: Upload release package
         uses: actions/upload-artifact@v4
         with:
@@ -85,10 +88,11 @@ jobs:
           path: |
             release/
             release.zip
+            release.zip.sha256
           if-no-files-found: error
 
       - name: Publish GitHub Release for version tags
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release.zip --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" release.zip release.zip.sha256 --title "$GITHUB_REF_NAME" --generate-notes
