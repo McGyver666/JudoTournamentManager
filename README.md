@@ -15,6 +15,16 @@ curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/ma
 
 It downloads the latest release (or a pinned `--version vX.Y.Z`), verifies its checksum, and runs the installer. For the `--version` flag, upgrades, and a security-conscious inspect-before-run alternative, see [`deploy/README.md`](deploy/README.md).
 
+On a **fresh** install the script creates an initial `admin` account with a random password and prints it once at the end, in a clearly marked block — save it, as it is not shown again. Re-running the installer (an upgrade) leaves the existing account untouched and prints nothing:
+
+```text
+============================================================
+Initial admin credentials (save these now):
+  Username: admin
+  Password: <generated>
+============================================================
+```
+
 ## Project Status
 
 This project is in active MVP implementation with most core tournament workflows already delivered.
@@ -201,6 +211,8 @@ local network — keep TLS enforced and inject secrets (e.g. `Security:AuthToken
 via configuration rather than hardcoding them.
 
 ## Admin-Passwort Bootstrap
+
+Server installs done with `deploy/install_release.sh` (or the one-command bootstrap) create the initial admin automatically and print the credentials once — see [Quick installation guide](#quick-installation-guide). The steps below are for local/manual runs.
 
 On first launch, the database is empty. Bootstrap an admin account using the `/api/auth/bootstrap-admin` endpoint:
 

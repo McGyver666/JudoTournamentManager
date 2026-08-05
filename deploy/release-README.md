@@ -54,6 +54,11 @@ sudo bash bootstrap_install.sh --hostname tournament.example.com --email admin@e
    secret, copies the app to `/opt/judo-tournament`, preserves any existing
    SQLite database, enables the systemd service, and requests a TLS certificate.
 
+   On a fresh install it also creates an initial `admin` account with a random
+   password and prints it once at the end, in a clearly marked block — save it,
+   as it is not shown again. Re-running (an upgrade) leaves the existing account
+   untouched and prints nothing.
+
    The hostname must already resolve publicly to the LXC host and ports 80/443
    must be reachable for Let's Encrypt. Use `--skip-certbot` for an HTTP-only
    installation or when TLS is terminated by another proxy.
