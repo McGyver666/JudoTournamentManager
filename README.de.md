@@ -15,6 +15,16 @@ curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/ma
 
 Der Befehl laedt das neueste Release herunter (oder ein per `--version vX.Y.Z` festgelegtes), prueft dessen Pruefsumme und fuehrt den Installer aus. Zum `--version`-Schalter, zu Upgrades und zu einer sicherheitsbewussten Alternative ("herunterladen, pruefen, dann ausfuehren") siehe [`deploy/README.md`](deploy/README.md).
 
+Bei einer **frischen** Installation legt das Skript ein initiales `admin`-Konto mit einem zufaelligen Passwort an und gibt es am Ende einmalig in einem klar markierten Block aus — bitte notieren, es wird nicht erneut angezeigt. Ein erneuter Lauf (Upgrade) laesst das bestehende Konto unveraendert und gibt nichts aus:
+
+```text
+============================================================
+Initial admin credentials (save these now):
+  Username: admin
+  Password: <generated>
+============================================================
+```
+
 ## Projektstatus
 
 Dieses Projekt befindet sich in aktiver MVP-Umsetzung; die meisten zentralen Turnierablaeufe sind bereits umgesetzt.
@@ -199,6 +209,8 @@ nicht auf ein vertrauenswuerdiges lokales Netzwerk — TLS erzwingen und Geheimn
 (z. B. `Security:AuthTokenHmacSecret`) ueber die Konfiguration einspeisen statt sie zu hartcodieren.
 
 ## Bootstrap des Administratorpassworts
+
+Server-Installationen mit `deploy/install_release.sh` (oder dem Ein-Befehl-Bootstrap) legen den initialen Admin automatisch an und geben die Zugangsdaten einmalig aus — siehe [Schnellinstallationsanleitung](#schnellinstallationsanleitung). Die folgenden Schritte gelten fuer lokale/manuelle Laeufe.
 
 Beim ersten Start ist die Datenbank leer. Mit dem Endpunkt `/api/auth/bootstrap-admin` ein Administratorkonto initialisieren:
 

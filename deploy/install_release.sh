@@ -84,7 +84,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y nginx openssl rsync
+apt-get install -y nginx openssl rsync curl
 if [[ "$RUN_CERTBOT" == true ]]; then
   apt-get install -y certbot python3-certbot-nginx
 fi
@@ -157,3 +157,101 @@ echo
 echo "Deployment complete."
 echo "Application health: http://$HOSTNAME/health"
 echo "Service status:     systemctl status judo-tournament --no-pager"
+
+# --- Initial admin account ---------------------------------------------------
+# On a fresh install the database has no users, so the operator has no way to
+# log in. Create the first admin via the app's own bootstrap endpoint (which
+# only succeeds when no user exists yet) and print the credentials once. On
+# upgrades the endpoint returns 409 and nothing is printed.
+
+# Picks one random character from the given alphabet using /dev/urandom so the
+# password draws on a cryptographically secure source rather than $RANDOM.
+pick_char() {
+  local alphabet="$1" len idx
+  len=${#alphabet}
+  idx=$(( $(od -An -N4 -tu4 /dev/urandom | tr -d ' ') % len ))
+  printf '%s' "${alphabet:idx:1}"
+}
+
+# Generates a 20-character password that satisfies the project password policy
+# (>= 12 chars, at least 3 of upper/lower/digit/special). One character of each
+# class is guaranteed, then the remainder is filled and the whole string is
+# shuffled. The special alphabet avoids characters that would need JSON or shell
+# escaping so the value can be embedded safely below.
+generate_admin_password() {
+  local upper='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  local lower='abcdefghijklmnopqrstuvwxyz'
+  local digit='0123456789'
+  local special='!@#%^*-_=+.'
+  local all="$upper$lower$digit$special"
+  local pw="" i
+  pw+="$(pick_char "$upper")"
+  pw+="$(pick_char "$lower")"
+  pw+="$(pick_char "$digit")"
+  pw+="$(pick_char "$special")"
+  for ((i = 0; i < 16; i++)); do
+    pw+="$(pick_char "$all")"
+  done
+  printf '%s' "$pw" | fold -w1 | shuf | tr -d '\n'
+}
+
+seed_initial_admin() {
+  local api="http://127.0.0.1:5080"
+
+  # Wait for the service to answer before attempting to seed. A fresh install
+  # compiles the app in ExecStartPre, so allow a generous window.
+  local ready=false i
+  for ((i = 0; i < 180; i++)); do
+    if curl -fsS -o /dev/null "$api/health" 2>/dev/null; then
+      ready=true
+      break
+    fi
+    sleep 1
+  done
+  if [[ "$ready" != true ]]; then
+    echo "WARNING: The application did not become healthy in time; the initial admin was not created." >&2
+    echo "         Once it is running, open the app and complete the first-run admin setup." >&2
+    return 0
+  fi
+
+  local password
+  password="$(generate_admin_password)"
+
+  # Pass the JSON body via a 0600 temp file so the password never appears in the
+  # process list (curl arguments are world-readable via /proc).
+  local body_file
+  body_file="$(mktemp)"
+  chmod 600 "$body_file"
+  printf '{"userName":"admin","password":"%s"}' "$password" > "$body_file"
+
+  local http_code
+  http_code="$(curl -sS -o /dev/null -w '%{http_code}' \
+    -X POST "$api/api/auth/bootstrap-admin" \
+    -H 'Content-Type: application/json' \
+    --data @"$body_file" 2>/dev/null || echo 000)"
+  rm -f "$body_file"
+
+  case "$http_code" in
+    201)
+      # Print to stdout as the final output so it is visible even when the
+      # installer is driven by the one-command bootstrap (curl | sudo bash).
+      echo
+      echo "============================================================"
+      echo "Initial admin credentials (save these now):"
+      echo "  Username: admin"
+      echo "  Password: $password"
+      echo "============================================================"
+      echo
+      ;;
+    409)
+      echo "An admin account already exists; existing credentials are unchanged."
+      ;;
+    *)
+      echo "WARNING: Could not create the initial admin (HTTP $http_code); no credentials were printed." >&2
+      echo "         Open the app and complete the first-run admin setup manually." >&2
+      ;;
+  esac
+}
+
+seed_initial_admin
+
