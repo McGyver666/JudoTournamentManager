@@ -176,7 +176,11 @@ Fuer einen internet-erreichbaren Betrieb laeuft die App hinter einem nginx-Rever
 der TLS (Let's Encrypt) terminiert und Anfragen an die API auf `127.0.0.1:5080` weiterleitet.
 Der oeffentliche Hostname wird zur Bereitstellungszeit gesetzt — die mitgelieferte
 nginx-Konfiguration verwendet einen Platzhalter `__SERVER_NAME__`, der bei der Installation
-ersetzt wird. Siehe `deploy/README.md` und `deploy/judo-tournament.nginx.conf` fuer systemd-Unit,
+ersetzt wird. Die API vertraut den Headern `X-Forwarded-Proto` und `X-Forwarded-For` nur
+vom Loopback-Proxy (`127.0.0.1`), sodass `HttpContext.Request.Scheme` das urspruengliche
+HTTPS widerspiegelt und generierte Links (z. B. die oeffentliche Gast-Freigabe-URL)
+`https://` verwenden. Im Offline-/LAN-Betrieb ohne Proxy sind keine Forwarded-Header
+vorhanden und das Schema bleibt `http`. Siehe `deploy/README.md` und `deploy/judo-tournament.nginx.conf` fuer systemd-Unit,
 nginx-Konfiguration und Certbot-Einrichtung.
 
 Anders als im Offline-/LAN-Modus ist dieser Modus oeffentlich erreichbar und verlaesst sich

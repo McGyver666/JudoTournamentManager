@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable, firstValueFrom } from 'rxjs';
@@ -569,8 +570,17 @@ export class ConfigComponent implements OnInit {
     }
     this.api.deleteClub(id, c.id).subscribe({
       next: () => this.clubs.update((list) => list.filter((x) => x.id !== c.id)),
-      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.delete'))),
+      error: (err) => this.handleDeleteClubError(err),
     });
+  }
+
+  private handleDeleteClubError(err: unknown): void {
+    if (err instanceof HttpErrorResponse && err.status === 409) {
+      this.error.set(this.i18n.translate('errors.clubHasAthletes'));
+      return;
+    }
+
+    this.error.set(extractApiError(err, this.i18n.translate('errors.delete')));
   }
 
   // --- Athletes ----------------------------------------------------------
