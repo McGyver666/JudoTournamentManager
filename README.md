@@ -4,6 +4,17 @@
 
 A tournament management application for on-site judo events, designed to run reliably offline on a single laptop or local LAN, deployable internet-hosted behind an nginx reverse proxy, and with German as the primary user language. It combines offline-capable ASP.NET Core backend services, SQLite persistence, and an Angular frontend to support tournament planning, match operation, registration, and real-time display workflows.
 
+## Quick installation guide
+
+On a fresh Debian/Ubuntu (Proxmox/LXC) host, install a released build with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
+  | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
+```
+
+It downloads the latest release (or a pinned `--version vX.Y.Z`), verifies its checksum, and runs the installer. For the `--version` flag, upgrades, and a security-conscious inspect-before-run alternative, see [`deploy/README.md`](deploy/README.md).
+
 ## Project Status
 
 This project is in active MVP implementation with most core tournament workflows already delivered.

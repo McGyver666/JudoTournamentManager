@@ -2,6 +2,23 @@
 
 These files are intended for a Debian/Ubuntu container that will host the Judo Tournament Management app.
 
+## One-command install
+
+For a released build, the fastest path is the bootstrap script, which downloads
+the latest (or a pinned `--version vX.Y.Z`) GitHub release, verifies its
+`release.zip.sha256` checksum, and runs `install_release.sh` for you:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
+  | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
+```
+
+Prefer to review the script first? Download it, inspect it, then run it locally
+instead of piping into `sudo bash`. See `release-README.md` for the full
+`bootstrap_install.sh` reference and the inspect-before-run alternative.
+
+The manual steps below remain available for source-based or customised installs.
+
 ## Files
 - `judo-tournament.service`: systemd unit for the ASP.NET Core API
 - `judo-tournament.nginx.conf`: nginx reverse proxy config for HTTP/HTTPS
