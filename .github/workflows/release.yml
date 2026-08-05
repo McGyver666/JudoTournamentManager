@@ -95,4 +95,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release.zip release.zip.sha256 --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          # A release may already exist (e.g. created via the GitHub UI, which
+          # also pushes the tag that triggers this workflow). Upload the assets
+          # to the existing release in that case; otherwise create a new one.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release.zip release.zip.sha256 --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release.zip release.zip.sha256 --title "$GITHUB_REF_NAME" --generate-notes
+          fi
