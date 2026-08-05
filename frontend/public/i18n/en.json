@@ -271,6 +271,7 @@
   "errors.licenseRequired": "License number is required.",
   "errors.licenseConfirmationRequired": "License confirmation is required.",
   "errors.delete": "Deleting failed.",
+  "errors.clubHasAthletes": "The club cannot be deleted while athletes are assigned to it. Please remove or reassign the athletes first.",
   "errors.conflict": "Action not possible (conflict).",
   "errors.minTwoAthletes": "At least two athletes are required for a draw.",
 

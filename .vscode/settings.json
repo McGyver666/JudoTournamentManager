@@ -9,6 +9,7 @@
         "npx ng build": true,
         "Push-Location frontend; npx ng build": true,
         "Pop-Location": true,
-        "npm run build": true
+        "npm run build": true,
+        "gh issue view": true
     }
 }

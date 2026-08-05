@@ -1,9 +1,11 @@
 using System.Globalization;
+using System.Net;
 using System.Security.Cryptography;
 using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
 using System.Reflection;
 using JudoTournamentManagement.Api.Data;
+using Microsoft.AspNetCore.HttpOverrides;
 using JudoTournamentManagement.Api.Hubs;
 using JudoTournamentManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication;
@@ -163,6 +165,14 @@ if (app.Environment.IsDevelopment())
     // Use built-in OpenAPI support (.NET 6+)
     app.MapOpenApi();
 }
+
+// Trust X-Forwarded-Proto and X-Forwarded-For from the loopback proxy (nginx on same host).
+// Restricted to 127.0.0.1 so the header cannot be injected from the internet.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    KnownProxies = { IPAddress.Loopback }
+});
 
 app.UseExceptionHandler();
 app.Use(async (context, next) =>
