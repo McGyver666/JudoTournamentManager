@@ -1,6 +1,10 @@
 {
-  "app.title": "Judo Tournament Management",
-  "app.subtitle": "Management of tournaments, matches and results",
+  "app.title": "SHIAI",
+  "app.subtitle": "Tournament Control",
+  "app.offlineReady": "Offline-ready · SQLite",
+  "app.tatamiCount": "{count} Tatami",
+  "app.footHost": "Host",
+  "app.footVersion": "Version",
   "nav.tournaments": "Tournaments",
   "nav.config": "Configuration",
   "nav.registrations": "Weigh-in",

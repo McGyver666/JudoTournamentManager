@@ -36,7 +36,7 @@ describe('AppComponent shell navigation', () => {
     };
   }
 
-  function configure(tatamis: Tatami[] = []): void {
+  function configure(tatamis: Tatami[] = [], opts: { tournaments?: number; categories?: number } = {}): void {
     auth = {
       isAuthenticated: signal(true),
       isAdmin: signal(false),
@@ -51,8 +51,21 @@ describe('AppComponent shell navigation', () => {
         { provide: AuthStateService, useValue: auth },
         { provide: I18nService, useValue: { translate: (key: string) => key, language: signal('de'), use: () => undefined } },
         { provide: ThemeService, useValue: { theme: signal('light'), toggle: () => undefined } },
-        { provide: TournamentContextService, useValue: { tournamentId: signal('tournament-1'), tournament: signal({ name: 'Testturnier' }) } },
-        { provide: ApiService, useValue: { getTatamis: () => of(tatamis) } },
+        {
+          provide: TournamentContextService,
+          useValue: {
+            tournamentId: signal('tournament-1'),
+            tournament: signal({ name: 'Testturnier', venue: 'Sporthalle Nord', date: '2026-08-06' }),
+          },
+        },
+        {
+          provide: ApiService,
+          useValue: {
+            getTatamis: () => of(tatamis),
+            getTournaments: () => of(new Array(opts.tournaments ?? 0).fill({})),
+            getCategories: () => of(new Array(opts.categories ?? 0).fill({})),
+          },
+        },
       ],
     });
   }
@@ -148,5 +161,58 @@ describe('AppComponent shell navigation', () => {
     expect(el.querySelector('a[href^="/display?"]')).not.toBeNull();
     expect(el.querySelector('a[href^="/display/match-lists"]')).not.toBeNull();
     expect(el.querySelectorAll('a[href^="/display/tatami/"]').length).toBe(2);
+  });
+
+  it('renders nav count badges from the loaded tournament, category and tatami counts', () => {
+    configure(
+      [
+        createTatami({ id: 't1', name: 'Matte 1', isActive: true, displayOrder: 1 }),
+        createTatami({ id: 't2', name: 'Matte 2', isActive: true, displayOrder: 2 }),
+      ],
+      { tournaments: 3, categories: 5 },
+    );
+    auth.canOperate.set(true);
+    const el = render().nativeElement as HTMLElement;
+
+    expect(el.querySelector('a[href="/tournaments"] .count')?.textContent?.trim()).toBe('3');
+    expect(el.querySelector('a[href="/category-assignment"] .count')?.textContent?.trim()).toBe('5');
+    expect(el.querySelector('a[href="/tatami-assignment"] .count')?.textContent?.trim()).toBe('2');
+  });
+
+  it('hides a nav count badge when its count is zero', () => {
+    configure([], { tournaments: 0, categories: 0 });
+    auth.canOperate.set(true);
+    const el = render().nativeElement as HTMLElement;
+
+    expect(el.querySelector('a[href="/tournaments"] .count')).toBeNull();
+    expect(el.querySelector('a[href="/category-assignment"] .count')).toBeNull();
+    expect(el.querySelector('a[href="/tatami-assignment"] .count')).toBeNull();
+  });
+
+  it('renders the sidebar footer with the host and app version', () => {
+    configure();
+    const el = render().nativeElement as HTMLElement;
+
+    const foot = el.querySelector('.shell-foot');
+    expect(foot).not.toBeNull();
+    const values = Array.from(el.querySelectorAll('.shell-foot .foot-val')).map((n) => n.textContent?.trim());
+    expect(values).toContain('0.9.0-mvp');
+  });
+
+  it('renders the offline-ready chip in the top bar', () => {
+    configure();
+    const el = render().nativeElement as HTMLElement;
+
+    expect(el.querySelector('.offline-chip')).not.toBeNull();
+  });
+
+  it('renders the tournament meta subline with venue, date and tatami count', () => {
+    configure([createTatami({ id: 't1', name: 'Matte 1', isActive: true, displayOrder: 1 })]);
+    const el = render().nativeElement as HTMLElement;
+
+    const segments = Array.from(el.querySelectorAll('.top-tourney-meta > span')).map((n) => n.textContent?.trim());
+    expect(segments.length).toBe(3);
+    expect(segments).toContain('Sporthalle Nord');
+    expect(segments).toContain('06.08.2026');
   });
 });

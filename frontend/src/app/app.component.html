@@ -38,6 +38,9 @@
             [title]="'nav.tournaments' | t">
             <span class="kanji" aria-hidden="true">大</span>
             <span class="lbl">{{ 'nav.tournaments' | t }}</span>
+            @if (tournamentCount(); as n) {
+              <span class="count">{{ n }}</span>
+            }
           </a>
 
           @if (canOperate()) {
@@ -53,6 +56,9 @@
             <a class="nav-item" routerLink="/category-assignment" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.categoryAssignment' | t">
               <span class="kanji" aria-hidden="true">階</span>
               <span class="lbl">{{ 'nav.categoryAssignment' | t }}</span>
+              @if (categoryCount(); as n) {
+                <span class="count">{{ n }}</span>
+              }
             </a>
             <a class="nav-item" routerLink="/draw" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.draw' | t">
               <span class="kanji" aria-hidden="true">組</span>
@@ -61,6 +67,9 @@
             <a class="nav-item" routerLink="/tatami-assignment" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.tatamiAssignment' | t">
               <span class="kanji" aria-hidden="true">畳</span>
               <span class="lbl">{{ 'nav.tatamiAssignment' | t }}</span>
+              @if (tatamiCount() > 0) {
+                <span class="count">{{ tatamiCount() }}</span>
+              }
             </a>
             <a class="nav-item" routerLink="/combat-overview" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.combatOverview' | t">
               <span class="kanji" aria-hidden="true">表</span>
@@ -141,6 +150,17 @@
           </a>
         }
       </nav>
+
+      <div class="shell-foot">
+        <span class="foot-row">
+          <span class="foot-key">{{ 'app.footHost' | t }}</span>
+          <span class="foot-val">{{ appHost }}</span>
+        </span>
+        <span class="foot-row">
+          <span class="foot-key">{{ 'app.footVersion' | t }}</span>
+          <span class="foot-val">{{ appVersion }}</span>
+        </span>
+      </div>
     </aside>
 
     <header class="shell-top">
@@ -156,10 +176,28 @@
       </button>
 
       @if (context.tournament(); as t) {
-        <span class="top-tourney" title="{{ 'tournaments.selected' | t }}">{{ t.name }}</span>
+        <div class="top-tourney" title="{{ 'tournaments.selected' | t }}">
+          <span class="top-tourney-name">{{ t.name }}</span>
+          <span class="top-tourney-meta">
+            @if (t.venue) {
+              <span>{{ t.venue }}</span>
+            }
+            @if (t.date) {
+              <span>{{ t.date | date: 'dd.MM.yyyy' }}</span>
+            }
+            @if (tatamiCount() > 0) {
+              <span>{{ 'app.tatamiCount' | t: { count: tatamiCount() } }}</span>
+            }
+          </span>
+        </div>
       }
 
       <span class="top-spacer"></span>
+
+      <span class="offline-chip" [title]="'app.offlineReady' | t">
+        <span class="offline-dot" aria-hidden="true"></span>
+        <span class="offline-chip-lbl">{{ 'app.offlineReady' | t }}</span>
+      </span>
 
       @if (currentUser(); as u) {
         <span class="top-user">

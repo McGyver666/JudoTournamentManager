@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/translate.pipe';
@@ -7,6 +8,7 @@ import { ThemeService } from './core/theme.service';
 import { TournamentContextService } from './core/tournament-context.service';
 import { AuthStateService } from './core/auth-state.service';
 import { ApiService } from './core/api.service';
+import { APP_VERSION } from './core/app-info';
 import { Tatami } from './core/models';
 
 /**
@@ -17,7 +19,7 @@ import { Tatami } from './core/models';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, DatePipe],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -38,6 +40,13 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly displayTatamis = signal<Tatami[]>([]);
   protected readonly activeTatamis = computed(() =>
     this.displayTatamis().filter((tatami) => tatami.isActive));
+  /** Sidebar footer + nav-badge metadata (shell parity with the design mockup). */
+  protected readonly appVersion = APP_VERSION;
+  protected readonly appHost = typeof window !== 'undefined' ? window.location.host : '';
+  /** Live nav-item count badges; null hides the badge (also offline-safe on error). */
+  protected readonly tournamentCount = signal<number | null>(null);
+  protected readonly categoryCount = signal<number | null>(null);
+  protected readonly tatamiCount = computed(() => this.displayTatamis().length);
   /** Expandable per-Tatami "Anzeigetafel" (display) section in the sidebar. */
   protected readonly displayMenuOpen = signal(false);
   /** Expandable per-Tatami "Mattenrichter" (match) section in the sidebar. */
@@ -61,6 +70,39 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     const sub = this.loadTatamis(tournamentId);
+
+    onCleanup(() => sub.unsubscribe());
+  });
+
+  /** Loads the tournament-count badge whenever the user is authenticated. */
+  private readonly loadTournamentCountEffect = effect((onCleanup) => {
+    if (!this.isAuthenticated()) {
+      this.tournamentCount.set(null);
+      return;
+    }
+
+    const sub = this.api.getTournaments().subscribe({
+      next: (tournaments) => this.tournamentCount.set(tournaments.length),
+      error: () => this.tournamentCount.set(null),
+    });
+
+    onCleanup(() => sub.unsubscribe());
+  });
+
+  /** Loads the category-count badge for the active tournament. */
+  private readonly loadCategoryCountEffect = effect((onCleanup) => {
+    const tournamentId = this.context.tournamentId();
+    const authenticated = this.isAuthenticated();
+
+    if (!authenticated || !tournamentId) {
+      this.categoryCount.set(null);
+      return;
+    }
+
+    const sub = this.api.getCategories(tournamentId).subscribe({
+      next: (categories) => this.categoryCount.set(categories.length),
+      error: () => this.categoryCount.set(null),
+    });
 
     onCleanup(() => sub.unsubscribe());
   });

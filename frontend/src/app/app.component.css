@@ -83,8 +83,8 @@
 .brand-title {
   font-family: var(--ff-disp);
   font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0.06em;
+  font-size: 1.05rem;
+  letter-spacing: 0.16em;
   color: var(--paper);
   white-space: nowrap;
   overflow: hidden;
@@ -92,8 +92,8 @@
 }
 
 .brand-sub {
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
+  font-size: 0.66rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--tatami);
   white-space: nowrap;
@@ -203,6 +203,26 @@
   color: var(--aka-bright);
 }
 
+/* mono count badge, pushed to the trailing edge */
+.nav-item .count {
+  margin-left: auto;
+  flex: none;
+  min-width: 1.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--txt-dim);
+  font-family: var(--ff-mono, monospace);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.nav-item.active .count {
+  background: color-mix(in srgb, var(--aka) 20%, transparent);
+  color: var(--paper);
+}
+
 .nav-item.active::before {
   content: '';
   position: absolute;
@@ -264,13 +284,47 @@
   color: var(--paper);
 }
 
+/* ---------- Sidebar footer (host / version) ---------- */
+.shell-foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--c-border);
+  font-family: var(--ff-mono, monospace);
+  font-size: 0.64rem;
+  color: var(--txt-faint);
+}
+
+.foot-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.foot-key {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.foot-val {
+  color: var(--txt-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ---------- Kanji rail (desktop collapsed) ---------- */
 @media (min-width: 861px) {
   .app-shell--collapsed .brand-text,
   .app-shell--collapsed .nav-label,
   .app-shell--collapsed .nav-item .lbl,
+  .app-shell--collapsed .nav-item .count,
   .app-shell--collapsed .nav-chevron,
-  .app-shell--collapsed .nav-subitems {
+  .app-shell--collapsed .nav-subitems,
+  .app-shell--collapsed .shell-foot {
     display: none;
   }
 
@@ -329,18 +383,66 @@
 }
 
 .top-tourney {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.2;
+  min-width: 0;
+  max-width: 42vw;
+}
+
+.top-tourney-name {
   font-family: var(--ff-disp);
   font-weight: 700;
   font-size: 1rem;
   color: var(--paper);
-  max-width: 40vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.top-tourney-meta {
+  display: flex;
+  flex-wrap: nowrap;
+  font-size: 0.7rem;
+  color: var(--txt-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-tourney-meta span + span::before {
+  content: '·';
+  margin: 0 0.35rem;
+  color: var(--txt-faint);
+}
+
 .top-spacer {
   flex: 1;
+}
+
+/* offline-first reassurance chip */
+.offline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--matcha);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.offline-dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--matcha);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--matcha) 22%, transparent);
 }
 
 .top-user {
@@ -487,5 +589,10 @@
 
   .top-tourney {
     max-width: 45vw;
+  }
+
+  /* Top bar is crowded on narrow screens; drop the reassurance chip. */
+  .offline-chip {
+    display: none;
   }
 }
