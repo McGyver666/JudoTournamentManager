@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } fro
 import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/translate.pipe';
 import { I18nService, AppLanguage } from './core/i18n.service';
+import { ThemeService } from './core/theme.service';
 import { TournamentContextService } from './core/tournament-context.service';
 import { AuthStateService } from './core/auth-state.service';
 import { ApiService } from './core/api.service';
@@ -22,6 +23,7 @@ import { Tatami } from './core/models';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly i18n = inject(I18nService);
+  private readonly themeService = inject(ThemeService);
   private readonly auth = inject(AuthStateService);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
@@ -29,6 +31,7 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly context = inject(TournamentContextService);
 
   protected readonly language = this.i18n.language;
+  protected readonly theme = this.themeService.theme;
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly canOperate = this.auth.canOperate;
@@ -72,6 +75,10 @@ export class AppComponent implements OnInit, OnDestroy {
   protected switchLanguage(event: Event): void {
     const value = (event.target as HTMLSelectElement).value as AppLanguage;
     this.i18n.use(value);
+  }
+
+  protected toggleTheme(): void {
+    this.themeService.toggle();
   }
 
   protected toggleDisplayMenu(): void {

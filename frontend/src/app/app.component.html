@@ -112,6 +112,15 @@
           <option value="en">{{ 'lang.en' | t }}</option>
         </select>
       </label>
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="toggleTheme()"
+        [attr.aria-label]="'theme.toggle' | t"
+        [attr.aria-pressed]="theme() === 'dark'"
+        [title]="'theme.toggle' | t">
+        <span aria-hidden="true">{{ theme() === 'dark' ? '明' : '暗' }}</span>
+      </button>
     </div>
   </header>
 }

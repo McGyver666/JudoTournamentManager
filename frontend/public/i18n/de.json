@@ -12,6 +12,9 @@
   "lang.label": "Sprache",
   "lang.de": "Deutsch",
   "lang.en": "Englisch",
+  "theme.toggle": "Design wechseln (hell/dunkel)",
+  "theme.light": "Helles Design",
+  "theme.dark": "Dunkles Design",
 
   "common.create": "Anlegen",
   "common.save": "Speichern",
