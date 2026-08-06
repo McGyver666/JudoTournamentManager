@@ -1,27 +1,167 @@
 /* Global application styles for the Judo Tournament Management frontend. */
+
+/* ============================================================
+   SHIAI design system — self-hosted OFL fonts (no CDN: offline + GDPR).
+   Latin/Latin-ext subsets cover German UI text; a small kanji subset
+   covers the decorative glyphs used in the shell. See public/fonts/OFL.txt.
+   ============================================================ */
+
+/* --- Shippori Mincho B1 (display) --- */
+@font-face { font-family: "Shippori Mincho B1"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/shippori-700.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Shippori Mincho B1"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/shippori-700-ext.woff2") format("woff2"); unicode-range: U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Shippori Mincho B1"; font-style: normal; font-weight: 800; font-display: swap; src: url("/fonts/shippori-800.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Shippori Mincho B1"; font-style: normal; font-weight: 800; font-display: swap; src: url("/fonts/shippori-800-ext.woff2") format("woff2"); unicode-range: U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+/* decorative kanji (aria-hidden in the shell); one weight covers the range */
+@font-face { font-family: "Shippori Mincho B1"; font-style: normal; font-weight: 400 900; font-display: swap; src: url("/fonts/shippori-kanji.woff2") format("woff2"); unicode-range: U+4E2D,U+4EBA,U+5408,U+5927,U+5BFE,U+660E,U+6642,U+6697,U+6982,U+7573,U+7D44,U+7D50,U+884C,U+8A2D,U+8A66,U+9032,U+9053,U+9078,U+968E; }
+
+/* --- Zen Kaku Gothic New (UI body) --- */
+@font-face { font-family: "Zen Kaku Gothic New"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/zenkaku-400.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Zen Kaku Gothic New"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/zenkaku-400-ext.woff2") format("woff2"); unicode-range: U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Zen Kaku Gothic New"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/zenkaku-500.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Zen Kaku Gothic New"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/zenkaku-500-ext.woff2") format("woff2"); unicode-range: U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Zen Kaku Gothic New"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/zenkaku-700.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Zen Kaku Gothic New"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/zenkaku-700-ext.woff2") format("woff2"); unicode-range: U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Zen Kaku Gothic New"; font-style: normal; font-weight: 400 900; font-display: swap; src: url("/fonts/zenkaku-kanji.woff2") format("woff2"); unicode-range: U+4E2D,U+4EBA,U+5408,U+5927,U+5BFE,U+660E,U+6642,U+6697,U+6982,U+7573,U+7D44,U+7D50,U+884C,U+8A2D,U+8A66,U+9032,U+9053,U+9078,U+968E; }
+
+/* --- Kode Mono (mono / numerals) --- */
+@font-face { font-family: "Kode Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/kodemono-400.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Kode Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/kodemono-500.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Kode Mono"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/kodemono-700.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+
+/* ============================================================
+   Design tokens — SHIAI dojo palette.
+   LIGHT is the default (source of truth on :root); dark overrides below.
+   Legacy --c- and neutral tokens are redefined as ALIASES onto the dojo
+   tokens so the whole app reskins with zero per-component edits. The
+   aliases are a temporary bridge and are retired gradually (expand step
+   of expand–contract; do not delete them here).
+   ============================================================ */
 :root {
-  --c-bg: #f4f5f7;
-  --c-surface: #ffffff;
-  --c-border: #d9dce1;
-  --c-primary: #1f5fae;
-  --c-primary-dark: #174a87;
-  --c-text: #1c2230;
-  --c-muted: #5b6473;
-  --c-danger: #b3261e;
-  --c-success: #1e7d4d;
-  --c-warn: #b8860b;
+  color-scheme: light;
+
+  /* ink field / surface tiers (washi papers; brightest = highest number) */
+  --sumi: #e7dcc6;
+  --ink-900: #efe6d4;
+  --ink-850: #f9f2e4;
+  --ink-800: #e6dbc2;
+  --ink-750: #dccdb0;
+  --ink-line: #d2c2a2;
+
+  /* text on paper (paper = brightest text -> darkest sumi ink) */
+  --paper: #211a13;
+  --paper-dim: #6a5e4c;
+  --paper-mut: #8a7c65;
+
+  /* aka — the competitor red / signature accent (base nudged AA-safe as text) */
+  --aka: #b81f14;
+  --aka-bright: #d62b1f;
+  --aka-deep: #8f150d;
+  --aka-glow: rgba(214, 43, 31, 0.30);
+
+  /* tatami straw + accents (nudged darker for AA on light washi) */
+  --tatami: #7d6230;
+  --tatami-dp: #6d5322;
+  --matcha: #566a3a;
+  --shido: #c1870f;
+
+  --txt: #2b2318;
+  --txt-dim: #6a5e4c;
+  --txt-faint: #7a6c54;
+
+  /* composed surfaces / effects */
+  --card-bg: linear-gradient(180deg, var(--ink-850), var(--ink-900));
+  --app-bg:
+    radial-gradient(120% 90% at 82% -10%, rgba(214,43,31,.10), transparent 55%),
+    radial-gradient(90% 70% at 8% 108%, rgba(154,120,52,.12), transparent 60%),
+    linear-gradient(160deg, #f4eddd 0%, #e7dcc6 45%, #eee4d1 100%);
+  --panel-brand: linear-gradient(180deg, rgba(255,252,244,.7), transparent);
+  --panel-top: linear-gradient(180deg, rgba(250,244,232,.9), rgba(240,231,214,.5));
+  --panel-nav: linear-gradient(180deg, rgba(250,244,232,.6), transparent);
+  --hero-bg:
+    radial-gradient(80% 120% at 50% -20%, rgba(154,120,52,.08), transparent 60%),
+    linear-gradient(180deg, #fbf4e6, #f2e9d8);
+  --center-inset: radial-gradient(circle at 50% 40%, rgba(154,120,52,.10), transparent 70%);
+  --fighter-shiro: linear-gradient(225deg, rgba(120,100,60,.12), rgba(120,100,60,.03) 70%);
+  --grain-op: .035;
+  --shadow: 0 24px 50px -24px rgba(80,60,30,.35);
+  --shadow-hover: 0 20px 44px -24px rgba(80,60,30,.4), 0 0 0 1px rgba(214,43,31,.14);
+
+  --radius: 3px;
+
+  /* type families */
+  --ff-disp: "Shippori Mincho B1", Georgia, "Times New Roman", serif;
+  --ff-ui: "Zen Kaku Gothic New", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --ff-mono: "Kode Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* --- legacy tokens redefined as aliases onto the dojo palette (bridge) --- */
+  --c-bg: var(--sumi);
+  --c-surface: var(--ink-850);
+  --c-border: var(--ink-line);
+  --c-primary: var(--aka);
+  --c-primary-dark: var(--aka-deep);
+  --c-text: var(--txt);
+  --c-muted: var(--txt-dim);
+  --c-danger: var(--aka-deep);
+  --c-success: var(--matcha);
+  --c-warn: var(--shido);
+  --text-strong: var(--txt);
+  --text-medium: var(--txt-dim);
+  --text-muted: var(--txt-dim);
+  --surface-muted: var(--ink-800);
+  --border-muted: var(--ink-line);
+  --border-soft: var(--ink-line);
+
+  /* functional aka/shiro side accents (owned by SideThemeService) — unchanged */
   --side-accent: #1565c0;
   --side-accent-soft: rgba(21, 101, 192, 0.10);
   --side-accent-contrast: #bfe5ff;
   --side-accent-muted: #8fd4ff;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  --text-strong: #111827;
-  --text-medium: #4b5563;
-  --text-muted: #6b7280;
-  --surface-muted: #f3f4f6;
-  --border-muted: #d8dee6;
-  --border-soft: #d7dce1;
+}
+
+/* =========== DARK THEME — "Dojo bei Abenddämmerung" =========== */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --sumi: #0b0908;
+  --ink-900: #12100e;
+  --ink-850: #171310;
+  --ink-800: #1c1713;
+  --ink-750: #241d17;
+  --ink-line: #33291f;
+
+  --paper: #f3e9d8;
+  --paper-dim: #d7c8ae;
+  --paper-mut: #a8977b;
+
+  --aka: #e5352a;
+  --aka-bright: #ff5a44;
+  --aka-deep: #a01810;
+  --aka-glow: rgba(229, 53, 42, 0.45);
+
+  --tatami: #c8a25b;
+  --tatami-dp: #8a6d34;
+  --matcha: #7f8f5c;
+  --shido: #f0b429;
+
+  --txt: #ece2d2;
+  --txt-dim: #b3a58e;
+  --txt-faint: #7d715e;
+
+  --app-bg:
+    radial-gradient(120% 90% at 82% -10%, rgba(229,53,42,.14), transparent 55%),
+    radial-gradient(90% 70% at 8% 108%, rgba(200,162,91,.10), transparent 60%),
+    linear-gradient(160deg, #14100d 0%, #0b0908 45%, #0e0b09 100%);
+  --panel-brand: linear-gradient(180deg, rgba(28,23,19,.6), transparent);
+  --panel-top: linear-gradient(180deg, rgba(20,16,13,.85), rgba(11,9,8,.4));
+  --panel-nav: linear-gradient(180deg, rgba(18,16,14,.5), transparent);
+  --hero-bg:
+    radial-gradient(80% 120% at 50% -20%, rgba(200,162,91,.06), transparent 60%),
+    linear-gradient(180deg, var(--ink-850), var(--ink-900));
+  --center-inset: radial-gradient(circle at 50% 40%, rgba(0,0,0,.35), transparent 70%);
+  --fighter-shiro: linear-gradient(225deg, rgba(243,233,216,.10), rgba(243,233,216,.02) 70%);
+  --grain-op: .05;
+  --shadow: 0 24px 60px -20px rgba(0,0,0,.75);
+  --shadow-hover: 0 18px 40px -22px rgba(0,0,0,.8), 0 0 0 1px rgba(229,53,42,.12);
 }
 
 * {
@@ -35,7 +175,7 @@ body {
   height: 100%;
   background: var(--c-bg);
   color: var(--c-text);
-  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-family: var(--ff-ui);
   font-size: 15px;
 }
 
@@ -43,7 +183,8 @@ h1,
 h2,
 h3 {
   margin: 0 0 0.5rem;
-  font-weight: 600;
+  font-family: var(--ff-disp);
+  font-weight: 700;
 }
 
 a {
