@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/translate.pipe';
@@ -10,9 +10,9 @@ import { ApiService } from './core/api.service';
 import { Tatami } from './core/models';
 
 /**
- * Application shell: top navigation, active-tournament indicator and the
- * language switcher. All visible labels are resolved through the translation
- * pipe so the UI stays fully localizable.
+ * Application shell: SHIAI left sidebar, slim top bar, active-tournament
+ * indicator, theme toggle and the language switcher. All visible labels are
+ * resolved through the translation pipe so the UI stays fully localizable.
  */
 @Component({
   selector: 'app-root',
@@ -27,7 +27,6 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthStateService);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
-  private readonly hostElement = inject(ElementRef<HTMLElement>);
   protected readonly context = inject(TournamentContextService);
 
   protected readonly language = this.i18n.language;
@@ -39,9 +38,14 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly displayTatamis = signal<Tatami[]>([]);
   protected readonly activeTatamis = computed(() =>
     this.displayTatamis().filter((tatami) => tatami.isActive));
+  /** Expandable per-Tatami "Anzeigetafel" (display) section in the sidebar. */
   protected readonly displayMenuOpen = signal(false);
-  protected readonly tournamentleitungMenuOpen = signal(false);
-  protected readonly mattenrichterMenuOpen = signal(false);
+  /** Expandable per-Tatami "Mattenrichter" (match) section in the sidebar. */
+  protected readonly matchMenuOpen = signal(false);
+  /** Desktop rail: collapses the sidebar to a kanji-only glyph rail. */
+  protected readonly sidebarCollapsed = signal(false);
+  /** Narrow screens: off-canvas hamburger drawer with full labels. */
+  protected readonly drawerOpen = signal(false);
   protected readonly showShell = signal(true);
   protected readonly routeTatamiId = signal<string | null>(null);
 
@@ -81,45 +85,38 @@ export class AppComponent implements OnInit, OnDestroy {
     this.themeService.toggle();
   }
 
+  protected toggleSidebar(): void {
+    this.sidebarCollapsed.update((collapsed) => !collapsed);
+  }
+
+  protected toggleDrawer(): void {
+    this.drawerOpen.update((open) => !open);
+  }
+
+  protected closeDrawer(): void {
+    this.drawerOpen.set(false);
+  }
+
   protected toggleDisplayMenu(): void {
+    if (this.sidebarCollapsed()) {
+      this.sidebarCollapsed.set(false);
+    }
     const willOpen = !this.displayMenuOpen();
     this.displayMenuOpen.update((open) => !open);
     if (willOpen) {
       this.refreshTatamis();
-      this.tournamentleitungMenuOpen.set(false);
-      this.mattenrichterMenuOpen.set(false);
     }
   }
 
-  protected closeDisplayMenu(): void {
-    this.displayMenuOpen.set(false);
-  }
-
-  protected toggleTournamentleitungMenu(): void {
-    const willOpen = !this.tournamentleitungMenuOpen();
-    this.tournamentleitungMenuOpen.update((open) => !open);
-    if (willOpen) {
-      this.displayMenuOpen.set(false);
-      this.mattenrichterMenuOpen.set(false);
+  protected toggleMatchMenu(): void {
+    if (this.sidebarCollapsed()) {
+      this.sidebarCollapsed.set(false);
     }
-  }
-
-  protected closeTournamentleitungMenu(): void {
-    this.tournamentleitungMenuOpen.set(false);
-  }
-
-  protected toggleMattenrichterMenu(): void {
-    const willOpen = !this.mattenrichterMenuOpen();
-    this.mattenrichterMenuOpen.update((open) => !open);
+    const willOpen = !this.matchMenuOpen();
+    this.matchMenuOpen.update((open) => !open);
     if (willOpen) {
       this.refreshTatamis();
-      this.displayMenuOpen.set(false);
-      this.tournamentleitungMenuOpen.set(false);
     }
-  }
-
-  protected closeMattenrichterMenu(): void {
-    this.mattenrichterMenuOpen.set(false);
   }
 
   protected displayOverviewUrl(tournamentId: string): string {
@@ -156,35 +153,6 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  @HostListener('document:click', ['$event'])
-  protected onDocumentClick(event: MouseEvent): void {
-    if (!this.displayMenuOpen() && !this.tournamentleitungMenuOpen() && !this.mattenrichterMenuOpen()) {
-      return;
-    }
-
-    const target = event.target;
-    if (!(target instanceof Node)) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
-      return;
-    }
-
-    if (!this.hostElement.nativeElement.contains(target)) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
-      return;
-    }
-
-    const targetElement = target as Element;
-    if (!targetElement.closest('.nav-dropdown')) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
-    }
-  }
-
   private updateShellVisibility(url: string): void {
     const hideShell =
       url.startsWith('/display') ||
@@ -194,11 +162,14 @@ export class AppComponent implements OnInit, OnDestroy {
     const tatamiId = typeof params['tatamiId'] === 'string' ? params['tatamiId'] : null;
     this.routeTatamiId.set(tatamiId);
 
+    // Any SPA navigation dismisses the mobile drawer so the shell isn't left
+    // covering the routed page on narrow screens.
+    this.closeDrawer();
+
     this.showShell.set(!hideShell);
     if (hideShell) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
+      this.displayMenuOpen.set(false);
+      this.matchMenuOpen.set(false);
     }
   }
 
