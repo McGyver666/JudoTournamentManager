@@ -156,6 +156,27 @@
   padding: 0.35rem 0.5rem;
 }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font-family: var(--ff-disp);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+
+.theme-toggle:hover {
+  border-color: var(--c-primary);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

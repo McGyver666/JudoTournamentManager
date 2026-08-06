@@ -12,6 +12,9 @@
   "lang.label": "Language",
   "lang.de": "German",
   "lang.en": "English",
+  "theme.toggle": "Toggle theme (light/dark)",
+  "theme.light": "Light theme",
+  "theme.dark": "Dark theme",
 
   "common.create": "Create",
   "common.save": "Save",
