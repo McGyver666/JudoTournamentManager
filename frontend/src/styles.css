@@ -83,6 +83,7 @@
   --center-inset: radial-gradient(circle at 50% 40%, rgba(154,120,52,.10), transparent 70%);
   --fighter-shiro: linear-gradient(225deg, rgba(120,100,60,.12), rgba(120,100,60,.03) 70%);
   --grain-op: .035;
+  --grain-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --shadow: 0 24px 50px -24px rgba(80,60,30,.35);
   --shadow-hover: 0 20px 44px -24px rgba(80,60,30,.4), 0 0 0 1px rgba(214,43,31,.14);
 
@@ -580,4 +581,75 @@ app-display .standings-table th {color:var(--c-muted);font-size:.72rem;text-tran
   app-display .fight-sep {display:none}
   app-display .rounds-grid {grid-template-columns:1fr}
   app-display .round {min-width:190px}
+}
+
+/* =====================================================================
+   SHIAI decorative atmosphere — presentation surfaces only
+   (login + sidebar/brand). Purely decorative, aria-hidden, low-contrast;
+   never rendered on dense work screens. Global keyframes + classes so the
+   login view and the shell sidebar share one source of truth.
+   ===================================================================== */
+@keyframes shiaiBreathe {
+  0%, 100% { transform: scale(1);    opacity: .85; }
+  50%      { transform: scale(1.06); opacity: 1;   }
+}
+@keyframes shiaiPing {
+  0%       { transform: scale(1);   opacity: .8; }
+  70%, 100%{ transform: scale(1.5); opacity: 0;  }
+}
+/* softened timer-colon fade — stays legible (min opacity .55, gentle ease) */
+@keyframes shiaiColon {
+  0%, 100% { opacity: 1;   }
+  50%      { opacity: .55; }
+}
+
+.shiai-atmos {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* breathing hinomaru — the rising sun disc */
+.shiai-atmos__sun {
+  position: absolute;
+  top: -30%;
+  right: -18%;
+  width: min(120%, 30rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(229,53,42,.20), rgba(229,53,42,.05) 60%, transparent 72%);
+  filter: blur(2px);
+  animation: shiaiBreathe 9s ease-in-out infinite;
+}
+/* seigaiha — subtle wave crests fading up from the base */
+.shiai-atmos__wave {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20px 40px, transparent 14px, rgba(200,162,91,.05) 15px, transparent 16px),
+    radial-gradient(circle at 60px 40px, transparent 14px, rgba(200,162,91,.05) 15px, transparent 16px);
+  background-size: 80px 40px;
+  background-position: bottom;
+  -webkit-mask-image: linear-gradient(to top, black, transparent 30%);
+  mask-image: linear-gradient(to top, black, transparent 30%);
+  opacity: .7;
+}
+/* paper grain overlay */
+.shiai-atmos__grain {
+  position: absolute;
+  inset: 0;
+  opacity: var(--grain-op);
+  background-image: var(--grain-img);
+}
+
+/* Global motion guard: users who ask for reduced motion get a calm, static
+   dojo — all decorative animation stops. Functional cues (setInterval-driven
+   timers, live scores) are text, not CSS animation, so they stay readable. */
+@media (prefers-reduced-motion: reduce) {
+  .shiai-atmos__sun,
+  .brand-mon::after,
+  .timer-colon {
+    animation: none !important;
+  }
 }

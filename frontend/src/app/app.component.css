@@ -28,14 +28,18 @@
 /* ---------- Sidebar (brand + nav) ---------- */
 .shell-sidebar {
   grid-area: side;
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
   background: var(--hero-bg);
   border-right: 1px solid var(--c-border);
 }
 
 .shell-brand {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -44,6 +48,7 @@
 }
 
 .brand-mon {
+  position: relative;
   flex: none;
   width: 2.5rem;
   height: 2.5rem;
@@ -56,6 +61,16 @@
   font-weight: 800;
   font-size: 1.3rem;
   box-shadow: 0 6px 18px -6px var(--aka-glow);
+}
+
+/* breathing accent ring — brand-area atmosphere */
+.brand-mon::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid rgba(229, 53, 42, 0.35);
+  animation: shiaiPing 3.4s ease-out infinite;
 }
 
 .brand-text {
@@ -117,6 +132,8 @@
 .shell-nav {
   flex: 1;
   min-height: 0;
+  position: relative;
+  z-index: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

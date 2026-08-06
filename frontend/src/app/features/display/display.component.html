@@ -38,11 +38,12 @@
             <div class="hold-timer-spacer" aria-hidden="true"></div>
           }
           @if (d.current) {
+            @let tparts = timerColonParts(d.current);
             <div
               class="fight-timer fight-timer--xl"
               [class.fight-timer--golden]="d.current.startedAtUtc && d.current.isGoldenScore"
               [class.fight-timer--paused]="d.current.startedAtUtc && d.current.status === 'Paused' && !d.current.isGoldenScore"
-              [attr.aria-label]="'display.fightTime' | t">{{ timerForFight(d.current) }}</div>
+              [attr.aria-label]="'display.fightTime' | t"><span class="timer-seg">{{ tparts.minutes }}</span><span class="timer-colon" aria-hidden="true">:</span><span class="timer-seg">{{ tparts.seconds }}</span></div>
           }
         </header>
 

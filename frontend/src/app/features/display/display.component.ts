@@ -526,6 +526,16 @@ export class DisplayComponent implements OnInit, OnDestroy {
       : this.formatWholeSeconds(remainingSeconds);
   }
 
+  /** Splits the timer label around its minutes:seconds colon so the colon can
+   *  carry the softened blink decoration while the digits stay static. */
+  protected timerColonParts(fight: Fight): { minutes: string; seconds: string } {
+    const label = this.timerForFight(fight);
+    const idx = label.indexOf(':');
+    return idx < 0
+      ? { minutes: label, seconds: '' }
+      : { minutes: label.slice(0, idx), seconds: label.slice(idx + 1) };
+  }
+
   private formatWholeSeconds(seconds: number): string {
     const rounded = Math.max(0, Math.ceil(seconds));
     const m = Math.floor(rounded / 60);
