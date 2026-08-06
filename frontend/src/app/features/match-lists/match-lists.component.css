@@ -1,11 +1,11 @@
 .match-lists-page {
-  background: linear-gradient(180deg, #f8fbff 0%, #f3f6fb 58%, #eef3f9 100%);
+  background: var(--hero-bg);
   color: var(--c-text);
   min-height: 100vh;
   padding: 1.25rem;
   border-radius: 16px;
-  border: 1px solid #dbe3ef;
-  box-shadow: 0 18px 32px rgba(28, 34, 48, 0.08);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow);
 }
 
 .match-lists-page--print {
@@ -23,16 +23,16 @@
   font-size: clamp(1.35rem, 2vw, 1.9rem);
   font-weight: 700;
   margin: 0;
-  color: #123c70;
+  color: var(--txt);
 }
 
 .match-lists-meta {display:flex;gap:.65rem;align-items:center}
 
 .info-hint {
-  color: #617186;
+  color: var(--c-muted);
   font-style: italic;
-  background: #f3f7fd;
-  border: 1px dashed #c7d4e6;
+  background: var(--surface-muted);
+  border: 1px dashed var(--c-border);
   border-radius: 10px;
   padding: .65rem .8rem;
 }
@@ -40,64 +40,68 @@
 .all-matches-section {padding-top:.25rem}
 :is(.all-matches-header-row,.match-category-header) {display:flex;align-items:center;justify-content:space-between;gap:.75rem}
 .all-matches-header-row {margin-bottom:.75rem}
-.all-matches-title {margin:0;font-size:1.1rem;letter-spacing:.02em;color:#123c70}
+.all-matches-title {margin:0;font-size:1.1rem;letter-spacing:.02em;color:var(--txt)}
 
 :is(.all-categories-list,.fights-list) {display:flex;flex-direction:column}
 .fights-list {gap:.45rem}
 .all-categories-list {gap:1rem}
 
 .match-category-card {
-  background:#fff;
-  border:1px solid #d8e2ef;
+  background:var(--c-surface);
+  border:1px solid var(--c-border);
   border-radius:12px;
   padding:.85rem;
-  box-shadow: 0 8px 18px rgba(22, 45, 77, 0.06);
+  box-shadow: var(--shadow);
 }
 
 .match-category-header {margin-bottom:.7rem}
 .match-category-titles {display:flex;flex-direction:column;gap:.2rem}
-.match-category-name {margin:0;font-size:1rem;color:#1d2a3d}
-.match-category-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#728198}
-.print-tournament-name {font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5f7290}
-.pool-block {margin-top:.85rem;padding-top:.75rem;border-top:1px solid #e0e8f2}
+.match-category-name {margin:0;font-size:1rem;color:var(--txt)}
+.match-category-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--c-muted)}
+.print-tournament-name {font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c-muted)}
+.pool-block {margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--c-border)}
 .ko-phase-block {margin-top:.85rem}
 .bracket {display:flex;gap:1.25rem;overflow-x:auto;padding-bottom:1rem;margin-bottom:1.25rem;position:relative;z-index:1}
 .bracket-shell {position:relative;margin-bottom:1.1rem}
 .bracket-shell .bracket {margin-bottom:0}
 .bracket-connectors {position:absolute;top:0;left:0;pointer-events:none;z-index:-1}
-.bracket-connectors path {fill:none;stroke:#90a6c3;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:1}
+.bracket-connectors path {fill:none;stroke:var(--paper-mut);stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;opacity:1}
 .round.progression-round {gap:0}
 .round.progression-round :is(h3,h4,h5) {margin-bottom:1rem}
 .round {min-width:220px;display:flex;flex-direction:column;gap:.85rem}
-:is(.round :is(h3,h4,h5),.round-title) {font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:#6b7d95}
+:is(.round :is(h3,h4,h5),.round-title) {font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--c-muted)}
 .round :is(h3,h4,h5) {margin:0}
 .round-title {margin:0 0 .45rem}
-.fight {border:1px solid #d5e1f0;border-radius:8px;background:#f8fbff;overflow:hidden}
-.fight-no {font-size:.7rem;padding:.25rem .5rem;background:#eef4fc;color:#5f7290}
-.slot {padding:.5rem .7rem;border-bottom:1px solid #e2eaf5;transition:background .15s}
+.fight {border:1px solid var(--c-border);border-radius:8px;background:var(--surface-muted);overflow:hidden}
+.fight-no {font-size:.7rem;padding:.25rem .5rem;background:var(--ink-800);color:var(--c-muted)}
+.slot {padding:.5rem .7rem;border-bottom:1px solid var(--c-border);transition:background .15s}
 :is(.slot:last-child,.standings-table tr:last-child td) {border-bottom:none}
-.slot.white {border-left:5px solid #d7dee8;color:#1f2b3d}
+.slot.white {border-left:5px solid var(--ink-line);color:var(--txt)}
 .slot.blue {border-left:5px solid var(--side-accent);color:var(--side-accent)}
-.slot.winner {font-weight:700;color:#1e7d4d;background:#effbf4}
+.slot.winner {font-weight:700;color:var(--c-success);background:color-mix(in srgb, var(--matcha) 14%, transparent)}
 .rounds-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.7rem}
 :is(.round-title,.slot-name) {line-height:1.2}
 .slot-name {font-size:.84rem;font-weight:600}
-.slot.placeholder .slot-name {color:#728198;font-weight:500;opacity:.78}
-.slot-club {font-size:.72rem;color:#728198}
+.slot.placeholder .slot-name {color:var(--c-muted);font-weight:500;opacity:.78}
+.slot-club {font-size:.72rem;color:var(--c-muted)}
 .standings-wrap {margin-bottom:.8rem}
 
 .standings-table {
   width:100%;
   border-collapse:collapse;
   font-size:.78rem;
-  background:#fff;
-  border:1px solid #d8e2ef;
+  background:var(--c-surface);
+  border:1px solid var(--c-border);
   border-radius:8px;
   overflow:hidden;
 }
 
-.standings-table :is(th,td) {padding:.35rem .45rem;border-bottom:1px solid #e1e8f3;text-align:left}
-.standings-table th {color:#5f7290;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;background:#eef4fc}
+.standings-table :is(th,td) {padding:.35rem .45rem;border-bottom:1px solid var(--c-border);text-align:left}
+.standings-table th {color:var(--c-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;background:var(--ink-800)}
+
+/* --side-accent is light-tuned (set inline by SideThemeService); on dark
+   surfaces use the brighter contrast token so blue slot text keeps AA. */
+[data-theme="dark"] :is(.slot.blue,.blue-name) {color:var(--side-accent-contrast)}
 
 @media (max-width:700px) {
   .match-lists-page {padding: .9rem; border-radius: 10px;}

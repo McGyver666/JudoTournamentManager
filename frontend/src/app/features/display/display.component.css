@@ -1,11 +1,11 @@
 .display-page {
-	background: linear-gradient(180deg, #f8fbff 0%, #f3f6fb 58%, #eef3f9 100%);
+	background: var(--hero-bg);
 	color: var(--c-text);
 	min-height: 100vh;
 	padding: 1.25rem;
 	border-radius: 16px;
-	border: 1px solid #dbe3ef;
-	box-shadow: 0 18px 32px rgba(28, 34, 48, 0.08);
+	border: 1px solid var(--c-border);
+	box-shadow: var(--shadow);
 }
 
 .display-page--tatami {
@@ -27,7 +27,7 @@
 	font-size: clamp(1.35rem, 2vw, 1.9rem);
 	font-weight: 700;
 	margin: 0;
-	color: #123c70;
+	color: var(--txt);
 }
 
 .display-meta {display:flex;gap:.65rem;align-items:center}
@@ -210,16 +210,16 @@
 .next-name--white {color:#f4f9ff}
 .no-fight--xl {font-size:clamp(1.95rem,3.6vw,3rem);padding:1rem 0;color:#e8f2ff}
 
-.active-categories-section {margin-top:1.25rem;border-top:1px solid #dce5f1;padding-top:1rem}
-.active-categories-title {margin:0 0 .75rem;font-size:1.1rem;letter-spacing:.02em;color:#123c70}
+.active-categories-section {margin-top:1.25rem;border-top:1px solid var(--c-border);padding-top:1rem}
+.active-categories-title {margin:0 0 .75rem;font-size:1.1rem;letter-spacing:.02em;color:var(--txt)}
 .active-categories-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}
 
 .active-categories-card {
-	background: #fff;
-	border: 1px solid #d8e2ef;
+	background: var(--c-surface);
+	border: 1px solid var(--c-border);
 	border-radius: 14px;
 	padding: 1rem;
-	box-shadow: 0 10px 22px rgba(16, 36, 63, 0.08);
+	box-shadow: var(--shadow);
 }
 
 .active-categories-card-header {display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem}
@@ -229,16 +229,16 @@
 	text-transform: uppercase;
 	letter-spacing: .08em;
 	margin: 0;
-	color: #0f4c81;
+	color: var(--txt);
 }
-.active-categories-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#728198;white-space:nowrap}
+.active-categories-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--c-muted);white-space:nowrap}
 .active-categories-list {list-style:decimal;margin:0;padding-left:1.4rem;display:flex;flex-direction:column;gap:.4rem}
-.active-categories-item {font-size:.92rem;color:#1d2a3d;font-weight:600}
+.active-categories-item {font-size:.92rem;color:var(--txt);font-weight:600}
 .active-categories-empty {
-	color: #617186;
+	color: var(--c-muted);
 	font-style: italic;
-	background: #f3f7fd;
-	border: 1px dashed #c7d4e6;
+	background: var(--surface-muted);
+	border: 1px dashed var(--c-border);
 	border-radius: 10px;
 	padding: .6rem .75rem;
 	margin: 0;
@@ -271,7 +271,7 @@
 .qr-share-hint {
 	margin: 0;
 	font-size: .88rem;
-	color: #40566f;
+	color: var(--c-muted);
 	line-height: 1.35;
 }
 
