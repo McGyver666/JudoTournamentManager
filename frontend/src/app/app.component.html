@@ -1,110 +1,168 @@
-@if (showShell()) {
-  <header class="app-header">
-    <div class="brand">
-      <span class="brand-title">{{ 'app.title' | t }}</span>
-      <span class="brand-sub">{{ 'app.subtitle' | t }}</span>
-    </div>
-    <nav class="app-nav">
-      @if (isAuthenticated()) {
-        <a routerLink="/tournaments" routerLinkActive="active">{{ 'nav.tournaments' | t }}</a>
-        @if (canOperate()) {
-          <a routerLink="/config" routerLinkActive="active">{{ 'nav.config' | t }}</a>
-          <div class="nav-dropdown" [class.open]="tournamentleitungMenuOpen()">
-            <button
-              type="button"
-              class="nav-dropdown-toggle"
-              (click)="toggleTournamentleitungMenu()"
-              [attr.aria-expanded]="tournamentleitungMenuOpen()"
-              aria-haspopup="menu">
-              <span>{{ 'nav.management' | t }}</span>
-              <span class="nav-dropdown-chevron" aria-hidden="true"></span>
-            </button>
-            <div class="nav-dropdown-menu" role="menu">
-              <a routerLink="/registrations" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.registrations' | t }}</a>
-              <a routerLink="/category-assignment" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.categoryAssignment' | t }}</a>
-              <a routerLink="/draw" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.draw' | t }}</a>
-              <a routerLink="/tatami-assignment" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.tatamiAssignment' | t }}</a>
-              <a routerLink="/combat-overview" routerLinkActive="active" role="menuitem" (click)="closeTournamentleitungMenu()">{{ 'nav.combatOverview' | t }}</a>
-            </div>
-          </div>
-          <div class="nav-dropdown" [class.open]="mattenrichterMenuOpen()">
-            <button
-              type="button"
-              class="nav-dropdown-toggle"
-              (click)="toggleMattenrichterMenu()"
-              [attr.aria-expanded]="mattenrichterMenuOpen()"
-              aria-haspopup="menu">
-              <span>{{ 'nav.match' | t }}</span>
-              <span class="nav-dropdown-chevron" aria-hidden="true"></span>
-            </button>
-            <div class="nav-dropdown-menu" role="menu">
-              @if (context.tournamentId(); as tid) {
-                @for (tatami of activeTatamis(); track tatami.id) {
-                  <a
-                    class="nav-dropdown-action"
-                    [class.active]="routeTatamiId() === tatami.id"
-                    routerLink="/match"
-                    [queryParams]="matchTatamiQueryParams(tid, tatami.id)"
-                    role="menuitem"
-                    (click)="closeMattenrichterMenu()">
-                    {{ tatami.name }}
-                  </a>
-                }
+<div
+  class="app-shell"
+  [class.app-shell--bare]="!showShell()"
+  [class.app-shell--collapsed]="sidebarCollapsed()"
+  [class.app-shell--drawer-open]="drawerOpen()">
+  @if (showShell()) {
+    <aside class="shell-sidebar">
+      <div class="shell-brand">
+        <span class="brand-mon" aria-hidden="true">試</span>
+        <div class="brand-text">
+          <span class="brand-title">{{ 'app.title' | t }}</span>
+          <span class="brand-sub">{{ 'app.subtitle' | t }}</span>
+        </div>
+        <button
+          type="button"
+          class="rail-toggle"
+          (click)="toggleSidebar()"
+          [attr.aria-label]="'nav.toggleSidebar' | t"
+          [attr.aria-pressed]="sidebarCollapsed()"
+          [title]="'nav.toggleSidebar' | t">
+          <span aria-hidden="true">‹</span>
+        </button>
+      </div>
+
+      <nav class="shell-nav" [attr.aria-label]="'app.title' | t">
+        @if (isAuthenticated()) {
+          <span class="nav-label">{{ 'nav.sectionLeitstand' | t }}</span>
+          <a
+            class="nav-item"
+            routerLink="/tournaments"
+            routerLinkActive="active"
+            (click)="closeDrawer()"
+            [title]="'nav.tournaments' | t">
+            <span class="kanji" aria-hidden="true">大</span>
+            <span class="lbl">{{ 'nav.tournaments' | t }}</span>
+          </a>
+
+          @if (canOperate()) {
+            <span class="nav-label">{{ 'nav.management' | t }}</span>
+            <a class="nav-item" routerLink="/config" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.config' | t">
+              <span class="kanji" aria-hidden="true">設</span>
+              <span class="lbl">{{ 'nav.config' | t }}</span>
+            </a>
+            <a class="nav-item" routerLink="/registrations" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.registrations' | t">
+              <span class="kanji" aria-hidden="true">量</span>
+              <span class="lbl">{{ 'nav.registrations' | t }}</span>
+            </a>
+            <a class="nav-item" routerLink="/category-assignment" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.categoryAssignment' | t">
+              <span class="kanji" aria-hidden="true">階</span>
+              <span class="lbl">{{ 'nav.categoryAssignment' | t }}</span>
+            </a>
+            <a class="nav-item" routerLink="/draw" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.draw' | t">
+              <span class="kanji" aria-hidden="true">組</span>
+              <span class="lbl">{{ 'nav.draw' | t }}</span>
+            </a>
+            <a class="nav-item" routerLink="/tatami-assignment" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.tatamiAssignment' | t">
+              <span class="kanji" aria-hidden="true">畳</span>
+              <span class="lbl">{{ 'nav.tatamiAssignment' | t }}</span>
+            </a>
+            <a class="nav-item" routerLink="/combat-overview" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.combatOverview' | t">
+              <span class="kanji" aria-hidden="true">表</span>
+              <span class="lbl">{{ 'nav.combatOverview' | t }}</span>
+            </a>
+          }
+
+          <span class="nav-label">{{ 'nav.sectionWettkampf' | t }}</span>
+          @if (canOperate()) {
+            <div class="nav-group" [class.open]="matchMenuOpen()">
+              <button
+                type="button"
+                class="nav-item nav-item--expander"
+                (click)="toggleMatchMenu()"
+                [attr.aria-expanded]="matchMenuOpen()"
+                [title]="'nav.match' | t">
+                <span class="kanji" aria-hidden="true">試</span>
+                <span class="lbl">{{ 'nav.match' | t }}</span>
+                <span class="nav-chevron" aria-hidden="true"></span>
+              </button>
+              @if (matchMenuOpen()) {
+                <div class="nav-subitems" role="group" [attr.aria-label]="'nav.match' | t">
+                  @if (context.tournamentId(); as tid) {
+                    @for (tatami of activeTatamis(); track tatami.id) {
+                      <a
+                        class="nav-subitem"
+                        [class.active]="routeTatamiId() === tatami.id"
+                        routerLink="/match"
+                        [queryParams]="matchTatamiQueryParams(tid, tatami.id)"
+                        (click)="closeDrawer()">{{ tatami.name }}</a>
+                    }
+                  }
+                </div>
               }
             </div>
-          </div>
-        }
-        @if (context.tournamentId(); as tid) {
-          <div class="nav-dropdown" [class.open]="displayMenuOpen()">
-            <button
-              type="button"
-              class="nav-dropdown-toggle"
-              (click)="toggleDisplayMenu()"
-              [attr.aria-expanded]="displayMenuOpen()"
-              aria-haspopup="menu">
-              <span>{{ 'nav.display' | t }}</span>
-              <span class="nav-dropdown-chevron" aria-hidden="true"></span>
-            </button>
-            <div class="nav-dropdown-menu" role="menu">
-              <a
-                [href]="displayOverviewUrl(tid)"
-                target="_blank"
-                rel="noopener"
-                role="menuitem"
-                (click)="closeDisplayMenu()">{{ 'display.menuOverview' | t }}</a>
-              <a
-                [href]="matchListsUrl(tid)"
-                target="_blank"
-                rel="noopener"
-                role="menuitem"
-                (click)="closeDisplayMenu()">{{ 'display.menuMatchLists' | t }}</a>
-              @for (tatami of displayTatamis(); track tatami.id) {
-                <a
-                  [href]="tatamiDisplayUrl(tid, tatami.id)"
-                  target="_blank"
-                  rel="noopener"
-                  role="menuitem"
-                  (click)="closeDisplayMenu()">{{ 'display.menuTatami' | t: { name: tatami.name } }}</a>
+          }
+
+          @if (context.tournamentId(); as tid) {
+            <div class="nav-group" [class.open]="displayMenuOpen()">
+              <button
+                type="button"
+                class="nav-item nav-item--expander"
+                (click)="toggleDisplayMenu()"
+                [attr.aria-expanded]="displayMenuOpen()"
+                [title]="'nav.display' | t">
+                <span class="kanji" aria-hidden="true">幕</span>
+                <span class="lbl">{{ 'nav.display' | t }}</span>
+                <span class="nav-chevron" aria-hidden="true"></span>
+              </button>
+              @if (displayMenuOpen()) {
+                <div class="nav-subitems" role="group" [attr.aria-label]="'nav.display' | t">
+                  <a class="nav-subitem" [href]="displayOverviewUrl(tid)" target="_blank" rel="noopener">{{ 'display.menuOverview' | t }}</a>
+                  <a class="nav-subitem" [href]="matchListsUrl(tid)" target="_blank" rel="noopener">{{ 'display.menuMatchLists' | t }}</a>
+                  @for (tatami of displayTatamis(); track tatami.id) {
+                    <a class="nav-subitem" [href]="tatamiDisplayUrl(tid, tatami.id)" target="_blank" rel="noopener">{{ 'display.menuTatami' | t: { name: tatami.name } }}</a>
+                  }
+                </div>
               }
             </div>
-          </div>
+          }
+
+          <a class="nav-item" routerLink="/results" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.results' | t">
+            <span class="kanji" aria-hidden="true">結</span>
+            <span class="lbl">{{ 'nav.results' | t }}</span>
+          </a>
+
+          @if (isAdmin()) {
+            <span class="nav-label">{{ 'nav.sectionSystem' | t }}</span>
+            <a class="nav-item" routerLink="/users" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.users' | t">
+              <span class="kanji" aria-hidden="true">人</span>
+              <span class="lbl">{{ 'nav.users' | t }}</span>
+            </a>
+          }
+        } @else {
+          <a class="nav-item" routerLink="/login" routerLinkActive="active" (click)="closeDrawer()" [title]="'auth.login' | t">
+            <span class="kanji" aria-hidden="true">戸</span>
+            <span class="lbl">{{ 'auth.login' | t }}</span>
+          </a>
         }
-        <a routerLink="/results" routerLinkActive="active">{{ 'nav.results' | t }}</a>
-        @if (isAdmin()) {
-          <a routerLink="/users" routerLinkActive="active">{{ 'nav.users' | t }}</a>
-        }
-      } @else {
-        <a routerLink="/login" routerLinkActive="active">{{ 'auth.login' | t }}</a>
-      }
-    </nav>
-    <div class="app-tools">
-      @if (currentUser(); as u) {
-        <span class="active-tournament">{{ u.userName }} ({{ u.role }})</span>
-        <button (click)="logout()">{{ 'auth.logout' | t }}</button>
-      }
+      </nav>
+    </aside>
+
+    <header class="shell-top">
+      <button
+        type="button"
+        class="hamburger"
+        (click)="toggleDrawer()"
+        [attr.aria-label]="'nav.openMenu' | t"
+        [attr.aria-expanded]="drawerOpen()">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+
       @if (context.tournament(); as t) {
-        <span class="active-tournament" title="{{ 'tournaments.selected' | t }}">{{ t.name }}</span>
+        <span class="top-tourney" title="{{ 'tournaments.selected' | t }}">{{ t.name }}</span>
       }
+
+      <span class="top-spacer"></span>
+
+      @if (currentUser(); as u) {
+        <span class="top-user">
+          <span class="top-user-name">{{ u.userName }}</span>
+          <span class="top-user-role">{{ u.role }}</span>
+        </span>
+      }
+
       <label class="lang-switch">
         <span class="sr-only">{{ 'lang.label' | t }}</span>
         <select [value]="language()" (change)="switchLanguage($event)">
@@ -112,6 +170,7 @@
           <option value="en">{{ 'lang.en' | t }}</option>
         </select>
       </label>
+
       <button
         type="button"
         class="theme-toggle"
@@ -121,10 +180,21 @@
         [title]="'theme.toggle' | t">
         <span aria-hidden="true">{{ theme() === 'dark' ? '明' : '暗' }}</span>
       </button>
-    </div>
-  </header>
-}
 
-<main class="app-main" [class.app-main--display]="!showShell()">
-  <router-outlet />
-</main>
+      @if (currentUser()) {
+        <button type="button" class="logout-btn" (click)="logout()">{{ 'auth.logout' | t }}</button>
+      }
+    </header>
+
+    <button
+      type="button"
+      class="drawer-backdrop"
+      tabindex="-1"
+      [attr.aria-label]="'nav.closeMenu' | t"
+      (click)="closeDrawer()"></button>
+  }
+
+  <main class="app-main" [class.app-main--display]="!showShell()">
+    <router-outlet />
+  </main>
+</div>

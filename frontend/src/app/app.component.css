@@ -1,154 +1,351 @@
-.app-header {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--c-surface);
-  border-bottom: 1px solid var(--c-border);
-  box-shadow: var(--shadow);
-  flex-wrap: wrap;
+/* ============================================================
+   SHIAI shell — left sidebar + slim top bar
+   Sidebar (brand + nav) spans both rows on the left; the top bar
+   and routed main share the right column. Collapses to a kanji rail
+   on wide screens and to a hamburger drawer on narrow screens.
+   ============================================================ */
+
+.app-shell {
+  --sb-w: 248px;
+  display: grid;
+  grid-template-columns: var(--sb-w) 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'side top'
+    'side main';
+  min-height: 100vh;
 }
 
-.brand {
+.app-shell--collapsed {
+  --sb-w: 66px;
+}
+
+/* Shell-hidden routes (display/public/print) render main full width. */
+.app-shell--bare {
+  display: block;
+}
+
+/* ---------- Sidebar (brand + nav) ---------- */
+.shell-sidebar {
+  grid-area: side;
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  min-height: 0;
+  background: var(--hero-bg);
+  border-right: 1px solid var(--c-border);
 }
 
-.brand-title {
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: var(--c-primary);
-}
-
-.brand-sub {
-  font-size: 0.75rem;
-  color: var(--c-muted);
-}
-
-.app-nav {
-  display: flex;
-  gap: 0.25rem;
-  flex: 1;
-  align-items: center;
-}
-
-.app-nav a,
-.nav-dropdown-toggle {
-  padding: 0.4rem 0.8rem;
-  border-radius: var(--radius);
-  color: var(--c-text);
-  font-weight: 500;
-  border: none;
-  background: transparent;
-  font: inherit;
-  cursor: pointer;
-}
-
-.nav-dropdown-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.app-nav a:hover,
-.nav-dropdown-toggle:hover {
-  background: #eef1f5;
-}
-
-.app-nav a.active {
-  background: var(--c-primary);
-  color: #fff;
-}
-
-.nav-dropdown {
-  position: relative;
-}
-
-.nav-dropdown.open .nav-dropdown-toggle {
-  background: #eef1f5;
-}
-
-.nav-dropdown-chevron {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: translateY(-0.08rem) rotate(45deg);
-  transition: transform 0.18s ease;
-}
-
-.nav-dropdown.open .nav-dropdown-chevron {
-  transform: translateY(0.08rem) rotate(-135deg);
-}
-
-.nav-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  min-width: 250px;
-  display: none;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.35rem;
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  box-shadow: 0 12px 24px rgba(18, 46, 80, 0.16);
-  z-index: 30;
-}
-
-.nav-dropdown.open .nav-dropdown-menu {
-  display: flex;
-}
-
-.nav-dropdown-menu a {
-  border-radius: 8px;
-  padding: 0.42rem 0.58rem;
-  white-space: nowrap;
-}
-
-.nav-dropdown-menu .nav-dropdown-action {
-  border: none;
-  border-radius: 8px;
-  padding: 0.42rem 0.58rem;
-  white-space: nowrap;
-  text-align: left;
-  font: inherit;
-  color: var(--c-text);
-  background: transparent;
-  cursor: pointer;
-}
-
-.nav-dropdown-menu a:hover {
-  background: #eef1f5;
-}
-
-.nav-dropdown-menu .nav-dropdown-action:hover {
-  background: #eef1f5;
-}
-
-.nav-dropdown-menu .nav-dropdown-action.active {
-  background: var(--c-primary);
-  color: #fff;
-}
-
-.app-tools {
+.shell-brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding: 1.1rem 1rem;
+  border-bottom: 1px solid var(--c-border);
 }
 
-.active-tournament {
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.3rem 0.7rem;
-  background: #eef1f5;
-  border-radius: 999px;
-  max-width: 220px;
+.brand-mon {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--aka-bright), var(--aka) 55%, var(--aka-deep));
+  color: #fff;
+  font-family: var(--ff-disp);
+  font-weight: 800;
+  font-size: 1.3rem;
+  box-shadow: 0 6px 18px -6px var(--aka-glow);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.brand-title {
+  font-family: var(--ff-disp);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-sub {
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tatami);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail-toggle {
+  margin-left: auto;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--txt-dim);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.rail-toggle:hover {
+  color: var(--aka);
+  border-color: var(--aka);
+}
+
+.app-shell--collapsed .rail-toggle span {
+  transform: rotate(180deg);
+}
+
+/* ---------- Navigation ---------- */
+.shell-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 0.6rem 1.25rem;
+}
+
+.nav-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  padding: 0.85rem 0.6rem 0.3rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius);
+  color: var(--txt-dim);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  width: 100%;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-item .kanji {
+  flex: none;
+  width: 1.5rem;
+  text-align: center;
+  font-family: var(--ff-disp);
+  font-size: 1.05rem;
+  color: var(--txt-faint);
+  transition: color 0.2s;
+}
+
+.nav-item .lbl {
+  font-size: 0.86rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-item:hover {
+  background: var(--surface-muted);
+  color: var(--txt);
+}
+
+.nav-item:hover .kanji {
+  color: var(--tatami);
+}
+
+.nav-item.active {
+  background: color-mix(in srgb, var(--aka) 14%, transparent);
+  color: var(--paper);
+}
+
+.nav-item.active .kanji {
+  color: var(--aka-bright);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--aka);
+}
+
+/* ---------- Expandable per-Tatami sections ---------- */
+.nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-chevron {
+  margin-left: auto;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.06rem) rotate(45deg);
+  transition: transform 0.18s ease;
+  opacity: 0.7;
+}
+
+.nav-group.open .nav-chevron {
+  transform: translateY(0.06rem) rotate(-135deg);
+}
+
+.nav-subitems {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.15rem 0 0.25rem 2.25rem;
+}
+
+.nav-subitem {
+  display: block;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius);
+  color: var(--txt-dim);
+  font-size: 0.82rem;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-subitem:hover {
+  background: var(--surface-muted);
+  color: var(--txt);
+}
+
+.nav-subitem.active {
+  background: color-mix(in srgb, var(--aka) 14%, transparent);
+  color: var(--paper);
+}
+
+/* ---------- Kanji rail (desktop collapsed) ---------- */
+@media (min-width: 861px) {
+  .app-shell--collapsed .brand-text,
+  .app-shell--collapsed .nav-label,
+  .app-shell--collapsed .nav-item .lbl,
+  .app-shell--collapsed .nav-chevron,
+  .app-shell--collapsed .nav-subitems {
+    display: none;
+  }
+
+  .app-shell--collapsed .shell-brand {
+    justify-content: center;
+    padding: 1.1rem 0.5rem;
+  }
+
+  .app-shell--collapsed .rail-toggle {
+    margin-left: 0;
+  }
+
+  .app-shell--collapsed .nav-item {
+    justify-content: center;
+    padding: 0.55rem 0;
+    gap: 0;
+  }
+
+  .app-shell--collapsed .nav-item .kanji {
+    font-size: 1.2rem;
+  }
+}
+
+/* ---------- Top bar ---------- */
+.shell-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0 1.25rem;
+  min-height: 3.5rem;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  box-shadow: var(--shadow);
+}
+
+.hamburger {
+  display: none;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.5rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  cursor: pointer;
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--txt);
+}
+
+.top-tourney {
+  font-family: var(--ff-disp);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--paper);
+  max-width: 40vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.top-spacer {
+  flex: 1;
+}
+
+.top-user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+  padding-right: 0.9rem;
+  border-right: 1px solid var(--c-border);
+}
+
+.top-user-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--txt);
+}
+
+.top-user-role {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tatami);
 }
 
 .lang-switch select {
@@ -160,21 +357,39 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
   font-family: var(--ff-disp);
-  font-size: 1rem;
+  font-size: 1.05rem;
   line-height: 1;
   cursor: pointer;
   border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: var(--c-surface);
-  color: var(--c-text);
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--tatami);
+  transition: color 0.2s, border-color 0.2s, transform 0.4s;
 }
 
 .theme-toggle:hover {
-  border-color: var(--c-primary);
+  color: var(--aka-bright);
+  border-color: var(--aka);
+  transform: rotate(30deg);
+}
+
+.logout-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  color: var(--txt);
+  font: inherit;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  border-color: var(--aka);
+  color: var(--aka);
 }
 
 .sr-only {
@@ -185,14 +400,75 @@
   clip: rect(0 0 0 0);
 }
 
+/* ---------- Drawer backdrop (mobile only) ---------- */
+.drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+/* ---------- Main ---------- */
 .app-main {
-  max-width: 1100px;
-  margin: 0 auto;
+  grid-area: main;
+  min-width: 0;
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
   padding: 1.5rem;
+  overflow-x: hidden;
 }
 
 .app-main--display {
   max-width: none;
   margin: 0;
   padding: 0;
+}
+
+/* ---------- Narrow screens: hamburger drawer ---------- */
+@media (max-width: 860px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'top'
+      'main';
+  }
+
+  .shell-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 260px;
+    max-width: 82vw;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .app-shell--drawer-open .shell-sidebar {
+    transform: translateX(0);
+    box-shadow: var(--shadow);
+  }
+
+  .app-shell--drawer-open .drawer-backdrop {
+    display: block;
+  }
+
+  .hamburger {
+    display: inline-flex;
+  }
+
+  .rail-toggle {
+    display: none;
+  }
+
+  .top-tourney {
+    max-width: 45vw;
+  }
 }
