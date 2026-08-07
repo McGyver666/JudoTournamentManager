@@ -112,6 +112,13 @@
   --border-muted: var(--ink-line);
   --border-soft: var(--ink-line);
 
+  /* form controls */
+  --field-bg: color-mix(in srgb, var(--ink-850) 88%, #fff 12%);
+  --field-bg-disabled: color-mix(in srgb, var(--field-bg) 82%, var(--sumi) 18%);
+  --field-border: color-mix(in srgb, var(--ink-line) 86%, #fff 14%);
+  --field-border-focus: color-mix(in srgb, var(--aka) 68%, var(--field-border));
+  --field-placeholder: var(--txt-faint);
+
   /* functional aka/shiro side accents (owned by SideThemeService) — unchanged */
   --side-accent: #1565c0;
   --side-accent-soft: rgba(21, 101, 192, 0.10);
@@ -163,6 +170,12 @@
   --grain-op: .05;
   --shadow: 0 24px 60px -20px rgba(0,0,0,.75);
   --shadow-hover: 0 18px 40px -22px rgba(0,0,0,.8), 0 0 0 1px rgba(229,53,42,.12);
+
+  --field-bg: color-mix(in srgb, var(--ink-800) 92%, #000 8%);
+  --field-bg-disabled: color-mix(in srgb, var(--field-bg) 76%, var(--ink-900) 24%);
+  --field-border: color-mix(in srgb, var(--ink-line) 78%, #5f4a36 22%);
+  --field-border-focus: color-mix(in srgb, var(--aka) 58%, #f2d8bf 42%);
+  --field-placeholder: #98876d;
 }
 
 * {
@@ -255,16 +268,47 @@ button:disabled {
   cursor: not-allowed;
 }
 
-input,
+input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
   font: inherit;
   padding: 0.45rem 0.6rem;
-  border: 1px solid var(--c-border);
+  border: 1px solid var(--field-border);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--field-bg);
   color: var(--c-text);
   width: 100%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):hover,
+select:hover,
+textarea:hover {
+  border-color: color-mix(in srgb, var(--field-border-focus) 52%, var(--field-border));
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--field-border-focus);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--aka) 26%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--field-bg-disabled);
+  color: var(--c-muted);
+  cursor: not-allowed;
+}
+
+input:not([type="checkbox"]):not([type="radio"])::placeholder,
+textarea::placeholder {
+  color: var(--field-placeholder);
 }
 
 label {
@@ -308,7 +352,6 @@ tr:last-child td {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   margin-bottom: 1.25rem;
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.28s, box-shadow 0.28s;
 }
@@ -316,6 +359,131 @@ tr:last-child td {
 .card:hover {
   border-color: color-mix(in srgb, var(--aka) 40%, transparent);
   box-shadow: var(--shadow-hover);
+}
+
+/* Main-app content primitives for coherent card-first page layouts. */
+.main-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.main-page-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.card-pad {
+  padding: 0.6rem 1rem;
+}
+
+.card--table {
+  overflow: hidden;
+}
+
+.card--table > .card-pad {
+  border-bottom: 1px solid var(--c-border);
+}
+
+.card--table > .card-pad:last-child {
+  border-bottom: 0;
+}
+
+.card--table > .table-wrap,
+.card--table > table {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+}
+
+.component-label {
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--txt-dim);
+}
+
+.section-panel {
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+.section-panel:hover {
+  border: 0;
+  box-shadow: none;
+}
+
+.section-panel > .card-pad {
+  padding: 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-head__label {
+  margin: 0;
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  color: var(--txt-dim);
+}
+
+.section-head__title {
+  margin: 0;
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--paper);
+  position: relative;
+  padding-bottom: 0.45rem;
+}
+
+.section-head__title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--aka), transparent);
+  border-radius: 3px;
+  transform-origin: left;
+  animation: sectionBrush 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.section-head__text {
+  margin: 0;
+  color: var(--txt-dim);
+  font-size: 0.82rem;
+}
+
+@keyframes sectionBrush {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 780px) {
+  .section-head {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+  }
 }
 
 .row {

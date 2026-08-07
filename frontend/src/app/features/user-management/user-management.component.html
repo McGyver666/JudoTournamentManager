@@ -1,14 +1,20 @@
 <section class="users-page">
+  <section class="card section-panel">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.users.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.users.text' | t }}</p>
+    </header>
+  </section>
+
   <div class="toolbar">
-    <h1>{{ 'users.title' | t }}</h1>
     <button (click)="load()">{{ 'common.reload' | t }}</button>
   </div>
 
   @if (error()) {
-    <p class="error">{{ error() }}</p>
+    <section class="card card-pad"><p class="error">{{ error() }}</p></section>
   }
   @if (info()) {
-    <p class="info">{{ info() }}</p>
+    <section class="card card-pad"><p class="info">{{ info() }}</p></section>
   }
 
   <div class="card create-form">
@@ -39,6 +45,7 @@
   } @else if (users().length === 0) {
     <div class="empty">{{ 'common.empty' | t }}</div>
   } @else {
+    <section class="card card--table">
     <table>
       <thead>
         <tr>
@@ -62,6 +69,7 @@
         }
       </tbody>
     </table>
+    </section>
   }
 
   @if (resetTarget(); as target) {

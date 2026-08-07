@@ -3,9 +3,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 0.3rem;
-  padding-left: 0.2rem;
-  padding-right: 0.2rem;
 }
 
 .page-header h1 {
@@ -24,8 +21,9 @@
   font-variant-numeric: tabular-nums;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #474b52;
+  color: var(--paper);
   white-space: nowrap;
+  font-family: var(--ff-mono);
 }
 
 .modal-backdrop {
@@ -41,11 +39,11 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: min(32rem, calc(100vw - 2rem));
-  background: #fff;
-  border: 1px solid var(--border-soft);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
   border-radius: 18px;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
-  padding: 1.25rem;
+  padding: 0.6rem 1rem;
   display: grid;
   gap: 1rem;
   z-index: 31;
@@ -57,10 +55,10 @@
 }
 
 .modal-next-fight {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--c-border);
   border-radius: 14px;
   padding: 0.9rem;
-  background: #f8fafc;
+  background: var(--surface-muted);
   display: grid;
   gap: 0.45rem;
 }
@@ -87,7 +85,7 @@
 .fight-athlete-meta__club,
 .athlete-card__club {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--txt-dim);
   font-weight: 500;
 }
 
@@ -126,15 +124,15 @@
 }
 
 .fight-card {
-  border: 1px solid var(--border-soft);
-  border-radius: 18px;
-  background: #fff;
-  padding: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  padding: 0.6rem 1rem;
+  box-shadow: var(--shadow);
 }
 
 .fight-card--current {
-  border-color: #cfd7e3;
+  border-color: color-mix(in srgb, var(--aka) 28%, var(--c-border));
 }
 
 .fight-card__header {
@@ -164,6 +162,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+  font-family: var(--ff-disp);
 }
 
 .badge-bracket,
@@ -200,11 +199,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  border: 1px solid #d9dee5;
-  border-radius: 16px;
-  background: #ffffff;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
   color: var(--text-strong);
-  padding: 1rem;
+  padding: 0.6rem 1rem;
   min-height: 100%;
 }
 
@@ -270,9 +269,9 @@
   gap: 0.15rem;
   min-height: 4.9rem;
   padding: 0.7rem 0.5rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-muted);
-  background: #f8fafc;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
   color: var(--text-medium);
 }
 
@@ -281,6 +280,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-family: var(--ff-disp);
 }
 
 .athlete-score-counter strong {
@@ -328,10 +328,10 @@
   grid-template-columns: 1fr auto;
   gap: 0.5rem;
   align-items: center;
-  border: 1px solid #eef1f4;
-  border-radius: 12px;
-  padding: 0.45rem 0.55rem;
-  background: #fafbfc;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  background: var(--surface-muted);
 }
 
 .score-row__label {
@@ -387,14 +387,15 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  font-family: var(--ff-disp);
 }
 
 .fight-vs {
   display: grid;
   place-items: center;
   min-height: 58px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--surface-muted) 0%, color-mix(in srgb, var(--surface-muted) 70%, var(--c-surface)) 100%);
   color: var(--text-strong);
   font-size: 1.9rem;
   font-weight: 900;
@@ -438,10 +439,10 @@
 .osae-card {
   display: grid;
   gap: 0.65rem;
-  border: 1px solid var(--border-muted);
-  border-radius: 14px;
-  padding: 0.85rem;
-  background: #f8fafc;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  background: var(--surface-muted);
 }
 
 .osae-card__header {
@@ -479,6 +480,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  padding: 0.6rem 1rem;
 }
 
 .upcoming-list__header {
@@ -493,8 +495,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #374151;
+  color: var(--txt);
   margin: 0;
+  font-family: var(--ff-disp);
 }
 
 .upcoming-list__count {
@@ -505,8 +508,8 @@
   height: 1.6rem;
   padding: 0 0.4rem;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--surface-muted);
+  color: var(--txt);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -578,11 +581,11 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  background: #fff1f1;
-  color: #991b1b;
-  border: 1px solid #f4c3c3;
-  border-radius: 12px;
-  padding: 0.65rem 0.85rem;
+  background: color-mix(in srgb, var(--aka) 10%, var(--c-surface));
+  color: var(--aka-deep);
+  border: 1px solid color-mix(in srgb, var(--aka) 28%, var(--c-border));
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
 }
 
 .btn-close {

@@ -1,45 +1,63 @@
-<section class="page-header">
-  <h1>{{ 'combatOverview.title' | t }}</h1>
-  <button class="btn btn--secondary" (click)="load()" [disabled]="loading()">
-    {{ 'combatOverview.refresh' | t }}
-  </button>
-</section>
+<section class="main-page">
+  <section class="card section-panel">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.combatOverview.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.combatOverview.text' | t }}</p>
+    </header>
+  </section>
 
-@if (!context.tournamentId()) {
-  <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
-} @else {
-  @if (error()) {
-    <p class="error-hint">{{ error() }}</p>
-  }
+  <section class="page-header">
+    <button class="btn btn--secondary" (click)="load()" [disabled]="loading()">
+      {{ 'combatOverview.refresh' | t }}
+    </button>
+  </section>
 
-  <div class="filter-bar">
-    <label>
-      {{ 'combatOverview.filter.category' | t }}
-      <select [ngModel]="selectedCategoryId()" (ngModelChange)="selectedCategoryId.set($event)">
-        <option value="">{{ 'combatOverview.filter.all' | t }}</option>
-        @for (option of categoryFilters(); track option.id) {
-          <option [value]="option.id">{{ option.name }}</option>
-        }
-      </select>
-    </label>
-    <label>
-      {{ 'combatOverview.filter.tatami' | t }}
-      <select [ngModel]="selectedTatamiId()" (ngModelChange)="selectedTatamiId.set($event)">
-        <option value="">{{ 'combatOverview.filter.all' | t }}</option>
-        @for (option of tatamiFilters(); track option.id) {
-          <option [value]="option.id">{{ option.name }}</option>
-        }
-      </select>
-    </label>
-    <span class="result-count">{{ 'combatOverview.count' | t: { n: filteredFights().length } }}</span>
-  </div>
-
-  @if (loading()) {
-    <p class="loading-hint">{{ 'common.loading' | t }}</p>
-  } @else if (filteredFights().length === 0) {
-    <p class="info-hint">{{ 'combatOverview.empty' | t }}</p>
+  @if (!context.tournamentId()) {
+    <section class="card card-pad">
+      <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
+    </section>
   } @else {
-    <table class="overview-table">
+    @if (error()) {
+      <section class="card card-pad">
+        <p class="error-hint">{{ error() }}</p>
+      </section>
+    }
+
+    <section class="card">
+      <div class="filter-bar card-pad">
+        <label>
+          <span class="component-label">{{ 'combatOverview.filter.category' | t }}</span>
+          <select [ngModel]="selectedCategoryId()" (ngModelChange)="selectedCategoryId.set($event)">
+            <option value="">{{ 'combatOverview.filter.all' | t }}</option>
+            @for (option of categoryFilters(); track option.id) {
+              <option [value]="option.id">{{ option.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span class="component-label">{{ 'combatOverview.filter.tatami' | t }}</span>
+          <select [ngModel]="selectedTatamiId()" (ngModelChange)="selectedTatamiId.set($event)">
+            <option value="">{{ 'combatOverview.filter.all' | t }}</option>
+            @for (option of tatamiFilters(); track option.id) {
+              <option [value]="option.id">{{ option.name }}</option>
+            }
+          </select>
+        </label>
+        <span class="result-count component-label">{{ 'combatOverview.count' | t: { n: filteredFights().length } }}</span>
+      </div>
+    </section>
+
+    @if (loading()) {
+      <section class="card card-pad">
+        <p class="loading-hint">{{ 'common.loading' | t }}</p>
+      </section>
+    } @else if (filteredFights().length === 0) {
+      <section class="card card-pad">
+        <p class="info-hint">{{ 'combatOverview.empty' | t }}</p>
+      </section>
+    } @else {
+      <section class="card card--table">
+      <table class="overview-table">
       <thead>
         <tr>
           <th class="col-toggle"></th>
@@ -213,6 +231,8 @@
           }
         }
       </tbody>
-    </table>
+      </table>
+      </section>
+    }
   }
-}
+</section>

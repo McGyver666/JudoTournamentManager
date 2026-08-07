@@ -1,41 +1,44 @@
 .tab-bar {
   display: flex;
   gap: 0.25rem;
-  border-bottom: 2px solid var(--color-border, #ddd);
-  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--c-border);
 }
 
 .tab-btn {
-  padding: 0.5rem 1.25rem;
-  border: none;
+  padding: 0.6rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
   background: transparent;
   cursor: pointer;
-  font-size: 0.95rem;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--ff-disp);
 }
 
 .tab-btn.active {
-  border-bottom-color: var(--color-primary, #1565c0);
+  border-color: var(--aka);
   font-weight: 600;
-  color: var(--color-primary, #1565c0);
+  color: var(--paper);
+  background: color-mix(in srgb, var(--aka) 18%, transparent);
 }
 
 .provisional-hint {
   font-style: italic;
-  color: #888;
+  color: var(--txt-dim);
   font-size: 0.85rem;
-  margin-bottom: 1rem;
+  margin: 0;
 }
 
 .category-block { margin-bottom: 2rem; }
 
 .category-title {
-  font-size: 1.05rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
-  border-left: 4px solid var(--color-primary, #1565c0);
-  padding-left: 0.5rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--ff-disp);
 }
 
 .ranking-table,
@@ -52,9 +55,19 @@
 .medal-table td,
 .club-table th,
 .club-table td {
-  padding: 0.45rem 0.75rem;
-  border-bottom: 1px solid var(--color-border, #eee);
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--c-border);
   text-align: left;
+}
+
+.ranking-table th,
+.medal-table th,
+.club-table th {
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--txt-dim);
 }
 
 .col-place { width: 3rem; text-align: center; }
@@ -68,12 +81,13 @@
 .silver { color: #757575; font-weight: 700; }
 .bronze { color: #bf360c; font-weight: 700; }
 
-.btn--secondary { background: #e0e0e0; border: none; padding: 0.4rem 0.9rem; border-radius: var(--radius); cursor: pointer; }
 
-.loading-hint, .info-hint { color: #999; font-style: italic; font-size: 0.9rem; }
+.btn--secondary { background: var(--surface-muted); border: 1px solid var(--c-border); padding: 0.6rem 1rem; border-radius: var(--radius); cursor: pointer; }
+
+.loading-hint, .info-hint { color: var(--txt-dim); font-style: italic; font-size: 0.9rem; margin: 0; }
 
 .club-block {
-  margin-top: 1.5rem;
+  margin-top: 0;
 }
 
 .club-header {
@@ -81,14 +95,23 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin: 0;
+}
+
+.club-header h2,
+.age-group-header h3 {
+  margin: 0;
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
 }
 
 .age-group-card {
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  padding: 0.75rem;
-  margin-bottom: 1rem;
+  padding: 0;
+  margin: 0;
 }
 
 .age-group-header {
@@ -100,7 +123,6 @@
 
 .age-group-header h3 {
   margin: 0;
-  font-size: 1rem;
 }
 
 .status-badge {
@@ -122,8 +144,8 @@
 }
 
 .progress-text {
-  margin: 0 0 0.75rem;
-  color: #666;
+  margin: 0;
+  color: var(--txt-dim);
   font-size: 0.85rem;
 }
 
