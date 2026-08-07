@@ -11,7 +11,7 @@ import { QrLicenseScannerComponent } from './qr-license-scanner.component';
 
 /**
  * Registration management for the active tournament: register athletes to
- * categories, remove registrations and download the registration list as CSV.
+ * categories and remove registrations.
  */
 @Component({
   selector: 'app-registrations',
@@ -368,15 +368,6 @@ export class RegistrationsComponent implements OnInit {
       next: () => this.registrations.update((list) => list.filter((x) => x.id !== r.id)),
       error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.delete'))),
     });
-  }
-
-  protected exportCsv(): void {
-    const id = this.tournamentId;
-    if (!id) {
-      return;
-    }
-    // Direct navigation triggers the browser's download of the CSV file.
-    window.location.href = this.api.registrationsExportUrl(id);
   }
 
   protected weightLabel(kg: number | null): string {

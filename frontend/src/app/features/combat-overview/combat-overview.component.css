@@ -3,23 +3,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .page-header h1 {
   margin: 0;
   font-size: 1.5rem;
+  color: var(--paper);
 }
 
 .error-hint {
   color: var(--c-danger);
   font-weight: 600;
+  margin: 0;
 }
 
 .info-hint,
 .loading-hint {
   color: var(--text-muted);
   font-style: italic;
+  margin: 0;
 }
 
 .filter-bar {
@@ -27,19 +29,18 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .filter-bar label {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.4rem;
-  font-size: 0.9rem;
-  color: var(--text-medium);
+  margin: 0;
+  min-width: min(16rem, 100%);
 }
 
 .filter-bar select {
-  padding: 0.35rem 0.5rem;
+  padding: 0.6rem 1rem;
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   background: var(--c-surface);
@@ -48,7 +49,6 @@
 .result-count {
   margin-left: auto;
   color: var(--text-muted);
-  font-size: 0.9rem;
 }
 
 .overview-table {
@@ -62,7 +62,7 @@
 
 .overview-table th,
 .overview-table td {
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 1rem;
   text-align: left;
   border-bottom: 1px solid var(--c-border);
   vertical-align: top;
@@ -70,10 +70,11 @@
 
 .overview-table thead th {
   background: var(--surface-muted);
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
   color: var(--text-medium);
+  font-family: var(--ff-disp);
 }
 
 .col-toggle {
@@ -143,6 +144,9 @@
   margin: 0 0 0.4rem;
   font-size: 0.85rem;
   color: var(--text-medium);
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .detail-block dl {
@@ -186,6 +190,9 @@
   margin: 0 0 0.25rem;
   font-size: 0.85rem;
   color: var(--text-medium);
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .edit-side label {
@@ -214,6 +221,9 @@
   font-size: 0.85rem;
   color: var(--text-medium);
   font-weight: 600;
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .radio-label {

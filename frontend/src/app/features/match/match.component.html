@@ -1,18 +1,25 @@
-<section class="page-header">
-  <h1>{{ 'match.title' | t }}</h1>
-  <div class="page-header__status">
-    @if (!hubConnected()) {
-      <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
-    }
-    <span class="page-header__clock">{{ currentTimeLabel() }}</span>
-  </div>
-</section>
+<section class="main-page">
+  <section class="card section-panel">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.match.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.match.text' | t }}</p>
+    </header>
+  </section>
 
-@if (!context.tournamentId()) {
-  <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
-} @else {
+  <section class="page-header">
+    <div class="page-header__status">
+      @if (!hubConnected()) {
+        <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
+      }
+      <span class="page-header__clock">{{ currentTimeLabel() }}</span>
+    </div>
+  </section>
+
+  @if (!context.tournamentId()) {
+    <section class="card card-pad"><p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p></section>
+  } @else {
   @if (errorMessage(); as err) {
-    <div class="error-banner" role="alert">
+    <div class="error-banner card" role="alert">
       {{ err }}
       <button class="btn-close" (click)="clearError()">✕</button>
     </div>
@@ -58,7 +65,7 @@
   @if (selectedTatamiId()) {
     <div class="queue-panel">
       @if (currentFight(); as fight) {
-        <section class="fight-card fight-card--current">
+        <section class="fight-card fight-card--current card">
           <div class="fight-card__header">
             <div class="fight-card__meta">
               <span class="badge-bracket">{{ fight.bracketType === 'Repechage' ? ('match.repechage' | t) : ('match.mainBracket' | t) }}</span>
@@ -227,10 +234,10 @@
           </div>
         </section>
       } @else {
-        <p class="info-hint">{{ 'match.noCurrentFight' | t }}</p>
+        <section class="card card-pad"><p class="info-hint">{{ 'match.noCurrentFight' | t }}</p></section>
       }
 
-      <section class="upcoming-list">
+      <section class="upcoming-list card">
         <div class="upcoming-list__header">
           <h2 class="upcoming-list__title">{{ 'match.upcomingFights' | t }}</h2>
           <span class="upcoming-list__count">{{ upcomingFights().length }}</span>
@@ -296,11 +303,12 @@
             </div>
           </div>
         } @empty {
-          <p class="info-hint">{{ 'match.noUpcomingFights' | t }}</p>
+          <div class="card-pad"><p class="info-hint">{{ 'match.noUpcomingFights' | t }}</p></div>
         }
       </section>
     </div>
   } @else {
-    <p class="info-hint">{{ 'common.select' | t }}: {{ 'tatamiAssignment.tatami' | t }}</p>
+    <section class="card card-pad"><p class="info-hint">{{ 'common.select' | t }}: {{ 'tatamiAssignment.tatami' | t }}</p></section>
   }
 }
+</section>

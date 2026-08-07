@@ -1,7 +1,9 @@
 <section class="auth-wrap">
   <div class="auth-card">
-    <h1>{{ 'auth.loginTitle' | t }}</h1>
-    <p>{{ 'auth.loginSubtitle' | t }}</p>
+    <header class="section-head">
+      <h2 class="section-head__title">{{ 'auth.loginTitle' | t }}</h2>
+      <p class="section-head__text">{{ 'auth.loginSubtitle' | t }}</p>
+    </header>
 
     <form (ngSubmit)="submit()">
       @if (error()) {

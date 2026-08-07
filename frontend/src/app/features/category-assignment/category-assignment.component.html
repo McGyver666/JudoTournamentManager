@@ -1,8 +1,15 @@
+<section class="main-page">
 @if (!tournamentId) {
   <div class="empty">{{ 'tournaments.none' | t }}</div>
 } @else {
+  <section class="card section-panel">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.categoryAssignment.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.categoryAssignment.text' | t }}</p>
+    </header>
+  </section>
+
   <div class="toolbar">
-    <h1>{{ 'categoryAssignment.title' | t }}</h1>
     <button class="primary" (click)="autoAssign()" [disabled]="autoAssigning() || registrations().length === 0">
       @if (autoAssigning()) {
         {{ 'common.loading' | t }}
@@ -13,11 +20,11 @@
   </div>
 
   @if (error()) {
-    <p class="error">{{ error() }}</p>
+    <section class="card card-pad"><p class="error">{{ error() }}</p></section>
   }
 
   @if (autoAssignResult(); as result) {
-    <div class="card" style="background: var(--color-surface, #f8f9fa); margin-bottom: 1rem;">
+    <div class="card card-pad">
       <strong>{{ 'categoryAssignment.autoAssignResult' | t }}</strong>
       {{ result.assignedCount }} {{ 'categoryAssignment.assigned' | t }},
       {{ result.unassignedCount }} {{ 'categoryAssignment.unassignedCount' | t }}
@@ -25,15 +32,17 @@
   }
 
   @if (loading()) {
-    <p class="muted">{{ 'common.loading' | t }}</p>
+    <section class="card card-pad"><p class="muted">{{ 'common.loading' | t }}</p></section>
   } @else if (registrations().length === 0) {
     <div class="empty">{{ 'categoryAssignment.noRegistrations' | t }}</div>
   } @else {
 
     <!-- Unassigned athletes -->
     @if (unassigned().length > 0) {
-      <div class="card" style="border-left: 4px solid var(--color-warning, #f59e0b);">
-        <h2>{{ 'categoryAssignment.unassigned' | t }} ({{ unassigned().length }})</h2>
+      <div class="card card--table">
+        <div class="card-pad">
+          <h2>{{ 'categoryAssignment.unassigned' | t }} ({{ unassigned().length }})</h2>
+        </div>
         <table>
           <thead>
             <tr>
@@ -69,19 +78,19 @@
     <!-- Assigned by category -->
     @for (cat of categories(); track cat.id) {
       @if ((grouped().get(cat.id)?.length ?? 0) > 0 || true) {
-        <div class="card" style="margin-bottom: 1rem;">
-          <div class="toolbar" style="margin-bottom: 0.5rem;">
-            <h2 style="margin: 0;">
+        <div class="card card--table">
+          <div class="toolbar card-pad">
+            <h2>
               {{ cat.name }}
               @if (ageBoundsLabel(cat)) {
-                <span class="muted" style="font-size:0.85em; font-weight:normal;"> · {{ ageBoundsLabel(cat) }}</span>
+                <span class="muted"> · {{ ageBoundsLabel(cat) }}</span>
               }
-              <span class="muted" style="font-size:0.85em; font-weight:normal;"> · {{ weightLabel(cat.weightClassKg) }}</span>
+              <span class="muted"> · {{ weightLabel(cat.weightClassKg) }}</span>
             </h2>
             <span class="badge">{{ (grouped().get(cat.id)?.length ?? 0) }} {{ 'categoryAssignment.athletes' | t }}</span>
           </div>
           @if ((grouped().get(cat.id)?.length ?? 0) === 0) {
-            <p class="muted" style="margin:0;">{{ 'categoryAssignment.noAthletes' | t }}</p>
+            <div class="card-pad"><p class="muted">{{ 'categoryAssignment.noAthletes' | t }}</p></div>
           } @else {
             <table>
               <thead>
@@ -118,3 +127,4 @@
     }
   }
 }
+</section>

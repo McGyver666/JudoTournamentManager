@@ -4,6 +4,18 @@
   z-index: 5;
 }
 
+.weigh-panel h2 {
+  margin: 0 0 0.6rem;
+}
+
+.weigh-panel label {
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--txt-dim);
+}
+
 .weigh-layout {
   display: grid;
   grid-template-columns: minmax(360px, 2.2fr) minmax(240px, 1fr);
@@ -33,7 +45,7 @@
 .athlete-list {
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--c-surface);
   padding: 0.2rem;
   max-height: 13.4rem;
   min-height: 13.4rem;
@@ -50,12 +62,12 @@
 }
 
 .athlete-list-item:hover {
-  background: #edf3fb;
+  background: color-mix(in srgb, var(--aka) 8%, var(--surface-muted));
 }
 
 .athlete-list-item.active {
-  background: #dce9f9;
-  border: 1px solid #b8d1f2;
+  background: color-mix(in srgb, var(--aka) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aka) 32%, var(--c-border));
 }
 
 .no-matches {
@@ -71,8 +83,8 @@
 .selected-athlete {
   border: 1px dashed var(--c-border);
   border-radius: var(--radius);
-  background: #f7f9fc;
-  padding: 0.55rem 0.65rem;
+  background: var(--surface-muted);
+  padding: 0.6rem 1rem;
   min-height: 2.2rem;
   display: flex;
   align-items: center;
@@ -97,7 +109,7 @@
   left: 50%;
   bottom: 1.1rem;
   transform: translateX(-50%);
-  background: #1e7d4d;
+  background: color-mix(in srgb, var(--c-success) 90%, black 10%);
   color: #fff;
   border-radius: 999px;
   padding: 0.5rem 1rem;

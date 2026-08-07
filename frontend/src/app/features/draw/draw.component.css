@@ -1,10 +1,10 @@
 .category-section {
   --bracket-fight-border: var(--c-border);
   --bracket-fight-bg: var(--c-surface);
-  --bracket-fight-number-bg: #eef1f5;
-  --bracket-fight-number-color: var(--c-muted);
+  --bracket-fight-number-bg: var(--surface-muted);
+  --bracket-fight-number-color: var(--txt-dim);
   --bracket-slot-border: var(--c-border);
-  --bracket-slot-white-accent: #d9dce1;
+  --bracket-slot-white-accent: var(--ink-line);
   --bracket-slot-blue-accent: var(--side-accent);
   --bracket-slot-white-color: inherit;
   --bracket-slot-blue-color: inherit;
@@ -20,14 +20,27 @@
 
 .category-section {
   margin-bottom: 1rem;
+  padding: 0.6rem 1rem;
 }
 
 .category-header {
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.category-section .toolbar {
+  margin: 0 0 0.75rem;
 }
 
 .category-header h2 {
   margin: 0;
+  font-family: var(--ff-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.9rem;
+}
+
+.locked-note {
+  margin: 0.25rem 0 0;
 }
 
 .category-controls {
@@ -51,7 +64,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 1.25rem;
+  padding: 0.6rem 1rem;
 }
 
 .next-step-card {
@@ -71,7 +84,7 @@
 
 .next-step-actions a {
   display: inline-block;
-  padding: 0.45rem 0.9rem;
+  padding: 0.6rem 1rem;
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   color: var(--c-text);
@@ -112,7 +125,7 @@
 
 .bracket-connectors path {
   fill: none;
-  stroke: #4b5563;
+  stroke: var(--paper-mut);
   stroke-width: 1.35;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -137,8 +150,9 @@
 .round h3 {
   font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
   color: var(--c-muted);
+  font-family: var(--ff-disp);
 }
 
 .fight {
@@ -199,11 +213,11 @@
 }
 
 .slot:hover {
-  background: #eef4fb;
+  background: color-mix(in srgb, var(--aka) 8%, var(--surface-muted));
 }
 
 .slot.selected {
-  background: #fff3cd;
+  background: color-mix(in srgb, var(--aka) 14%, transparent);
   font-weight: 600;
 }
 
@@ -223,17 +237,18 @@
 .standings-table th,
 .standings-table td {
   text-align: left;
-  padding: 0.4rem 0.6rem;
+  padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--c-border);
 }
 
 .standings-table th {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
   color: var(--c-muted);
-  background: #f7f9fb;
+  background: var(--surface-muted);
+  font-family: var(--ff-disp);
 }
 
 .standings-table td:first-child,
@@ -262,16 +277,17 @@
 /* ── Pool section card ────────────────────────────────────────────────────── */
 .pool-section {
   margin-bottom: 1.5rem;
-  padding: 1rem 1.25rem;
+  padding: 0.6rem 1rem;
 }
 
 .pool-title {
   font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   color: var(--c-muted);
   margin: 0 0 0.75rem;
+  font-family: var(--ff-disp);
 }
 
 .pool-fights {

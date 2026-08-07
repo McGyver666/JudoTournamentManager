@@ -1,5 +1,12 @@
+<section class="main-page">
+<section class="card section-panel">
+  <header class="section-head card-pad">
+    <h2 class="section-head__title">{{ 'sectionHeads.tournaments.title' | t }}</h2>
+    <p class="section-head__text">{{ 'sectionHeads.tournaments.text' | t }}</p>
+  </header>
+</section>
+
 <div class="toolbar">
-  <h1>{{ 'tournaments.title' | t }}</h1>
   <div class="toolbar-actions toolbar-actions-end">
     @if (isAdmin()) {
       <input #restoreInput type="file" accept="application/json,.json" style="display: none;" (change)="restoreFromFile($event)" />
@@ -12,14 +19,14 @@
 </div>
 
 @if (error()) {
-  <p class="error">{{ error() }}</p>
+  <section class="card card-pad"><p class="error">{{ error() }}</p></section>
 }
 @if (info()) {
-  <p class="muted">{{ info() }}</p>
+  <section class="card card-pad"><p class="muted">{{ info() }}</p></section>
 }
 
 @if (showForm() && canManage()) {
-  <div class="card">
+  <section class="card card-pad">
     <h2>{{ (editId() ? 'tournaments.edit' : 'tournaments.new') | t }}</h2>
     <div class="row">
       <div>
@@ -86,7 +93,7 @@
       <button (click)="cancel()">{{ 'common.cancel' | t }}</button>
       <button class="primary" (click)="save()">{{ 'common.save' | t }}</button>
     </div>
-  </div>
+  </section>
 }
 
 @if (loading()) {
@@ -94,6 +101,7 @@
 } @else if (tournaments().length === 0) {
   <div class="empty">{{ 'tournaments.empty' | t }}</div>
 } @else {
+  <section class="card card--table">
   <table>
     <thead>
       <tr>
@@ -191,4 +199,6 @@
       }
     </tbody>
   </table>
+  </section>
 }
+</section>

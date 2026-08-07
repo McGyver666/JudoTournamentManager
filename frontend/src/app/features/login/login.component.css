@@ -20,16 +20,9 @@
   box-shadow: var(--shadow);
 }
 
-.auth-card h1 {
-  margin: 0;
-  font-family: var(--ff-disp);
-  font-size: 1.35rem;
-  color: var(--paper);
-}
-
-.auth-card p {
-  margin: 0;
-  color: var(--c-muted);
+.auth-card .section-head {
+  border-bottom: 1px solid var(--c-border);
+  padding-bottom: 0.6rem;
 }
 
 .error {

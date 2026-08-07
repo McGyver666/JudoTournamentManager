@@ -1,219 +1,245 @@
-<section class="page-header">
-  <h1>{{ 'results.title' | t }}</h1>
-  <button class="btn btn--secondary no-print" (click)="printPage()">{{ 'results.print' | t }}</button>
-</section>
+<section class="main-page">
+  <section class="card section-panel">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.results.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.results.text' | t }}</p>
+    </header>
+  </section>
 
-@if (!context.tournamentId()) {
-  <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
-} @else {
-  <!-- Tab bar -->
-  <div class="tab-bar no-print">
-    <button class="tab-btn" [class.active]="activeTab() === 'rankings'" (click)="setTab('rankings')">
-      {{ 'results.tab.rankings' | t }}
-    </button>
-    <button class="tab-btn" [class.active]="activeTab() === 'medals'" (click)="setTab('medals')">
-      {{ 'results.tab.medals' | t }}
-    </button>
-    <button class="tab-btn" [class.active]="activeTab() === 'clubs'" (click)="setTab('clubs')">
-      {{ 'results.tab.clubScoring' | t }}
-    </button>
-  </div>
+  <section class="page-header">
+    <button class="btn btn--secondary no-print" (click)="printPage()">{{ 'results.print' | t }}</button>
+  </section>
 
-  <!-- Rankings tab -->
-  @if (activeTab() === 'rankings') {
-    <div class="rankings-section">
-      <p class="provisional-hint">{{ 'results.provisional' | t }}</p>
+  @if (!context.tournamentId()) {
+    <section class="card card-pad">
+      <p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p>
+    </section>
+  } @else {
+    <!-- Tab bar -->
+    <section class="card no-print">
+      <div class="tab-bar card-pad">
+        <button class="tab-btn" [class.active]="activeTab() === 'rankings'" (click)="setTab('rankings')">
+          {{ 'results.tab.rankings' | t }}
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'medals'" (click)="setTab('medals')">
+          {{ 'results.tab.medals' | t }}
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'clubs'" (click)="setTab('clubs')">
+          {{ 'results.tab.clubScoring' | t }}
+        </button>
+      </div>
+    </section>
 
-      @for (r of rankings(); track r.category.id) {
-        <div class="category-block">
-          <h2 class="category-title">{{ r.category.name }}</h2>
-          @if (r.loading) {
-            <p class="loading-hint">{{ 'common.loading' | t }}</p>
-          } @else if (r.entries.length === 0) {
-            <p class="info-hint">{{ 'results.noResults' | t }}</p>
-          } @else {
-            <table class="ranking-table">
-              <thead>
-                <tr>
-                  <th class="col-place">Platz</th>
-                  <th>{{ 'results.athlete' | t }}</th>
-                  <th>{{ 'results.club' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (e of r.entries; track e.athleteId) {
-                  <tr [class.podium-gold]="e.place === 1"
-                      [class.podium-silver]="e.place === 2"
-                      [class.podium-bronze]="e.place === 3">
-                    <td class="col-place">{{ placeLabel(e.place) }}</td>
-                    <td>{{ e.athleteName }}</td>
-                    <td>{{ e.clubName }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-        </div>
-      }
-    </div>
-  }
-
-  <!-- Medal table tab -->
-  @if (activeTab() === 'medals') {
-    <div class="medals-section">
-      <p class="provisional-hint">{{ 'results.provisional' | t }}</p>
-
-      @if (medalLoading()) {
-        <p class="loading-hint">{{ 'common.loading' | t }}</p>
-      } @else if (medalTable().length === 0) {
-        <p class="info-hint">{{ 'results.noResults' | t }}</p>
-      } @else {
-        <table class="medal-table">
-          <thead>
-            <tr>
-              <th>{{ 'results.club' | t }}</th>
-              <th class="medal-col">🥇</th>
-              <th class="medal-col">🥈</th>
-              <th class="medal-col">🥉</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (m of medalTable(); track m.clubId) {
-              <tr>
-                <td>{{ m.clubName }}</td>
-                <td class="medal-col gold">{{ m.gold }}</td>
-                <td class="medal-col silver">{{ m.silver }}</td>
-                <td class="medal-col bronze">{{ m.bronze }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
-    </div>
-  }
-
-  @if (activeTab() === 'clubs') {
-    <div class="clubs-section">
-      @if (clubScoringLoading()) {
-        <p class="loading-hint">{{ 'common.loading' | t }}</p>
-      } @else {
-        <section class="club-block">
-          <div class="club-header">
-            <h2>{{ 'results.clubScoring.byAgeGroup' | t }}</h2>
-          </div>
-
-          @if (ageGroupScoring().length === 0) {
-            <p class="info-hint">{{ 'results.noResults' | t }}</p>
-          } @else {
-            @for (group of ageGroupScoring(); track group.ageGroup) {
-              <article class="age-group-card">
-                <header class="age-group-header">
-                  <h3>{{ group.ageGroup }}</h3>
-                  <span class="status-badge" [class.status-badge--final]="group.status === 'Final'">
-                    {{ statusKey(group.status) | t }}
-                  </span>
-                </header>
-                <p class="progress-text">
-                  {{ 'results.clubScoring.progress' | t }}: {{ group.completedFights }} / {{ group.plannedFights }}
-                </p>
-
-                @if (group.clubs.length === 0) {
-                  <p class="info-hint">{{ 'results.noResults' | t }}</p>
-                } @else {
-                  <table class="club-table">
-                    <thead>
-                      <tr>
-                        <th class="col-place">{{ 'results.clubScoring.rank' | t }}</th>
-                        <th>{{ 'results.club' | t }}</th>
-                        <th class="num-col">1.</th>
-                        <th class="num-col">2.</th>
-                        <th class="num-col">3.</th>
-                        <th class="num-col">{{ 'results.clubScoring.basePoints' | t }}</th>
-                        <th class="num-col">{{ 'results.clubScoring.wins' | t }}</th>
-                        <th class="num-col">{{ 'results.clubScoring.fights' | t }}</th>
-                        <th class="num-col">{{ 'results.clubScoring.winRate' | t }}</th>
-                        <th class="num-col">{{ 'results.clubScoring.score' | t }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (entry of group.clubs; track entry.clubId) {
-                        <tr>
-                          <td class="col-place">{{ entry.rank }}.</td>
-                          <td>{{ entry.clubName }}</td>
-                          <td class="num-col">{{ entry.firstPlaces }}</td>
-                          <td class="num-col">{{ entry.secondPlaces }}</td>
-                          <td class="num-col">{{ entry.thirdPlaces }}</td>
-                          <td class="num-col">{{ entry.basePoints }}</td>
-                          <td class="num-col">{{ entry.wins }}</td>
-                          <td class="num-col">{{ entry.fights }}</td>
-                          <td class="num-col">{{ winRatePercent(entry) }}</td>
-                          <td class="num-col">{{ scoreValue(entry) }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                }
-              </article>
-            }
-          }
+    <!-- Rankings tab -->
+    @if (activeTab() === 'rankings') {
+      <div class="rankings-section main-page-grid">
+        <section class="card card-pad">
+          <p class="provisional-hint">{{ 'results.provisional' | t }}</p>
         </section>
 
-        <section class="club-block">
-          <div class="club-header">
-            <h2>{{ 'results.clubScoring.global' | t }}</h2>
-            @if (globalScoring(); as global) {
-              <span class="status-badge" [class.status-badge--final]="global.status === 'Final'">
-                {{ statusKey(global.status) | t }}
-              </span>
-            }
-          </div>
-
-          @if (globalScoring(); as global) {
-            <p class="progress-text">
-              {{ 'results.clubScoring.progress' | t }}: {{ global.completedFights }} / {{ global.plannedFights }}
-            </p>
-
-            @if (global.clubs.length === 0) {
-              <p class="info-hint">{{ 'results.noResults' | t }}</p>
+        @for (r of rankings(); track r.category.id) {
+          <section class="category-block card card--table">
+            <div class="card-pad">
+              <h2 class="category-title">{{ r.category.name }}</h2>
+            </div>
+            @if (r.loading) {
+              <div class="card-pad"><p class="loading-hint">{{ 'common.loading' | t }}</p></div>
+            } @else if (r.entries.length === 0) {
+              <div class="card-pad"><p class="info-hint">{{ 'results.noResults' | t }}</p></div>
             } @else {
-              <table class="club-table">
+              <table class="ranking-table">
                 <thead>
                   <tr>
-                    <th class="col-place">{{ 'results.clubScoring.rank' | t }}</th>
+                    <th class="col-place">Platz</th>
+                    <th>{{ 'results.athlete' | t }}</th>
                     <th>{{ 'results.club' | t }}</th>
-                    <th class="num-col">1.</th>
-                    <th class="num-col">2.</th>
-                    <th class="num-col">3.</th>
-                    <th class="num-col">{{ 'results.clubScoring.basePoints' | t }}</th>
-                    <th class="num-col">{{ 'results.clubScoring.wins' | t }}</th>
-                    <th class="num-col">{{ 'results.clubScoring.fights' | t }}</th>
-                    <th class="num-col">{{ 'results.clubScoring.winRate' | t }}</th>
-                    <th class="num-col">{{ 'results.clubScoring.score' | t }}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (entry of global.clubs; track entry.clubId) {
-                    <tr>
-                      <td class="col-place">{{ entry.rank }}.</td>
-                      <td>{{ entry.clubName }}</td>
-                      <td class="num-col">{{ entry.firstPlaces }}</td>
-                      <td class="num-col">{{ entry.secondPlaces }}</td>
-                      <td class="num-col">{{ entry.thirdPlaces }}</td>
-                      <td class="num-col">{{ entry.basePoints }}</td>
-                      <td class="num-col">{{ entry.wins }}</td>
-                      <td class="num-col">{{ entry.fights }}</td>
-                      <td class="num-col">{{ winRatePercent(entry) }}</td>
-                      <td class="num-col">{{ scoreValue(entry) }}</td>
+                  @for (e of r.entries; track e.athleteId) {
+                    <tr [class.podium-gold]="e.place === 1"
+                        [class.podium-silver]="e.place === 2"
+                        [class.podium-bronze]="e.place === 3">
+                      <td class="col-place">{{ placeLabel(e.place) }}</td>
+                      <td>{{ e.athleteName }}</td>
+                      <td>{{ e.clubName }}</td>
                     </tr>
                   }
                 </tbody>
               </table>
             }
-          } @else {
-            <p class="info-hint">{{ 'results.noResults' | t }}</p>
-          }
+          </section>
+        }
+      </div>
+    }
+
+    <!-- Medal table tab -->
+    @if (activeTab() === 'medals') {
+      <div class="medals-section main-page-grid">
+        <section class="card card-pad">
+          <p class="provisional-hint">{{ 'results.provisional' | t }}</p>
         </section>
-      }
-    </div>
+
+        @if (medalLoading()) {
+          <section class="card card-pad"><p class="loading-hint">{{ 'common.loading' | t }}</p></section>
+        } @else if (medalTable().length === 0) {
+          <section class="card card-pad"><p class="info-hint">{{ 'results.noResults' | t }}</p></section>
+        } @else {
+          <section class="card card--table">
+            <table class="medal-table">
+              <thead>
+                <tr>
+                  <th>{{ 'results.club' | t }}</th>
+                  <th class="medal-col">🥇</th>
+                  <th class="medal-col">🥈</th>
+                  <th class="medal-col">🥉</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of medalTable(); track m.clubId) {
+                  <tr>
+                    <td>{{ m.clubName }}</td>
+                    <td class="medal-col gold">{{ m.gold }}</td>
+                    <td class="medal-col silver">{{ m.silver }}</td>
+                    <td class="medal-col bronze">{{ m.bronze }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      </div>
+    }
+
+    @if (activeTab() === 'clubs') {
+      <div class="clubs-section main-page-grid">
+        @if (clubScoringLoading()) {
+          <section class="card card-pad"><p class="loading-hint">{{ 'common.loading' | t }}</p></section>
+        } @else {
+          <section class="club-block card">
+            <div class="club-header card-pad">
+              <h2>{{ 'results.clubScoring.byAgeGroup' | t }}</h2>
+            </div>
+
+            @if (ageGroupScoring().length === 0) {
+              <div class="card-pad"><p class="info-hint">{{ 'results.noResults' | t }}</p></div>
+            } @else {
+              <div class="card-pad main-page-grid">
+                @for (group of ageGroupScoring(); track group.ageGroup) {
+                  <article class="age-group-card card card--table">
+                    <header class="age-group-header card-pad">
+                      <h3>{{ group.ageGroup }}</h3>
+                      <span class="status-badge" [class.status-badge--final]="group.status === 'Final'">
+                        {{ statusKey(group.status) | t }}
+                      </span>
+                    </header>
+                    <div class="card-pad">
+                      <p class="progress-text">
+                        {{ 'results.clubScoring.progress' | t }}: {{ group.completedFights }} / {{ group.plannedFights }}
+                      </p>
+                    </div>
+
+                    @if (group.clubs.length === 0) {
+                      <div class="card-pad"><p class="info-hint">{{ 'results.noResults' | t }}</p></div>
+                    } @else {
+                      <table class="club-table">
+                        <thead>
+                          <tr>
+                            <th class="col-place">{{ 'results.clubScoring.rank' | t }}</th>
+                            <th>{{ 'results.club' | t }}</th>
+                            <th class="num-col">1.</th>
+                            <th class="num-col">2.</th>
+                            <th class="num-col">3.</th>
+                            <th class="num-col">{{ 'results.clubScoring.basePoints' | t }}</th>
+                            <th class="num-col">{{ 'results.clubScoring.wins' | t }}</th>
+                            <th class="num-col">{{ 'results.clubScoring.fights' | t }}</th>
+                            <th class="num-col">{{ 'results.clubScoring.winRate' | t }}</th>
+                            <th class="num-col">{{ 'results.clubScoring.score' | t }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (entry of group.clubs; track entry.clubId) {
+                            <tr>
+                              <td class="col-place">{{ entry.rank }}.</td>
+                              <td>{{ entry.clubName }}</td>
+                              <td class="num-col">{{ entry.firstPlaces }}</td>
+                              <td class="num-col">{{ entry.secondPlaces }}</td>
+                              <td class="num-col">{{ entry.thirdPlaces }}</td>
+                              <td class="num-col">{{ entry.basePoints }}</td>
+                              <td class="num-col">{{ entry.wins }}</td>
+                              <td class="num-col">{{ entry.fights }}</td>
+                              <td class="num-col">{{ winRatePercent(entry) }}</td>
+                              <td class="num-col">{{ scoreValue(entry) }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </article>
+                }
+              </div>
+            }
+          </section>
+
+          <section class="club-block card card--table">
+            <div class="club-header card-pad">
+              <h2>{{ 'results.clubScoring.global' | t }}</h2>
+              @if (globalScoring(); as global) {
+                <span class="status-badge" [class.status-badge--final]="global.status === 'Final'">
+                  {{ statusKey(global.status) | t }}
+                </span>
+              }
+            </div>
+
+            @if (globalScoring(); as global) {
+              <div class="card-pad">
+                <p class="progress-text">
+                  {{ 'results.clubScoring.progress' | t }}: {{ global.completedFights }} / {{ global.plannedFights }}
+                </p>
+              </div>
+
+              @if (global.clubs.length === 0) {
+                <div class="card-pad"><p class="info-hint">{{ 'results.noResults' | t }}</p></div>
+              } @else {
+                <table class="club-table">
+                  <thead>
+                    <tr>
+                      <th class="col-place">{{ 'results.clubScoring.rank' | t }}</th>
+                      <th>{{ 'results.club' | t }}</th>
+                      <th class="num-col">1.</th>
+                      <th class="num-col">2.</th>
+                      <th class="num-col">3.</th>
+                      <th class="num-col">{{ 'results.clubScoring.basePoints' | t }}</th>
+                      <th class="num-col">{{ 'results.clubScoring.wins' | t }}</th>
+                      <th class="num-col">{{ 'results.clubScoring.fights' | t }}</th>
+                      <th class="num-col">{{ 'results.clubScoring.winRate' | t }}</th>
+                      <th class="num-col">{{ 'results.clubScoring.score' | t }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (entry of global.clubs; track entry.clubId) {
+                      <tr>
+                        <td class="col-place">{{ entry.rank }}.</td>
+                        <td>{{ entry.clubName }}</td>
+                        <td class="num-col">{{ entry.firstPlaces }}</td>
+                        <td class="num-col">{{ entry.secondPlaces }}</td>
+                        <td class="num-col">{{ entry.thirdPlaces }}</td>
+                        <td class="num-col">{{ entry.basePoints }}</td>
+                        <td class="num-col">{{ entry.wins }}</td>
+                        <td class="num-col">{{ entry.fights }}</td>
+                        <td class="num-col">{{ winRatePercent(entry) }}</td>
+                        <td class="num-col">{{ scoreValue(entry) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            } @else {
+              <div class="card-pad"><p class="info-hint">{{ 'results.noResults' | t }}</p></div>
+            }
+          </section>
+        }
+      </div>
+    }
   }
-}
+</section>
