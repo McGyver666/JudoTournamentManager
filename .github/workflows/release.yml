@@ -21,6 +21,35 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          # Full history and tags are required so the build can derive the
+          # version from the most recent tag.
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            # Tagged release: use the tag verbatim without the leading 'v'.
+            version="${GITHUB_REF_NAME#v}"
+          else
+            # Untagged build: most recent tag plus the build number, no commit SHA.
+            last_tag="$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)"
+            version="${last_tag#v}+build.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${version}"
+
+      - name: Inject frontend version
+        shell: bash
+        run: |
+          cat > frontend/src/app/core/app-version.generated.ts <<EOF
+          // Generated at build time by the release workflow (.github/workflows/release.yml).
+          // The committed value is a local-development placeholder and is overwritten before
+          // each release build. Do not rely on it to identify a deployed release.
+          export const GENERATED_APP_VERSION = '${{ steps.version.outputs.version }}';
+          EOF
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -61,7 +90,8 @@ jobs:
             --output release/app \
             -p:UseAppHost=true \
             -p:DebugType=None \
-            -p:DebugSymbols=false
+            -p:DebugSymbols=false \
+            -p:Version="${{ steps.version.outputs.version }}"
 
           # Runtime data is deliberately empty; do not ship the repository's
           # development certificate or any local SQLite database.

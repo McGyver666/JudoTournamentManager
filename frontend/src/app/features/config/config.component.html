@@ -1,18 +1,19 @@
 @if (!tournamentId) {
   <div class="empty">{{ 'tournaments.none' | t }}</div>
 } @else {
-  <section class="config-shell">
-    <div class="toolbar config-toolbar">
-      <h1 class="config-title">{{ 'config.title' | t }}</h1>
-    </div>
+  <div class="toolbar config-toolbar">
+    <h1 class="config-title">{{ 'config.title' | t }}</h1>
+  </div>
 
-    <div class="tabs">
-      <button class="tab-btn" [class.active]="tab() === 'tatamis'" (click)="setTab('tatamis')">{{ 'config.tatamis' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'presets'" (click)="setTab('presets')">{{ 'config.presets' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'clubs'" (click)="setTab('clubs')">{{ 'config.clubs' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'athletes'" (click)="setTab('athletes')">{{ 'config.athletes' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn" [class.active]="tab() === 'tatamis'" (click)="setTab('tatamis')">{{ 'config.tatamis' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'presets'" (click)="setTab('presets')">{{ 'config.presets' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'clubs'" (click)="setTab('clubs')">{{ 'config.clubs' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'athletes'" (click)="setTab('athletes')">{{ 'config.athletes' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
+  </div>
+
+  <section class="card">
 
   @if (error()) {
     <p class="error">{{ error() }}</p>

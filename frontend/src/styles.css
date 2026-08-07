@@ -96,7 +96,7 @@
 
   /* --- legacy tokens redefined as aliases onto the dojo palette (bridge) --- */
   --c-bg: var(--sumi);
-  --c-surface: var(--ink-850);
+  --c-surface: linear-gradient(180deg, var(--ink-850), var(--ink-900));
   --c-border: var(--ink-line);
   --c-primary: var(--aka);
   --c-primary-dark: var(--aka-deep);
@@ -174,10 +174,32 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--c-bg);
   color: var(--c-text);
   font-family: var(--ff-ui);
   font-size: 15px;
+}
+
+/* Composed atmospheric page background (parity with the mockup's fixed .bg layer). */
+body {
+  background: var(--app-bg);
+  background-attachment: fixed;
+  background-color: var(--sumi);
+}
+
+/* Hinomaru rising-sun disc — second red layer over --app-bg (parity with the mockup's .bg::before). */
+body::before {
+  content: "";
+  position: fixed;
+  top: -180px;
+  right: -140px;
+  width: 620px;
+  height: 620px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(229, 53, 42, 0.2), rgba(229, 53, 42, 0.05) 60%, transparent 72%);
+  filter: blur(2px);
+  animation: shiaiBreathe 9s ease-in-out infinite;
 }
 
 h1,
@@ -264,16 +286,18 @@ table {
 th,
 td {
   text-align: left;
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--c-border);
 }
 
 th {
-  background: #eef1f5;
   font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.12em;
   color: var(--c-muted);
+  font-family: var(--ff-disp);
+  font-weight: 700;
+  font-size: 0.75rem;
 }
 
 tr:last-child td {
@@ -285,8 +309,13 @@ tr:last-child td {
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 1.25rem;
   margin-bottom: 1.25rem;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.28s, box-shadow 0.28s;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--aka) 40%, transparent);
+  box-shadow: var(--shadow-hover);
 }
 
 .row {
@@ -304,7 +333,7 @@ tr:last-child td {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin: 1rem;
   flex-wrap: wrap;
 }
 
@@ -370,7 +399,7 @@ tr:last-child td {
 .btn {
   padding: 0.55rem 0.9rem;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--radius);
   cursor: pointer;
   font-size: 0.86rem;
   font-weight: 700;
@@ -393,7 +422,7 @@ tr:last-child td {
 .btn--white { background: var(--surface-muted); color: var(--text-strong); border-color: var(--text-medium); }
 .btn--blue { background: var(--side-accent-soft); color: var(--side-accent); border-color: var(--side-accent); }
 .btn--confirm { padding: 0.65rem 0.8rem; }
-.btn--tiny { padding: 0.34rem 0.55rem; border-radius: 10px; font-size: 0.72rem; }
+.btn--tiny { padding: 0.34rem 0.55rem; border-radius: var(--radius); font-size: 0.72rem; }
 .btn--tiny.btn--positive { padding-left: 2rem; padding-right: 2rem; }
 .btn--positive { background: #f0fdf4; color: #166534; border-color: #3fb968; }
 .btn--negative { background: #fef2f2; color: #b91c1c; border-color: #df8383; }
@@ -647,6 +676,7 @@ app-display .standings-table th {color:var(--c-muted);font-size:.72rem;text-tran
    dojo — all decorative animation stops. Functional cues (setInterval-driven
    timers, live scores) are text, not CSS animation, so they stay readable. */
 @media (prefers-reduced-motion: reduce) {
+  body::before,
   .shiai-atmos__sun,
   .brand-mon::after,
   .timer-colon {

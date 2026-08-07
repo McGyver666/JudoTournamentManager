@@ -41,7 +41,7 @@
 .filter-bar select {
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--c-border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--c-surface);
 }
 
@@ -92,7 +92,7 @@
 }
 
 .fight-row:hover {
-  background: var(--side-accent-soft);
+  background: rgba(229, 53, 42, 0.05);
 }
 
 .chevron {

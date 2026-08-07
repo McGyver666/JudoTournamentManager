@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { AppComponent } from './app.component';
+import { APP_VERSION } from './core/app-info';
 import { ApiService } from './core/api.service';
 import { AuthStateService } from './core/auth-state.service';
 import { I18nService } from './core/i18n.service';
@@ -196,7 +197,7 @@ describe('AppComponent shell navigation', () => {
     const foot = el.querySelector('.shell-foot');
     expect(foot).not.toBeNull();
     const values = Array.from(el.querySelectorAll('.shell-foot .foot-val')).map((n) => n.textContent?.trim());
-    expect(values).toContain('0.9.0-mvp');
+    expect(values).toContain(APP_VERSION);
   });
 
   it('renders the offline-ready chip in the top bar', () => {
