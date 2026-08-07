@@ -68,7 +68,7 @@
 .silver { color: #757575; font-weight: 700; }
 .bronze { color: #bf360c; font-weight: 700; }
 
-.btn--secondary { background: #e0e0e0; border: none; padding: 0.4rem 0.9rem; border-radius: 4px; cursor: pointer; }
+.btn--secondary { background: #e0e0e0; border: none; padding: 0.4rem 0.9rem; border-radius: var(--radius); cursor: pointer; }
 
 .loading-hint, .info-hint { color: #999; font-style: italic; font-size: 0.9rem; }
 
@@ -86,7 +86,7 @@
 
 .age-group-card {
   border: 1px solid var(--color-border, #ddd);
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   padding: 0.75rem;
   margin-bottom: 1rem;
 }

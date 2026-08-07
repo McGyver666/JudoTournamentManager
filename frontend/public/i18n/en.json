@@ -1,6 +1,6 @@
 {
   "app.title": "SHIAI",
-  "app.subtitle": "Tournament Control",
+  "app.subtitle": "Tournament Manager",
   "app.offlineReady": "Offline-ready · SQLite",
   "app.tatamiCount": "{count} Tatami",
   "app.footHost": "Host",

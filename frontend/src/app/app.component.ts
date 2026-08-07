@@ -42,7 +42,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.displayTatamis().filter((tatami) => tatami.isActive));
   /** Sidebar footer + nav-badge metadata (shell parity with the design mockup). */
   protected readonly appVersion = APP_VERSION;
-  protected readonly appHost = typeof window !== 'undefined' ? window.location.host : '';
   /** Live nav-item count badges; null hides the badge (also offline-safe on error). */
   protected readonly tournamentCount = signal<number | null>(null);
   protected readonly categoryCount = signal<number | null>(null);

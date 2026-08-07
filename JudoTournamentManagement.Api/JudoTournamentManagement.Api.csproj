@@ -4,6 +4,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Overwritten by the release workflow (-p:Version=...). The committed value
+         is a local-development placeholder surfaced by the /api/version endpoint. -->
+    <Version>0.0.0-dev</Version>
+    <!-- Keep the informational version exactly equal to Version so the endpoint
+         returns a clean value instead of one with a '+<commit-sha>' suffix. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

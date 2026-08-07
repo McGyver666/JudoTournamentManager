@@ -44,7 +44,7 @@
   width: 100%;
   text-align: left;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: transparent;
   padding: 0.5rem 0.6rem;
 }

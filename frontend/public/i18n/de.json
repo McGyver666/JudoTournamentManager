@@ -1,6 +1,6 @@
 {
   "app.title": "SHIAI",
-  "app.subtitle": "Turnier-Leitstand",
+  "app.subtitle": "Turnier-Manager",
   "app.offlineReady": "Offline-bereit · SQLite",
   "app.tatamiCount": "{count} Tatami",
   "app.footHost": "Host",

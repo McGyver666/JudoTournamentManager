@@ -5,26 +5,12 @@
   [class.app-shell--drawer-open]="drawerOpen()">
   @if (showShell()) {
     <aside class="shell-sidebar">
-      <span class="shiai-atmos" aria-hidden="true">
-        <span class="shiai-atmos__sun"></span>
-        <span class="shiai-atmos__wave"></span>
-        <span class="shiai-atmos__grain"></span>
-      </span>
       <div class="shell-brand">
         <span class="brand-mon" aria-hidden="true">試</span>
         <div class="brand-text">
           <span class="brand-title">{{ 'app.title' | t }}</span>
           <span class="brand-sub">{{ 'app.subtitle' | t }}</span>
         </div>
-        <button
-          type="button"
-          class="rail-toggle"
-          (click)="toggleSidebar()"
-          [attr.aria-label]="'nav.toggleSidebar' | t"
-          [attr.aria-pressed]="sidebarCollapsed()"
-          [title]="'nav.toggleSidebar' | t">
-          <span aria-hidden="true">‹</span>
-        </button>
       </div>
 
       <nav class="shell-nav" [attr.aria-label]="'app.title' | t">
@@ -152,10 +138,15 @@
       </nav>
 
       <div class="shell-foot">
-        <span class="foot-row">
-          <span class="foot-key">{{ 'app.footHost' | t }}</span>
-          <span class="foot-val">{{ appHost }}</span>
-        </span>
+        <button
+          type="button"
+          class="rail-toggle"
+          (click)="toggleSidebar()"
+          [attr.aria-label]="'nav.toggleSidebar' | t"
+          [attr.aria-pressed]="sidebarCollapsed()"
+          [title]="'nav.toggleSidebar' | t">
+          <span aria-hidden="true">‹</span>
+        </button>
         <span class="foot-row">
           <span class="foot-key">{{ 'app.footVersion' | t }}</span>
           <span class="foot-val">{{ appVersion }}</span>
@@ -183,7 +174,7 @@
               <span>{{ t.venue }}</span>
             }
             @if (t.date) {
-              <span>{{ t.date | date: 'dd.MM.yyyy' }}</span>
+              <span>{{ t.date | date: 'd. MMMM yyyy' : undefined : language() }}</span>
             }
             @if (tatamiCount() > 0) {
               <span>{{ 'app.tatamiCount' | t: { count: tatamiCount() } }}</span>
@@ -194,26 +185,6 @@
 
       <span class="top-spacer"></span>
 
-      <span class="offline-chip" [title]="'app.offlineReady' | t">
-        <span class="offline-dot" aria-hidden="true"></span>
-        <span class="offline-chip-lbl">{{ 'app.offlineReady' | t }}</span>
-      </span>
-
-      @if (currentUser(); as u) {
-        <span class="top-user">
-          <span class="top-user-name">{{ u.userName }}</span>
-          <span class="top-user-role">{{ u.role }}</span>
-        </span>
-      }
-
-      <label class="lang-switch">
-        <span class="sr-only">{{ 'lang.label' | t }}</span>
-        <select [value]="language()" (change)="switchLanguage($event)">
-          <option value="de">{{ 'lang.de' | t }}</option>
-          <option value="en">{{ 'lang.en' | t }}</option>
-        </select>
-      </label>
-
       <button
         type="button"
         class="theme-toggle"
@@ -223,6 +194,21 @@
         [title]="'theme.toggle' | t">
         <span aria-hidden="true">{{ theme() === 'dark' ? '明' : '暗' }}</span>
       </button>
+
+      <label class="lang-switch">
+        <span class="sr-only">{{ 'lang.label' | t }}</span>
+        <select [value]="language()" (change)="switchLanguage($event)">
+          <option value="de">{{ 'lang.de' | t }}</option>
+          <option value="en">{{ 'lang.en' | t }}</option>
+        </select>
+      </label>
+
+      @if (currentUser(); as u) {
+        <span class="top-user">
+          <span class="top-user-name">{{ u.userName }}</span>
+          <span class="top-user-role">{{ u.role }}</span>
+        </span>
+      }
 
       @if (currentUser()) {
         <button type="button" class="logout-btn" (click)="logout()">{{ 'auth.logout' | t }}</button>
