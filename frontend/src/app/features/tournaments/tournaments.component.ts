@@ -21,6 +21,7 @@ type GuestShareTtl = 'midnight' | '4h' | '8h' | 'none';
   standalone: true,
   imports: [FormsModule, DatePipe, TranslatePipe],
   templateUrl: './tournaments.component.html',
+  styleUrl: './tournaments.component.css',
 })
 export class TournamentsComponent implements OnInit {
   private readonly api = inject(ApiService);
