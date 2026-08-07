@@ -166,21 +166,28 @@
         <span aria-hidden="true"></span>
       </button>
 
-      @if (context.tournament(); as t) {
-        <div class="top-tourney" title="{{ 'tournaments.selected' | t }}">
-          <span class="top-tourney-name">{{ t.name }}</span>
-          <span class="top-tourney-meta">
-            @if (t.venue) {
-              <span>{{ t.venue }}</span>
-            }
-            @if (t.date) {
-              <span>{{ t.date | date: 'd. MMMM yyyy' : undefined : language() }}</span>
-            }
-            @if (tatamiCount() > 0) {
-              <span>{{ 'app.tatamiCount' | t: { count: tatamiCount() } }}</span>
-            }
-          </span>
+      @if (!isAuthenticated()) {
+        <div class="top-tourney">
+          <span class="top-tourney-name">{{ 'app.brandName' | t }}</span>
+          <span class="top-tourney-meta"><span>{{ 'app.brandTagline' | t }}</span></span>
         </div>
+      } @else {
+        @if (context.tournament(); as t) {
+          <div class="top-tourney" title="{{ 'tournaments.selected' | t }}">
+            <span class="top-tourney-name">{{ t.name }}</span>
+            <span class="top-tourney-meta">
+              @if (t.venue) {
+                <span>{{ t.venue }}</span>
+              }
+              @if (t.date) {
+                <span>{{ t.date | date: 'd. MMMM yyyy' : undefined : language() }}</span>
+              }
+              @if (tatamiCount() > 0) {
+                <span>{{ 'app.tatamiCount' | t: { count: tatamiCount() } }}</span>
+              }
+            </span>
+          </div>
+        }
       }
 
       <span class="top-spacer"></span>

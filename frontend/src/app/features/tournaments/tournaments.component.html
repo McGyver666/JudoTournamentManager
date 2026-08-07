@@ -6,17 +6,24 @@
   </header>
 </section>
 
-<div class="toolbar">
-  <div class="toolbar-actions toolbar-actions-end">
-    @if (isAdmin()) {
-      <input #restoreInput type="file" accept="application/json,.json" style="display: none;" (change)="restoreFromFile($event)" />
-      <button (click)="openRestoreDialog(restoreInput)" [disabled]="restoring()">{{ 'tournaments.restore' | t }}</button>
-    }
-    @if (canManage()) {
-      <button class="primary" (click)="startCreate()">{{ 'tournaments.new' | t }}</button>
-    }
-  </div>
-</div>
+@if (isAdmin() || canManage()) {
+  <section class="card card-pad tournaments-command">
+    <div class="tournaments-command__copy">
+      <p class="tournaments-command__eyebrow">{{ 'common.actions' | t }}</p>
+      <h3>{{ 'tournaments.title' | t }}</h3>
+      <p class="muted">{{ 'sectionHeads.tournaments.text' | t }}</p>
+    </div>
+    <div class="tournaments-command__actions">
+      @if (isAdmin()) {
+        <input #restoreInput type="file" accept="application/json,.json" style="display: none;" (change)="restoreFromFile($event)" />
+        <button (click)="openRestoreDialog(restoreInput)" [disabled]="restoring()">{{ 'tournaments.restore' | t }}</button>
+      }
+      @if (canManage()) {
+        <button class="primary" (click)="startCreate()">{{ 'tournaments.new' | t }}</button>
+      }
+    </div>
+  </section>
+}
 
 @if (error()) {
   <section class="card card-pad"><p class="error">{{ error() }}</p></section>
@@ -101,7 +108,7 @@
 } @else if (tournaments().length === 0) {
   <div class="empty">{{ 'tournaments.empty' | t }}</div>
 } @else {
-  <section class="card card--table">
+  <section class="card card--table tournaments-table-card">
   <table>
     <thead>
       <tr>
@@ -116,7 +123,9 @@
       @for (t of tournaments(); track t.id) {
         <tr>
           <td>
-            {{ t.name }}
+            <div class="tournaments-table__name">
+              <span class="tournaments-table__name-text">{{ t.name }}</span>
+            </div>
             @if (isActive(t)) {
               <span class="badge">{{ 'tournaments.selected' | t }}</span>
             }
@@ -124,18 +133,27 @@
           <td>{{ t.date | date: 'dd.MM.yyyy' }}</td>
           <td>{{ t.venue }}</td>
           <td>{{ t.organizer }}</td>
-          <td>
-            <button (click)="select(t)" [disabled]="isActive(t)">{{ 'tournaments.open' | t }}</button>
-            @if (canManage()) {
-              <button (click)="toggleShare(t)" [class.active]="isShareOpen(t)">{{ 'share.action' | t }}</button>
-            }
-            @if (isAdmin()) {
-              <button (click)="backup(t)" [disabled]="isBackupBusy(t.id)">{{ 'tournaments.backup' | t }}</button>
-            }
-            @if (canManage()) {
-              <button (click)="startEdit(t)">{{ 'common.edit' | t }}</button>
-              <button class="danger" (click)="remove(t)">{{ 'common.delete' | t }}</button>
-            }
+          <td class="tournaments-table__actions">
+            <div class="row-actions">
+              <button class="primary row-actions__primary" (click)="select(t)" [disabled]="isActive(t)">{{ 'tournaments.open' | t }}</button>
+              @if (canManage() || isAdmin()) {
+                <details class="row-actions__menu">
+                  <summary>{{ 'common.actions' | t }}</summary>
+                  <div class="row-actions__menu-panel">
+                    @if (canManage()) {
+                      <button (click)="toggleShare(t)" [class.row-actions__toggle-active]="isShareOpen(t)">{{ 'share.action' | t }}</button>
+                    }
+                    @if (isAdmin()) {
+                      <button (click)="backup(t)" [disabled]="isBackupBusy(t.id)">{{ 'tournaments.backup' | t }}</button>
+                    }
+                    @if (canManage()) {
+                      <button (click)="startEdit(t)">{{ 'common.edit' | t }}</button>
+                      <button class="danger" (click)="remove(t)">{{ 'common.delete' | t }}</button>
+                    }
+                  </div>
+                </details>
+              }
+            </div>
           </td>
         </tr>
         @if (isShareOpen(t) && canManage()) {

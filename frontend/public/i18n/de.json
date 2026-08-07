@@ -1,6 +1,8 @@
 {
   "app.title": "SHIAI",
   "app.subtitle": "Turnier-Manager",
+  "app.brandName": "Judo Turnier Manager",
+  "app.brandTagline": "Unterstützt von Anfang bis Ende",
   "app.offlineReady": "Offline-bereit · SQLite",
   "app.tatamiCount": "{count} Tatami",
   "app.footHost": "Host",
@@ -331,8 +333,8 @@
 
   "auth.login": "Anmelden",
   "auth.logout": "Abmelden",
-  "auth.loginTitle": "Lokale Anmeldung",
-  "auth.loginSubtitle": "Bitte mit Ihrem lokalen Benutzerkonto anmelden.",
+  "auth.loginTitle": "Anmeldung",
+  "auth.loginSubtitle": "Bitte mit Ihrem Benutzerkonto anmelden.",
   "auth.userName": "Benutzername",
   "auth.password": "Passwort",
 
