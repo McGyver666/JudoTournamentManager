@@ -27,9 +27,9 @@
       <div>
         <label>{{ 'users.role' | t }}</label>
         <select [ngModel]="form().role" (ngModelChange)="updateRole($event)">
-          <option value="Admin">Admin</option>
-          <option value="Operator">Operator</option>
-          <option value="Display">Display</option>
+          <option value="Admin">{{ 'users.roleAdmin' | t }}</option>
+          <option value="Operator">{{ 'users.roleOperator' | t }}</option>
+          <option value="Display">{{ 'users.roleDisplay' | t }}</option>
         </select>
       </div>
       <div>
@@ -59,7 +59,7 @@
         @for (u of users(); track u.id) {
           <tr>
             <td>{{ u.userName }}</td>
-            <td>{{ u.role }}</td>
+            <td>{{ roleLabelKey(u.role) | t }}</td>
             <td>{{ (u.isActive ? 'common.yes' : 'common.no') | t }}</td>
             <td>
               <button (click)="toggleActive(u)">{{ u.isActive ? ('users.deactivate' | t) : ('users.activate' | t) }}</button>

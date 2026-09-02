@@ -1,4 +1,6 @@
 import { WritableSignal, signal } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeDe from '@angular/common/locales/de';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -10,6 +12,9 @@ import { I18nService } from './core/i18n.service';
 import { Tatami } from './core/models';
 import { ThemeService } from './core/theme.service';
 import { TournamentContextService } from './core/tournament-context.service';
+import { TournamentHubService } from './core/tournament-hub.service';
+
+registerLocaleData(localeDe);
 
 /**
  * Shell navigation tests (Category=UnitTest): role-gated entries render only
@@ -52,6 +57,7 @@ describe('AppComponent shell navigation', () => {
         { provide: AuthStateService, useValue: auth },
         { provide: I18nService, useValue: { translate: (key: string) => key, language: signal('de'), use: () => undefined } },
         { provide: ThemeService, useValue: { theme: signal('light'), toggle: () => undefined } },
+        { provide: TournamentHubService, useValue: { connected: signal(false) } },
         {
           provide: TournamentContextService,
           useValue: {
@@ -214,6 +220,6 @@ describe('AppComponent shell navigation', () => {
     const segments = Array.from(el.querySelectorAll('.top-tourney-meta > span')).map((n) => n.textContent?.trim());
     expect(segments.length).toBe(3);
     expect(segments).toContain('Sporthalle Nord');
-    expect(segments).toContain('06.08.2026');
+    expect(segments).toContain('06. August 2026');
   });
 });

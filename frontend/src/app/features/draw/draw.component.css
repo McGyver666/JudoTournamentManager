@@ -92,7 +92,7 @@
 
 .next-step-actions a.primary {
   background: var(--c-primary);
-  color: #fff;
+  color: var(--text-on-accent);
   border-color: var(--c-primary);
 }
 

@@ -110,10 +110,10 @@
   bottom: 1.1rem;
   transform: translateX(-50%);
   background: color-mix(in srgb, var(--c-success) 90%, black 10%);
-  color: #fff;
+  color: var(--text-on-accent);
   border-radius: 999px;
   padding: 0.5rem 1rem;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shadow);
   z-index: 50;
 }
 

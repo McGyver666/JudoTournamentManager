@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
+import { I18nService } from '../../core/i18n.service';
 import { SideThemeService } from '../../core/side-theme.service';
 import { TimeService } from '../../core/time.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
@@ -24,6 +25,7 @@ import {
   Club,
   Fight,
   FightSide,
+  FightStatus,
   ScoreType,
   Tatami,
   TatamiQueue,
@@ -48,6 +50,7 @@ interface WinnerConfirmationState {
 export class MatchComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthStateService);
+  private readonly i18n = inject(I18nService);
   protected readonly sideTheme = inject(SideThemeService);
   protected readonly context = inject(TournamentContextService);
   private readonly hub = inject(TournamentHubService);
@@ -292,7 +295,7 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.queue.set(q);
         this.restartTimer(q.current);
       },
-      error: () => this.errorMessage.set('Fehler beim Laden der Warteschlange.'),
+      error: () => this.errorMessage.set(this.i18n.translate('match.queueLoadFailed')),
     });
   }
 
@@ -693,10 +696,19 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   protected scoreLabel(scoreType: ScoreType): string {
     switch (scoreType) {
-      case 'Ippon': return 'Ippon';
-      case 'WazaAri': return 'Waza-ari';
-      case 'Yuko': return 'Yuko';
-      case 'Shido': return 'Shido';
+      case 'Ippon': return 'match.ippon';
+      case 'WazaAri': return 'match.wazaari';
+      case 'Yuko': return 'match.yuko';
+      case 'Shido': return 'match.shido';
+    }
+  }
+
+  protected statusLabelKey(status: FightStatus): string {
+    switch (status) {
+      case 'InProgress': return 'match.statusInProgress';
+      case 'Paused': return 'match.statusPaused';
+      case 'Completed': return 'match.statusCompleted';
+      default: return 'match.statusPending';
     }
   }
 

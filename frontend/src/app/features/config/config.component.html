@@ -16,7 +16,7 @@
     <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
   </div>
 
-  <section class="card">
+  <section class="card config-content">
 
   @if (error()) {
     <p class="error">{{ error() }}</p>

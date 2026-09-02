@@ -18,7 +18,7 @@
 .reset-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 18, 32, 0.45);
+  background: var(--overlay-bg);
   display: grid;
   place-items: center;
   z-index: 1000;

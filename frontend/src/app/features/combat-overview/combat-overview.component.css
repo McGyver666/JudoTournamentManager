@@ -93,7 +93,7 @@
 }
 
 .fight-row:hover {
-  background: rgba(229, 53, 42, 0.05);
+  background: color-mix(in srgb, var(--aka) 5%, transparent);
 }
 
 .chevron {

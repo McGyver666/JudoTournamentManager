@@ -3,7 +3,7 @@
 	color: var(--c-text);
 	min-height: 100vh;
 	padding: 1.25rem;
-	border-radius: 16px;
+	border-radius: var(--radius);
 	border: 1px solid var(--c-border);
 	box-shadow: var(--shadow);
 }
@@ -13,7 +13,7 @@
 	border: none;
 	border-radius: 0;
 	box-shadow: none;
-	background: #081a2f;
+	background: var(--display-bg);
 }
 
 .display-header {
@@ -33,7 +33,7 @@
 .display-meta {display:flex;gap:.65rem;align-items:center}
 
 .tatami-fullscreen {
-	background: linear-gradient(165deg, #081a2f 0%, #0d2743 46%, #12395d 100%);
+	background: linear-gradient(165deg, var(--display-bg) 0%, var(--display-bg-mid) 46%, var(--display-bg-end) 100%);
 	border: none;
 	border-radius: 0;
 	padding: 1.65rem 1.8rem;
@@ -51,9 +51,9 @@
 	gap:1.25rem;
 	min-height:clamp(7.5rem, 16vw, 11rem);
 }
-.tatami-fullscreen-tatami {margin:.2rem 0 .15rem;font-size:clamp(2.1rem,4.2vw,3.6rem);letter-spacing:.07em;text-transform:uppercase;color:#d5ebff}
-.tatami-fullscreen-category {font-size:clamp(1.5rem,3vw,2.325rem);color:#f4f9ff;font-weight:700}
-.fight-timer--xl {font-size:clamp(3.9rem,12vw,9rem);line-height:1;font-weight:900;letter-spacing:.08em;color:#f9fcff;justify-self:end;text-align:right}
+.tatami-fullscreen-tatami {margin:.2rem 0 .15rem;font-size:clamp(2.1rem,4.2vw,3.6rem);letter-spacing:.07em;text-transform:uppercase;color:#f3e9d8}
+.tatami-fullscreen-category {font-size:clamp(1.5rem,3vw,2.325rem);color:var(--display-text);font-weight:700}
+.fight-timer--xl {font-size:clamp(3.9rem,12vw,9rem);line-height:1;font-weight:900;letter-spacing:.08em;color:var(--display-text);justify-self:end;text-align:right}
 
 /* softened blinking separator — gentle fade, never below .55 opacity */
 .fight-timer--xl .timer-colon {
@@ -62,11 +62,11 @@
 }
 
 .fight-timer--golden {
-	color: #ffd700;
+	color: var(--shido);
 }
 
 .fight-timer--paused {
-	color: #aaa;
+	color: var(--display-text-muted);
 }
 
 .hold-timer,
@@ -87,10 +87,10 @@
 .hold-timer {
 	text-align: center;
 	padding: .35rem 1rem;
-	border-radius: 18px;
+	border-radius: var(--radius);
 	border: 2px solid var(--side-accent-soft);
-	background: rgba(25, 40, 60, 0.38);
-	color: #dcecff;
+	background: color-mix(in srgb, var(--display-bg) 72%, transparent);
+	color: var(--display-text-muted);
 	font-weight: 800;
 	letter-spacing: .04em;
 }
@@ -100,7 +100,7 @@
 }
 
 .hold-timer--white {
-	border-color: rgba(244, 249, 255, 0.72);
+	border-color: color-mix(in srgb, var(--display-text) 72%, transparent);
 }
 
 .hold-timer-label {
@@ -129,7 +129,7 @@
 }
 
 .hold-timer--white .hold-timer-value {
-	color: #f4f9ff;
+	color: var(--display-text);
 }
 
 .hold-timer-target {
@@ -141,31 +141,31 @@
 .tatami-scoreboard {display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 
 .tatami-athlete {
-	background: linear-gradient(180deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.05) 100%);
-	border: 1px solid rgba(206, 230, 255, 0.35);
-	border-radius: 14px;
+	background: linear-gradient(180deg, color-mix(in srgb, var(--display-text) 10%, transparent) 0%, color-mix(in srgb, var(--display-text) 5%, transparent) 100%);
+	border: 1px solid var(--display-border);
+	border-radius: var(--radius);
 	padding: 1.5rem;
 	display: flex;
 	flex-direction: column;
 	gap: .9rem;
-	color: #f3f8ff;
+	color: var(--display-text);
 }
 
-.tatami-athlete--blue {box-shadow:inset 0 0 0 2px var(--side-accent-soft);color:var(--side-accent-contrast)}
-.tatami-athlete--white {box-shadow:inset 0 0 0 2px rgba(227,236,247,.34)}
+.tatami-athlete--blue {box-shadow:inset 0 0 0 2px #f3e9d8;color:var(--side-accent-contrast)}
+.tatami-athlete--white {box-shadow:inset 0 0 0 2px #f3e9d8}
 .tatami-athlete-side {font-size:1.275rem;text-transform:uppercase;letter-spacing:.08em;color:var(--side-accent-muted)}
-.tatami-athlete--white .tatami-athlete-side {color:#ecf2fb}
+.tatami-athlete--white .tatami-athlete-side {color:var(--display-text)}
 .tatami-athlete-name {font-size:clamp(1.725rem,4.5vw,3.3rem);font-weight:800;line-height:1.1}
-.tatami-athlete-club {font-size:clamp(1.35rem,2.55vw,1.875rem);color:#d4dfed}
+.tatami-athlete-club {font-size:clamp(1.35rem,2.55vw,1.875rem);color:var(--display-text-muted)}
 .tatami-athlete--blue .tatami-athlete-club {color:var(--side-accent-contrast)}
 
 .tatami-counters {display:grid;grid-template-columns:1fr 1fr;gap:1.125rem}
 .tatami-counters--triple {grid-template-columns:1fr 1fr 1fr}
 
 .tatami-counter {
-	background: rgba(8, 24, 44, 0.36);
-	border: 1px solid rgba(206, 230, 255, 0.28);
-	border-radius: 10px;
+	background: color-mix(in srgb, var(--display-bg) 64%, transparent);
+	border: 1px solid color-mix(in srgb, var(--display-border) 80%, transparent);
+	border-radius: var(--radius);
 	padding: .975rem;
 	display: flex;
 	flex-direction: column;
@@ -175,46 +175,46 @@
 	min-height: 8rem;
 }
 
-.tatami-counter span {font-size:clamp(1.275rem,2.325vw,1.65rem);color:#dce8f8;text-transform:uppercase;letter-spacing:.06em}
+.tatami-counter span {font-size:clamp(1.275rem,2.325vw,1.65rem);color:var(--display-text-muted);text-transform:uppercase;letter-spacing:.06em}
 .tatami-counter strong {font-size:clamp(2.7rem,7.5vw,5.1rem);line-height:1;color:var(--side-accent-contrast)}
-.tatami-athlete--white .tatami-counter strong {color:#f4f9ff}
+.tatami-athlete--white .tatami-counter strong {color:var(--display-text)}
 
 .tatami-counter--ippon {
-	background: rgba(8, 24, 44, 0.36);
-	color: #f4f9ff;
+	background: color-mix(in srgb, var(--display-bg) 64%, transparent);
+	color: var(--display-text);
 }
 
 .tatami-counter--ippon-active {
-	background: linear-gradient(160deg,#fff8dc 0%,#f9d746 58%,#e6a700 100%);
-	border-color: rgba(255, 230, 140, 0.85);
-	color: #4a3000;
+	background: var(--score-highlight-bg);
+	border-color: var(--score-highlight-border);
+	color: var(--score-highlight);
 }
 
 .tatami-counter--ippon-active span,
 .tatami-counter--ippon-active strong {
-	color: #4a3000;
+	color: var(--score-highlight);
 }
 
-.tatami-athlete--white .tatami-counter--ippon-active strong {color:#4a3000}
+.tatami-athlete--white .tatami-counter--ippon-active strong {color:var(--score-highlight)}
 
-.tatami-shido-row {display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:clamp(1.5rem,3vw,2.175rem);color:#e8f1fc;margin-top:.2rem}
+.tatami-shido-row {display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:clamp(1.5rem,3vw,2.175rem);color:var(--display-text);margin-top:.2rem}
 .shido-bubbles--xl {gap:.5rem}
 .shido-bubble--xl {width:1.35rem;height:1.35rem;border-width:2px}
 .next-section--xl {margin-top:.2rem;padding-top:.9rem}
 .next-list--xl {gap:.7rem}
 .next-item--xl {
 	padding:1.125rem 1.35rem;
-	background:linear-gradient(135deg, rgba(11, 31, 54, 0.88) 0%, rgba(18, 56, 93, 0.84) 100%);
-	border:1px solid rgba(142, 197, 243, 0.55);
-	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+	background:linear-gradient(135deg, color-mix(in srgb, var(--display-bg) 88%, transparent) 0%, color-mix(in srgb, var(--display-bg-end) 84%, transparent) 100%);
+	border:1px solid color-mix(in srgb, var(--side-accent-muted) 55%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--display-text) 8%, transparent);
 }
 .next-section--xl .next-label {font-size:1.05rem}
 .next-section--xl .next-line {font-size:1.35rem}
-.next-section--xl .next-category {font-size:1.08rem;color:#dcecff}
-.next-section--xl .next-vs {color:#aac8e6}
+.next-section--xl .next-category {font-size:1.08rem;color:var(--display-text-muted)}
+.next-section--xl .next-vs {color:color-mix(in srgb, var(--display-text-muted) 78%, transparent)}
 .next-name--blue {color:var(--side-accent-contrast)}
-.next-name--white {color:#f4f9ff}
-.no-fight--xl {font-size:clamp(1.95rem,3.6vw,3rem);padding:1rem 0;color:#e8f2ff}
+.next-name--white {color:var(--display-text)}
+.no-fight--xl {font-size:clamp(1.95rem,3.6vw,3rem);padding:1rem 0;color:var(--display-text)}
 
 .active-categories-section {margin-top:1.25rem;border-top:1px solid var(--c-border);padding-top:1rem}
 .active-categories-title {margin:0 0 .75rem;font-size:1.1rem;letter-spacing:.02em;color:var(--txt)}
@@ -223,7 +223,7 @@
 .active-categories-card {
 	background: var(--c-surface);
 	border: 1px solid var(--c-border);
-	border-radius: 14px;
+	border-radius: var(--radius);
 	padding: 1rem;
 	box-shadow: var(--shadow);
 }
@@ -245,7 +245,7 @@
 	font-style: italic;
 	background: var(--surface-muted);
 	border: 1px dashed var(--c-border);
-	border-radius: 10px;
+	border-radius: var(--radius);
 	padding: .6rem .75rem;
 	margin: 0;
 }
@@ -282,11 +282,35 @@
 }
 
 @media (max-width:700px) {
-	.display-page {padding: .9rem; border-radius: 10px;}
+	.display-page {padding: .9rem; border-radius: var(--radius);}
 	.display-header {flex-direction:column;align-items:flex-start;gap:.65rem}
 }
 
 @media (max-width:1100px) {
+	.tatami-fullscreen-header {
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas: "meta timer" "hold hold";
+		min-height: auto;
+	}
+	.tatami-fullscreen-header > div:first-child {grid-area: meta}
+	.tatami-fullscreen-header > .hold-timer,
+	.tatami-fullscreen-header > .hold-timer-spacer {grid-area: hold; min-width: 0; width: 100%; min-height: 6rem}
+	.tatami-fullscreen-header > .hold-timer-spacer {display: none}
+	.tatami-fullscreen-header > .fight-timer--xl {grid-area: timer}
 	.tatami-scoreboard {grid-template-columns:1fr}
 	.fight-timer--xl {font-size:clamp(2.2rem,13vw,4.6rem)}
+}
+
+@media (max-width:700px) {
+	.tatami-fullscreen {padding: 1rem; gap: 1rem}
+	.tatami-fullscreen-header {
+		display: flex;
+		flex-wrap: wrap;
+		gap: .75rem;
+	}
+	.tatami-fullscreen-header > div:first-child {flex: 1 1 100%}
+	.tatami-fullscreen-header > .hold-timer,
+	.tatami-fullscreen-header > .hold-timer-spacer {min-height: 5.5rem}
+	.tatami-fullscreen-header > .fight-timer--xl {margin-left: auto}
+	.tatami-athlete {padding: 1rem}
 }

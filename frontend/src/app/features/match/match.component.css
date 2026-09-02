@@ -29,7 +29,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--overlay-bg);
   z-index: 30;
 }
 
@@ -41,8 +41,8 @@
   width: min(32rem, calc(100vw - 2rem));
   background: var(--c-surface);
   border: 1px solid var(--c-border);
-  border-radius: 18px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 0.6rem 1rem;
   display: grid;
   gap: 1rem;
@@ -56,7 +56,7 @@
 
 .modal-next-fight {
   border: 1px solid var(--c-border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 0.9rem;
   background: var(--surface-muted);
   display: grid;
@@ -94,17 +94,17 @@
   align-self: flex-start;
   margin-top: 0.1rem;
   padding: 0.08rem 0.35rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.74rem;
   font-weight: 600;
-  color: #374151;
-  background: var(--surface-muted);
+  color: var(--state-neutral);
+  background: var(--state-neutral-bg);
   font-variant-numeric: tabular-nums;
 }
 
 .fight-athlete-meta__last-fight--warning {
-  background: #ffedd5;
-  color: #9a3412;
+  background: var(--state-warning-bg);
+  color: var(--state-warning);
 }
 
 .modal-next-fight__empty {
@@ -174,8 +174,8 @@
 }
 
 .badge-bracket {
-  background: #eef6ff;
-  color: #0f4c81;
+  background: var(--state-info-bg);
+  color: var(--state-info);
 }
 
 .badge-status {
@@ -208,7 +208,7 @@
 }
 
 .athlete-card--white {
-  box-shadow: inset 0 0 0 1px rgba(107, 114, 128, 0.08);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--state-neutral) 8%, transparent);
 }
 
 .athlete-card--blue {
@@ -216,8 +216,8 @@
 }
 
 .athlete-card--winner {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+  border-color: var(--matcha);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--matcha) 12%, transparent);
 }
 
 .athlete-card__header {
@@ -290,13 +290,13 @@
 }
 
 .athlete-score-counter--ippon.athlete-score-counter--active {
-  background: linear-gradient(160deg, #fff8dc 0%, #f9d746 58%, #e6a700 100%);
-  border-color: rgba(255, 230, 140, 0.85);
-  color: #4a3000;
+  background: var(--score-highlight-bg);
+  border-color: var(--score-highlight-border);
+  color: var(--score-highlight);
 }
 
 .athlete-score-counter--ippon.athlete-score-counter--active strong {
-  color: #4a3000;
+  color: var(--score-highlight);
 }
 
 .athlete-card--blue .athlete-score-counter {
@@ -411,24 +411,24 @@
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
   background: var(--text-strong);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
 
 .timer--expired {
-  background: #c62828;
+  background: var(--aka-deep);
 }
 
 .timer--golden {
-  background: #f2c94c;
+  background: var(--shido);
   color: var(--text-strong);
 }
 
 .timer--paused {
-  background: #888;
-  color: #fff;
+  background: var(--state-neutral);
+  color: var(--text-on-accent);
 }
 
 .fight-controls {
@@ -528,8 +528,8 @@
   width: 1.9rem;
   height: 1.9rem;
   border-radius: 999px;
-  background: #1565c0;
-  color: #fff;
+  background: var(--aka);
+  color: var(--text-on-accent);
   font-weight: 700;
   font-size: 0.85rem;
 }

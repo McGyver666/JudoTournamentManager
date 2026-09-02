@@ -147,10 +147,16 @@
           [title]="'nav.toggleSidebar' | t">
           <span aria-hidden="true">‹</span>
         </button>
-        <span class="foot-row">
-          <span class="foot-key">{{ 'app.footVersion' | t }}</span>
-          <span class="foot-val">{{ appVersion }}</span>
-        </span>
+        <div class="foot-meta">
+          <span class="foot-row">
+            <span class="foot-key">{{ 'app.footHost' | t }}</span>
+            <span class="foot-val">{{ host }}</span>
+          </span>
+          <span class="foot-row">
+            <span class="foot-key">{{ 'app.footVersion' | t }}</span>
+            <span class="foot-val">{{ appVersion }}</span>
+          </span>
+        </div>
       </div>
     </aside>
 
@@ -180,7 +186,7 @@
                 <span>{{ t.venue }}</span>
               }
               @if (t.date) {
-                <span>{{ t.date | date: 'd. MMMM yyyy' : undefined : language() }}</span>
+                <span>{{ t.date | date: 'dd. MMMM yyyy' : undefined : language() }}</span>
               }
               @if (tatamiCount() > 0) {
                 <span>{{ 'app.tatamiCount' | t: { count: tatamiCount() } }}</span>
@@ -191,6 +197,19 @@
       }
 
       <span class="top-spacer"></span>
+
+      @if (isAuthenticated()) {
+        <div class="shell-status" aria-live="polite">
+          <span class="offline-chip">
+            <span class="offline-chip__mark" aria-hidden="true"></span>
+            {{ 'app.offlineReady' | t }}
+          </span>
+          <span class="live-badge" [class.live-badge--offline]="!hubConnected()">
+            <i aria-hidden="true"></i>
+            {{ (hubConnected() ? 'app.connectionLive' : 'app.connectionOffline') | t }}
+          </span>
+        </div>
+      }
 
       <button
         type="button"

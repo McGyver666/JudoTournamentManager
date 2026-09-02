@@ -42,7 +42,7 @@
                 <span class="fight-athlete-meta__club">{{ clubName }}</span>
               }
             </span>
-            <span>vs</span>
+            <span>{{ 'common.vs' | t }}</span>
             <span class="fight-athlete-meta">
               <span class="athlete--blue">{{ athleteName(nextFight.blueAthleteId) }}</span>
               @if (athleteClubName(nextFight.blueAthleteId); as clubName) {
@@ -69,7 +69,7 @@
           <div class="fight-card__header">
             <div class="fight-card__meta">
               <span class="badge-bracket">{{ fight.bracketType === 'Repechage' ? ('match.repechage' | t) : ('match.mainBracket' | t) }}</span>
-              <span class="fight-status">{{ fight.status }}</span>
+              <span class="fight-status">{{ statusLabelKey(fight.status) | t }}</span>
             </div>
             <div class="fight-card__timer">
               <span class="fight-card__timer-label">{{ (timerIsGoldenScore() ? 'match.goldenScoreTimer' : 'match.matchTimer') | t }}</span>
@@ -88,20 +88,20 @@
               </header>
               <div class="athlete-card__counters">
                 <div class="athlete-score-counter athlete-score-counter--ippon" [class.athlete-score-counter--active]="scoreCount(fight, 'white', 'Ippon') > 0">
-                  <span>Ippon</span>
+                  <span>{{ 'match.ippon' | t }}</span>
                   <strong>{{ scoreCount(fight, 'white', 'Ippon') }}</strong>
                 </div>
                 <div class="athlete-score-counter">
-                  <span>Waza-ari</span>
+                  <span>{{ 'match.wazaari' | t }}</span>
                   <strong>{{ scoreCount(fight, 'white', 'WazaAri') }}</strong>
                 </div>
                 <div class="athlete-score-counter">
-                  <span>Yuko</span>
+                  <span>{{ 'match.yuko' | t }}</span>
                   <strong>{{ scoreCount(fight, 'white', 'Yuko') }}</strong>
                 </div>
               </div>
               <div class="athlete-card__shido-row">
-                <span>Shido</span>
+                <span>{{ 'match.shido' | t }}</span>
                 <span class="shido-bubbles">
                   @for (slot of shidoSlots(); track slot) {
                     <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'white', 'Shido')"></span>
@@ -113,7 +113,7 @@
                 @for (scoreType of scoreTypes; track scoreType) {
                   <div class="score-row">
                     <div class="score-row__label">
-                      <span>{{ scoreLabel(scoreType) }}</span>
+                      <span>{{ scoreLabel(scoreType) | t }}</span>
                       @if (scoreType === 'Shido') {
                         <span class="shido-bubbles">
                           @for (slot of shidoSlots(); track slot) {
@@ -137,7 +137,7 @@
                 <span class="fight-context__meta">{{ 'draw.fight' | t: { n: fight.fightNumber } }}</span>
                 <span class="fight-context__meta">{{ 'draw.round' | t: { n: fight.round } }}</span>
               </div>
-              <div class="fight-vs">vs</div>
+              <div class="fight-vs">{{ 'common.vs' | t }}</div>
 
               <div class="fight-controls">
                 @if (fight.status === 'Pending') {
@@ -189,20 +189,20 @@
               </header>
               <div class="athlete-card__counters">
                 <div class="athlete-score-counter athlete-score-counter--ippon" [class.athlete-score-counter--active]="scoreCount(fight, 'blue', 'Ippon') > 0">
-                  <span>Ippon</span>
+                  <span>{{ 'match.ippon' | t }}</span>
                   <strong>{{ scoreCount(fight, 'blue', 'Ippon') }}</strong>
                 </div>
                 <div class="athlete-score-counter">
-                  <span>Waza-ari</span>
+                  <span>{{ 'match.wazaari' | t }}</span>
                   <strong>{{ scoreCount(fight, 'blue', 'WazaAri') }}</strong>
                 </div>
                 <div class="athlete-score-counter">
-                  <span>Yuko</span>
+                  <span>{{ 'match.yuko' | t }}</span>
                   <strong>{{ scoreCount(fight, 'blue', 'Yuko') }}</strong>
                 </div>
               </div>
               <div class="athlete-card__shido-row">
-                <span>Shido</span>
+                <span>{{ 'match.shido' | t }}</span>
                 <span class="shido-bubbles">
                   @for (slot of shidoSlots(); track slot) {
                     <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'blue', 'Shido')"></span>
@@ -214,7 +214,7 @@
                 @for (scoreType of scoreTypes; track scoreType) {
                   <div class="score-row">
                     <div class="score-row__label">
-                      <span>{{ scoreLabel(scoreType) }}</span>
+                      <span>{{ scoreLabel(scoreType) | t }}</span>
                       @if (scoreType === 'Shido') {
                         <span class="shido-bubbles">
                           @for (slot of shidoSlots(); track slot) {

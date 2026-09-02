@@ -10,6 +10,7 @@ import { AuthStateService } from './core/auth-state.service';
 import { ApiService } from './core/api.service';
 import { APP_VERSION } from './core/app-info';
 import { Tatami } from './core/models';
+import { TournamentHubService } from './core/tournament-hub.service';
 
 /**
  * Application shell: SHIAI left sidebar, slim top bar, active-tournament
@@ -28,6 +29,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly themeService = inject(ThemeService);
   private readonly auth = inject(AuthStateService);
   private readonly api = inject(ApiService);
+  private readonly hub = inject(TournamentHubService);
   private readonly router = inject(Router);
   protected readonly context = inject(TournamentContextService);
 
@@ -37,11 +39,13 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly canOperate = this.auth.canOperate;
   protected readonly currentUser = this.auth.user;
+  protected readonly hubConnected = this.hub.connected;
   protected readonly displayTatamis = signal<Tatami[]>([]);
   protected readonly activeTatamis = computed(() =>
     this.displayTatamis().filter((tatami) => tatami.isActive));
   /** Sidebar footer + nav-badge metadata (shell parity with the design mockup). */
   protected readonly appVersion = APP_VERSION;
+  protected readonly host = window.location.host;
   /** Live nav-item count badges; null hides the badge (also offline-safe on error). */
   protected readonly tournamentCount = signal<number | null>(null);
   protected readonly categoryCount = signal<number | null>(null);
