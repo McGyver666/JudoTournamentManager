@@ -2,9 +2,16 @@
   class="app-shell"
   [class.app-shell--bare]="!showShell()"
   [class.app-shell--collapsed]="sidebarCollapsed()"
-  [class.app-shell--drawer-open]="drawerOpen()">
+  [class.app-shell--drawer-open]="drawerOpen()"
+  (document:click)="closeUserMenu()"
+  (document:keydown.escape)="closeUserMenu()">
   @if (showShell()) {
-    <aside class="shell-sidebar">
+    <aside
+      class="shell-sidebar"
+      (mouseover)="showSidebarTooltip($event)"
+      (mouseout)="hideSidebarTooltip($event)"
+      (focusin)="showSidebarTooltip($event)"
+      (focusout)="hideSidebarTooltip($event)">
       <div class="shell-brand">
         <span class="brand-mon" aria-hidden="true">試</span>
         <div class="brand-text">
@@ -149,16 +156,22 @@
         </button>
         <div class="foot-meta">
           <span class="foot-row">
-            <span class="foot-key">{{ 'app.footHost' | t }}</span>
-            <span class="foot-val">{{ host }}</span>
-          </span>
-          <span class="foot-row">
             <span class="foot-key">{{ 'app.footVersion' | t }}</span>
             <span class="foot-val">{{ appVersion }}</span>
           </span>
         </div>
       </div>
     </aside>
+
+    @if (sidebarTooltip(); as tooltip) {
+      <div
+        class="sidebar-tooltip"
+        role="tooltip"
+        [style.left.px]="tooltip.left"
+        [style.top.px]="tooltip.top">
+        {{ tooltip.text }}
+      </div>
+    }
 
     <header class="shell-top">
       <button
@@ -200,10 +213,6 @@
 
       @if (isAuthenticated()) {
         <div class="shell-status" aria-live="polite">
-          <span class="offline-chip">
-            <span class="offline-chip__mark" aria-hidden="true"></span>
-            {{ 'app.offlineReady' | t }}
-          </span>
           <span class="live-badge" [class.live-badge--offline]="!hubConnected()">
             <i aria-hidden="true"></i>
             {{ (hubConnected() ? 'app.connectionLive' : 'app.connectionOffline') | t }}
@@ -221,23 +230,70 @@
         <span aria-hidden="true">{{ theme() === 'dark' ? '明' : '暗' }}</span>
       </button>
 
-      <label class="lang-switch">
-        <span class="sr-only">{{ 'lang.label' | t }}</span>
-        <select [value]="language()" (change)="switchLanguage($event)">
-          <option value="de">{{ 'lang.de' | t }}</option>
-          <option value="en">{{ 'lang.en' | t }}</option>
-        </select>
-      </label>
-
       @if (currentUser(); as u) {
-        <span class="top-user">
-          <span class="top-user-name">{{ u.userName }}</span>
-          <span class="top-user-role">{{ u.role }}</span>
-        </span>
-      }
+        <div class="top-user-menu" (click)="$event.stopPropagation()">
+          <span class="top-user">
+            <span class="top-user-name">{{ u.userName }}</span>
+            <span class="top-user-role">{{ u.role }}</span>
+          </span>
 
-      @if (currentUser()) {
-        <button type="button" class="logout-btn" (click)="logout()">{{ 'auth.logout' | t }}</button>
+          <button
+            type="button"
+            class="user-menu-toggle"
+            [attr.aria-label]="(userMenuOpen() ? 'userMenu.close' : 'userMenu.open') | t"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="userMenuOpen()"
+            aria-controls="user-settings-menu"
+            [title]="(userMenuOpen() ? 'userMenu.close' : 'userMenu.open') | t"
+            (click)="toggleUserMenu()">
+            <span class="user-menu-icon user-menu-icon--account" aria-hidden="true">人</span>
+            <span class="user-menu-icon user-menu-icon--settings" aria-hidden="true">⚙</span>
+          </button>
+
+          @if (userMenuOpen()) {
+            <div id="user-settings-menu" class="user-menu-panel" role="dialog" [attr.aria-label]="'userMenu.title' | t">
+              <strong class="user-menu-title">{{ 'userMenu.title' | t }}</strong>
+
+              <label class="user-menu-field">
+                <span>{{ 'userMenu.language' | t }}</span>
+                <select [value]="language()" (change)="switchLanguage($event)">
+                  <option value="de">{{ 'lang.de' | t }}</option>
+                  <option value="en">{{ 'lang.en' | t }}</option>
+                </select>
+              </label>
+
+              <div class="user-menu-field">
+                <span>{{ 'userMenu.colorTheme' | t }}</span>
+                <div class="theme-options" role="radiogroup" [attr.aria-label]="'userMenu.colorTheme' | t">
+                  <button
+                    type="button"
+                    class="theme-option"
+                    [class.theme-option--active]="theme() === 'light'"
+                    role="radio"
+                    [attr.aria-checked]="theme() === 'light'"
+                    (click)="setTheme('light')">
+                    <span class="theme-option-mark" aria-hidden="true">明</span>
+                    <span>{{ 'theme.light' | t }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="theme-option"
+                    [class.theme-option--active]="theme() === 'dark'"
+                    role="radio"
+                    [attr.aria-checked]="theme() === 'dark'"
+                    (click)="setTheme('dark')">
+                    <span class="theme-option-mark" aria-hidden="true">暗</span>
+                    <span>{{ 'theme.dark' | t }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <button type="button" class="user-menu-action" (click)="logout()">
+                {{ 'auth.logout' | t }}
+              </button>
+            </div>
+          }
+        </div>
       }
     </header>
 

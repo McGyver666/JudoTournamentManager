@@ -926,3 +926,32 @@ app-display .standings-table th {color:var(--c-muted);font-size:.72rem;text-tran
     animation: none !important;
   }
 }
+
+.sidebar-tooltip {
+  position: fixed;
+  z-index: 100;
+  max-width: calc(100vw - 1rem);
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius);
+  background: var(--panel-top);
+  color: var(--txt);
+  box-shadow: var(--shadow);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+  animation: sidebarTooltipIn 0.1s ease-out both;
+}
+
+@keyframes sidebarTooltipIn {
+  from {
+    opacity: 0;
+    transform: translate(-0.25rem, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}

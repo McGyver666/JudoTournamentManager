@@ -1,14 +1,10 @@
-<section class="users-page">
+<section class="main-page">
   <section class="card section-panel">
     <header class="section-head card-pad">
       <h2 class="section-head__title">{{ 'sectionHeads.users.title' | t }}</h2>
       <p class="section-head__text">{{ 'sectionHeads.users.text' | t }}</p>
     </header>
   </section>
-
-  <div class="toolbar">
-    <button (click)="load()">{{ 'common.reload' | t }}</button>
-  </div>
 
   @if (error()) {
     <section class="card card-pad"><p class="error">{{ error() }}</p></section>
@@ -17,7 +13,7 @@
     <section class="card card-pad"><p class="info">{{ info() }}</p></section>
   }
 
-  <div class="card create-form">
+  <div class="card card-pad create-form">
     <h2>{{ 'users.new' | t }}</h2>
     <div class="row">
       <div>
@@ -37,7 +33,9 @@
         <input type="password" [ngModel]="form().password" (ngModelChange)="updatePassword($event)" />
       </div>
     </div>
-    <button class="primary" [disabled]="saving()" (click)="createUser()">{{ 'common.create' | t }}</button>
+    <div class="form-actions">
+      <button class="primary" [disabled]="saving()" (click)="createUser()">{{ 'common.create' | t }}</button>
+    </div>
   </div>
 
   @if (loading()) {
@@ -62,8 +60,10 @@
             <td>{{ roleLabelKey(u.role) | t }}</td>
             <td>{{ (u.isActive ? 'common.yes' : 'common.no') | t }}</td>
             <td>
-              <button (click)="toggleActive(u)">{{ u.isActive ? ('users.deactivate' | t) : ('users.activate' | t) }}</button>
-              <button (click)="openResetPassword(u)">{{ 'users.resetPassword' | t }}</button>
+              <div class="user-actions">
+                <button (click)="toggleActive(u)">{{ u.isActive ? ('users.deactivate' | t) : ('users.activate' | t) }}</button>
+                <button (click)="openResetPassword(u)">{{ 'users.resetPassword' | t }}</button>
+              </div>
             </td>
           </tr>
         }

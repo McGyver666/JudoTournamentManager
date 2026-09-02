@@ -1,13 +1,18 @@
-.users-page {
-  display: grid;
-  gap: 1rem;
-}
-
 .create-form .row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  gap: 1rem;
+  margin-bottom: 0;
+}
+
+.create-form h2 {
+  margin: 0 0 0.75rem;
+}
+
+.user-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .info {

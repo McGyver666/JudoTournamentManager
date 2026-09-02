@@ -4,7 +4,7 @@ import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } fro
 import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/translate.pipe';
 import { I18nService, AppLanguage } from './core/i18n.service';
-import { ThemeService } from './core/theme.service';
+import { AppTheme, ThemeService } from './core/theme.service';
 import { TournamentContextService } from './core/tournament-context.service';
 import { AuthStateService } from './core/auth-state.service';
 import { ApiService } from './core/api.service';
@@ -45,7 +45,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.displayTatamis().filter((tatami) => tatami.isActive));
   /** Sidebar footer + nav-badge metadata (shell parity with the design mockup). */
   protected readonly appVersion = APP_VERSION;
-  protected readonly host = window.location.host;
   /** Live nav-item count badges; null hides the badge (also offline-safe on error). */
   protected readonly tournamentCount = signal<number | null>(null);
   protected readonly categoryCount = signal<number | null>(null);
@@ -54,8 +53,11 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly displayMenuOpen = signal(false);
   /** Expandable per-Tatami "Mattenrichter" (match) section in the sidebar. */
   protected readonly matchMenuOpen = signal(false);
+  /** Whether the authenticated user's settings popover is visible. */
+  protected readonly userMenuOpen = signal(false);
   /** Desktop rail: collapses the sidebar to a kanji-only glyph rail. */
   protected readonly sidebarCollapsed = signal(false);
+  protected readonly sidebarTooltip = signal<{ text: string; left: number; top: number } | null>(null);
   /** Narrow screens: off-canvas hamburger drawer with full labels. */
   protected readonly drawerOpen = signal(false);
   protected readonly showShell = signal(true);
@@ -130,8 +132,50 @@ export class AppComponent implements OnInit, OnDestroy {
     this.themeService.toggle();
   }
 
+  protected setTheme(theme: AppTheme): void {
+    this.themeService.use(theme);
+  }
+
+  protected toggleUserMenu(): void {
+    this.userMenuOpen.update((open) => !open);
+  }
+
+  protected closeUserMenu(): void {
+    this.userMenuOpen.set(false);
+  }
+
   protected toggleSidebar(): void {
     this.sidebarCollapsed.update((collapsed) => !collapsed);
+    this.sidebarTooltip.set(null);
+  }
+
+  protected showSidebarTooltip(event: Event): void {
+    if (!this.sidebarCollapsed()) {
+      return;
+    }
+
+    const target = this.tooltipTarget(event);
+    const text = target?.getAttribute('title');
+    if (!target || !text) {
+      return;
+    }
+
+    const bounds = target.getBoundingClientRect();
+    this.sidebarTooltip.set({
+      text,
+      left: bounds.right + 10,
+      top: bounds.top + bounds.height / 2,
+    });
+  }
+
+  protected hideSidebarTooltip(event: Event): void {
+    const target = this.tooltipTarget(event);
+    const relatedTarget = 'relatedTarget' in event ? event.relatedTarget : null;
+    if (target && relatedTarget instanceof Node && target.contains(relatedTarget)) {
+      return;
+    }
+
+    this.sidebarTooltip.set(null);
   }
 
   protected toggleDrawer(): void {
@@ -210,6 +254,7 @@ export class AppComponent implements OnInit, OnDestroy {
     // Any SPA navigation dismisses the mobile drawer so the shell isn't left
     // covering the routed page on narrow screens.
     this.closeDrawer();
+    this.closeUserMenu();
 
     this.showShell.set(!hideShell);
     if (hideShell) {
@@ -219,7 +264,14 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   protected async logout(): Promise<void> {
+    this.closeUserMenu();
     await this.auth.logout();
     await this.router.navigateByUrl('/login', { replaceUrl: true });
+  }
+
+  private tooltipTarget(event: Event): HTMLElement | null {
+    return event.target instanceof Element
+      ? event.target.closest<HTMLElement>('.nav-item[title], .rail-toggle[title]')
+      : null;
   }
 }

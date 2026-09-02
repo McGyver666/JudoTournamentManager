@@ -196,7 +196,7 @@ describe('AppComponent shell navigation', () => {
     expect(el.querySelector('a[href="/tatami-assignment"] .count')).toBeNull();
   });
 
-  it('renders the sidebar footer with the host and app version', () => {
+  it('renders the sidebar footer with the app version but no host', () => {
     configure();
     const el = render().nativeElement as HTMLElement;
 
@@ -204,13 +204,27 @@ describe('AppComponent shell navigation', () => {
     expect(foot).not.toBeNull();
     const values = Array.from(el.querySelectorAll('.shell-foot .foot-val')).map((n) => n.textContent?.trim());
     expect(values).toContain(APP_VERSION);
+    expect(values).not.toContain(window.location.host);
   });
 
-  it('renders the offline-ready chip in the top bar', () => {
+  it('shows a tooltip for collapsed sidebar navigation items', () => {
     configure();
-    const el = render().nativeElement as HTMLElement;
+    const fixture = render();
+    const component = fixture.componentInstance as unknown as { sidebarCollapsed: WritableSignal<boolean> };
+    component.sidebarCollapsed.set(true);
+    fixture.detectChanges();
 
-    expect(el.querySelector('.offline-chip')).not.toBeNull();
+    const item = fixture.nativeElement.querySelector('a[href="/tournaments"]') as HTMLElement;
+    item.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    fixture.detectChanges();
+
+    const tooltip = fixture.nativeElement.querySelector('.sidebar-tooltip');
+    expect(tooltip?.getAttribute('role')).toBe('tooltip');
+    expect(tooltip?.textContent?.trim()).toBe('nav.tournaments');
+
+    item.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: fixture.nativeElement }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.sidebar-tooltip')).toBeNull();
   });
 
   it('renders the tournament meta subline with venue, date and tatami count', () => {
@@ -221,5 +235,25 @@ describe('AppComponent shell navigation', () => {
     expect(segments.length).toBe(3);
     expect(segments).toContain('Sporthalle Nord');
     expect(segments).toContain('06. August 2026');
+  });
+
+  it('opens the user settings menu beside the username', () => {
+    configure();
+    const fixture = render();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.user-menu-panel')).toBeNull();
+
+    (el.querySelector('.user-menu-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.top-user-name')?.textContent?.trim()).toBe('M. Kaminski');
+    expect(el.querySelector('.user-menu-icon--account')?.textContent?.trim()).toBe('人');
+    expect(el.querySelector('.user-menu-icon--settings')?.textContent?.trim()).toBe('⚙');
+    expect(el.querySelector('.user-menu-chevron')).toBeNull();
+    expect(el.querySelector('.user-menu-panel')).not.toBeNull();
+    expect(el.querySelector('.user-menu-panel select')).not.toBeNull();
+    expect(el.querySelectorAll('.theme-option').length).toBe(2);
+    expect(el.querySelector('.user-menu-action')?.textContent?.trim()).toBe('auth.logout');
   });
 });

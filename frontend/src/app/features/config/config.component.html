@@ -70,8 +70,10 @@
               <td>{{ t.name }}</td>
               <td>{{ (t.isActive ? 'common.yes' : 'common.no') | t }}</td>
               <td>
-                <button (click)="editTatami(t)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteTatami(t)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editTatami(t)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteTatami(t)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }
@@ -341,8 +343,10 @@
               <td>{{ c.weightClassKg !== null ? ('-' + c.weightClassKg + ' kg') : ('categories.weightOpen' | t) }}</td>
               <td>{{ assignedAthleteCountByCategory()(c.id) }}</td>
               <td>
-                <button (click)="editCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }
@@ -404,8 +408,10 @@
               <td>{{ c.contactEmail ?? '' }}</td>
               <td>{{ c.contactPhone ?? '' }}</td>
               <td>
-                <button (click)="editClub(c)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteClub(c)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editClub(c)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteClub(c)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }
@@ -524,8 +530,10 @@
               <td>{{ a.weightKg }}</td>
               <td>{{ gradeLabel(a.grade) }}</td>
               <td>
-                <button (click)="editAthlete(a)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteAthlete(a)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editAthlete(a)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteAthlete(a)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }
