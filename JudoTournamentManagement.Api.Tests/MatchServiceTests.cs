@@ -308,6 +308,16 @@ public sealed class MatchServiceTests
         Assert.Null(resumed.PausedAtUtc);
         Assert.Null(resumed.OsaeKomiSide);
         Assert.Null(resumed.OsaeKomiStartedAtUtc);
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var entries = await ctx.AuditLogs
+                .AsNoTracking()
+                .Where(entry => entry.TournamentId == resumed.TournamentId)
+                .ToListAsync();
+            Assert.Contains(entries, entry => entry.Action == "FightPaused" && entry.EntityId == resumed.Id);
+            Assert.Contains(entries, entry => entry.Action == "FightResumed" && entry.EntityId == resumed.Id);
+        }
     }
 
     // ─── Scoring ──────────────────────────────────────────────────────────────
