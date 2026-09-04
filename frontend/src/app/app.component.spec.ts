@@ -275,8 +275,7 @@ describe('AppComponent shell navigation', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('.top-user-name')?.textContent?.trim()).toBe('M. Kaminski');
-    expect(el.querySelector('.user-menu-icon--account')?.textContent?.trim()).toBe('人');
-    expect(el.querySelector('.user-menu-icon--settings')?.textContent?.trim()).toBe('⚙');
+    expect(el.querySelector('.user-menu-icon')?.textContent?.trim()).toBe('設');
     expect(el.querySelector('.user-menu-chevron')).toBeNull();
     expect(el.querySelector('.user-menu-panel')).not.toBeNull();
     expect(el.querySelector('.user-menu-panel select')).not.toBeNull();

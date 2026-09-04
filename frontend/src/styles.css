@@ -253,6 +253,30 @@ html[data-theme="dark"] {
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ink-line);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--aka);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 html,
