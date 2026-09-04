@@ -6,15 +6,6 @@
     </header>
   </section>
 
-  <section class="page-header">
-    <div class="page-header__status">
-      @if (!hubConnected()) {
-        <span class="badge badge-offline">{{ 'match.offline' | t }}</span>
-      }
-      <span class="page-header__clock">{{ currentTimeLabel() }}</span>
-    </div>
-  </section>
-
   @if (!context.tournamentId()) {
     <section class="card card-pad"><p class="info-hint">{{ 'common.noTournamentSelected' | t }}</p></section>
   } @else {

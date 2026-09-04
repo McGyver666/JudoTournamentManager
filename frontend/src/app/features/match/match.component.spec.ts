@@ -177,4 +177,27 @@ describe('MatchComponent', () => {
 
     fixture.destroy();
   });
+
+  it('freezes the stopped Osae-Komi at the server mutation timestamp', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+
+    const startedAt = new Date('2026-09-04T10:00:00.000Z');
+    const activeHold = createFight({
+      status: 'InProgress',
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: startedAt.toISOString(),
+    });
+    const stoppedFight = createFight({
+      status: 'InProgress',
+      updatedAtUtc: new Date(startedAt.getTime() + 5_400).toISOString(),
+    });
+
+    (fixture.componentInstance as any).restartTimer(activeHold);
+    (fixture.componentInstance as any).restartTimer(stoppedFight);
+
+    expect((fixture.componentInstance as any).holdTimerLabel()).toBe('5.4s / 20s');
+
+    fixture.destroy();
+  });
 });

@@ -371,9 +371,10 @@ public sealed class MatchService : IMatchService
         if (fight.Status != InProgress || fight.OsaeKomiStartedAtUtc is not null) return MatchActionResult.InvalidState;
         if (!TryGetSide(side, out var whiteSide)) return MatchActionResult.InvalidState;
 
+        var now = DateTimeOffset.UtcNow;
         fight.OsaeKomiSide = whiteSide ? "White" : "Blue";
-        fight.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow;
-        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        fight.OsaeKomiStartedAtUtc = now;
+        fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         await BroadcastFightUpdatedAsync(fight);
@@ -390,7 +391,8 @@ public sealed class MatchService : IMatchService
         if (fight.OsaeKomiStartedAtUtc is null || fight.OsaeKomiSide is null) return MatchActionResult.InvalidState;
 
         // Capture hold duration and side before clearing the timer fields.
-        var holdSeconds = (int)Math.Ceiling((DateTimeOffset.UtcNow - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds);
+        var now = DateTimeOffset.UtcNow;
+        var holdSeconds = (int)Math.Ceiling((now - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds);
         var holderIsWhite = fight.OsaeKomiSide == "White";
 
         // Load tournament Osae-komi rule settings.
@@ -429,7 +431,7 @@ public sealed class MatchService : IMatchService
 
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
-        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        fight.UpdatedAtUtc = now;
 
         if (scoreToAward is not null)
         {
@@ -439,7 +441,7 @@ public sealed class MatchService : IMatchService
             if (scoreToAward == ScoreType.Ippon)
             {
                 fight.Status = Paused;
-                fight.PausedAtUtc = DateTimeOffset.UtcNow;
+                fight.PausedAtUtc = now;
             }
         }
 

@@ -17,15 +17,6 @@
   min-width: 0;
 }
 
-.page-header__clock {
-  font-variant-numeric: tabular-nums;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--paper);
-  white-space: nowrap;
-  font-family: var(--ff-mono);
-}
-
 .modal-backdrop {
   position: fixed;
   inset: 0;

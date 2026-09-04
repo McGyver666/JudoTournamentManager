@@ -658,7 +658,7 @@ tr:last-child td {
 
 .btn--primary { background: var(--aka); color: var(--text-on-accent); }
 .btn--primary:hover:not(:disabled) { background: var(--aka-deep); }
-.btn--secondary { background: var(--state-neutral-bg); color: var(--text-strong); }
+.btn--secondary { background: var(--state-neutral-bg); color: var(--text-strong); border-color: var(--txt-faint);}
 .btn--fight-start-stop { border-color: var(--c-border); min-height: 96px; }
 .btn--full { width: 100%; }
 .btn--white { background: var(--surface-muted); color: var(--text-strong); border-color: var(--text-medium); }
@@ -954,4 +954,24 @@ app-display .standings-table th {color:var(--c-muted);font-size:.72rem;text-tran
     opacity: 1;
     transform: translateY(-50%);
   }
+}
+
+.shell-top {
+  position: relative;
+}
+
+.shell-clock {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  align-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.page-header__clock {
+  color: var(--paper);
+  font-family: var(--ff-mono);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
 }
