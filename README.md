@@ -60,7 +60,7 @@ Already available:
 - authenticated server time endpoint for frontend clock synchronization (`GET /api/time`)
 - server-side match clock evaluator for timing-based fight and osae-komi decisions
 - osae-komi ippon immediately pauses the fight clock on the server
-- unit test project (350 passing tests, Category=UnitTest)
+- unit test project (352 passing tests, Category=UnitTest)
 - TLS/LAN operational stabilization and repeated field validation runs
 
 ## Architecture
