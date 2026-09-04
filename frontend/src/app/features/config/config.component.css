@@ -1,13 +1,35 @@
-.config-shell {
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  padding: 1rem;
-  box-shadow: var(--shadow);
-}
-
 .config-toolbar {
   margin-bottom: 1rem;
+}
+
+.config-content {
+  overflow: visible;
+  display: grid;
+  gap: 1rem;
+}
+
+.config-content > .card {
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  border-top: 1px solid var(--c-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.config-content > .toolbar {
+  margin: 0;
+}
+
+.config-content > .card > div {
+  margin-bottom: 0;
+}
+
+.config-content > .card:first-of-type {
+  border-top: 0;
 }
 
 .config-title {
@@ -33,7 +55,7 @@
 
 .tab-btn.active {
   background: var(--c-primary);
-  color: #fff;
+  color: var(--text-on-accent);
   border-color: var(--c-primary);
 }
 
@@ -42,7 +64,18 @@
   font-size: 1.1rem;
 }
 
+.toolbar > h2,
+.toolbar > .toolbar-actions {
+  min-width: 0;
+}
+
 .toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.table-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -70,7 +103,7 @@
 .checkbox-input {
   width: auto;
   min-width: 1rem;
-  accent-color: #1f5fae;
+  accent-color: var(--aka);
 }
 
 .form-actions {
@@ -87,13 +120,13 @@
 
 .generator-card h3 {
   margin-top: 0;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
 }
 
 .generator-warnings {
   margin-top: 0.75rem;
   border: 1px solid color-mix(in srgb, var(--c-warn) 35%, transparent);
-  background: color-mix(in srgb, var(--c-warn) 10%, #fff);
+  background: var(--state-warning-bg);
   border-radius: var(--radius);
   padding: 0.65rem 0.8rem;
 }
@@ -128,12 +161,22 @@
 }
 
 @media (max-width: 720px) {
-  .config-shell {
-    padding: 0.85rem;
-  }
-
   .tab-btn {
     padding: 0.4rem 0.75rem;
     font-size: 0.85rem;
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbar-actions,
+  .category-generate-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions > *,
+  .category-generate-actions > * {
+    flex: 1 1 10rem;
   }
 }

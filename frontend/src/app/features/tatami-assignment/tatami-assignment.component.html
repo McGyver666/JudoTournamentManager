@@ -1,17 +1,21 @@
+<section class="main-page">
 @if (!tournamentId) {
   <div class="empty">{{ 'tournaments.none' | t }}</div>
 } @else {
-  <div class="toolbar">
-    <h1>{{ 'tatamiAssignment.title' | t }}</h1>
-    <div class="toolbar-actions">
+  <section class="card section-panel">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.tatamiAssignment.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.tatamiAssignment.text' | t }}</p>
+    </header>
+  </section>
+
+  <div class="card assignment-summary-card">
+    <div class="toolbar-actions assignment-actions">
       <button class="primary" (click)="autoAssign()" [disabled]="!canOperate() || assigning() || assignableFightViews().length === 0">
         {{ 'tatamiAssignment.autoAssign' | t }}
       </button>
       <a routerLink="/match">{{ 'tatamiAssignment.openMatch' | t }}</a>
     </div>
-  </div>
-
-  <div class="card">
     <div class="row">
       <div>
         <label>{{ 'tatamiAssignment.activeTatamis' | t }}</label>
@@ -38,15 +42,15 @@
   </div>
 
   @if (error()) {
-    <p class="error">{{ error() }}</p>
+    <section class="card card-pad"><p class="error">{{ error() }}</p></section>
   }
 
   @if (info()) {
-    <p class="muted">{{ info() }}</p>
+    <section class="card card-pad"><p class="muted">{{ info() }}</p></section>
   }
 
   @if (loading()) {
-    <p class="muted">{{ 'common.loading' | t }}</p>
+    <section class="card card-pad"><p class="muted">{{ 'common.loading' | t }}</p></section>
   } @else if (categories().length === 0) {
     <div class="empty">
       {{ 'tatamiAssignment.noCategories' | t }}
@@ -60,7 +64,7 @@
   } @else if (assignableFightViews().length === 0) {
     <div class="empty">{{ 'tatamiAssignment.noAssignableFights' | t }}</div>
   } @else {
-    <div class="card">
+    <div class="card assignment-groups-card">
       <p class="muted">{{ 'tatamiAssignment.hint' | t }}</p>
       @for (group of groupedAssignableFightViews(); track group.categoryId) {
         <section class="category-group">
@@ -128,3 +132,4 @@
     </div>
   }
 }
+</section>

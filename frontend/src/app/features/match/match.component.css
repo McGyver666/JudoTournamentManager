@@ -3,9 +3,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 0.3rem;
-  padding-left: 0.2rem;
-  padding-right: 0.2rem;
 }
 
 .page-header h1 {
@@ -24,14 +21,15 @@
   font-variant-numeric: tabular-nums;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #474b52;
+  color: var(--paper);
   white-space: nowrap;
+  font-family: var(--ff-mono);
 }
 
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--overlay-bg);
   z-index: 30;
 }
 
@@ -41,11 +39,11 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: min(32rem, calc(100vw - 2rem));
-  background: #fff;
-  border: 1px solid var(--border-soft);
-  border-radius: 18px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
-  padding: 1.25rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 1rem;
   display: grid;
   gap: 1rem;
   z-index: 31;
@@ -57,10 +55,10 @@
 }
 
 .modal-next-fight {
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
   padding: 0.9rem;
-  background: #f8fafc;
+  background: var(--surface-muted);
   display: grid;
   gap: 0.45rem;
 }
@@ -87,7 +85,7 @@
 .fight-athlete-meta__club,
 .athlete-card__club {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--txt-dim);
   font-weight: 500;
 }
 
@@ -96,17 +94,17 @@
   align-self: flex-start;
   margin-top: 0.1rem;
   padding: 0.08rem 0.35rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.74rem;
   font-weight: 600;
-  color: #374151;
-  background: var(--surface-muted);
+  color: var(--state-neutral);
+  background: var(--state-neutral-bg);
   font-variant-numeric: tabular-nums;
 }
 
 .fight-athlete-meta__last-fight--warning {
-  background: #ffedd5;
-  color: #9a3412;
+  background: var(--state-warning-bg);
+  color: var(--state-warning);
 }
 
 .modal-next-fight__empty {
@@ -126,15 +124,15 @@
 }
 
 .fight-card {
-  border: 1px solid var(--border-soft);
-  border-radius: 18px;
-  background: #fff;
-  padding: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  padding: 0.6rem 1rem;
+  box-shadow: var(--shadow);
 }
 
 .fight-card--current {
-  border-color: #cfd7e3;
+  border-color: color-mix(in srgb, var(--aka) 28%, var(--c-border));
 }
 
 .fight-card__header {
@@ -164,6 +162,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+  font-family: var(--ff-disp);
 }
 
 .badge-bracket,
@@ -175,8 +174,8 @@
 }
 
 .badge-bracket {
-  background: #eef6ff;
-  color: #0f4c81;
+  background: var(--state-info-bg);
+  color: var(--state-info);
 }
 
 .badge-status {
@@ -200,16 +199,16 @@
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  border: 1px solid #d9dee5;
-  border-radius: 16px;
-  background: #ffffff;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
   color: var(--text-strong);
-  padding: 1rem;
+  padding: 0.6rem 1rem;
   min-height: 100%;
 }
 
 .athlete-card--white {
-  box-shadow: inset 0 0 0 1px rgba(107, 114, 128, 0.08);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--state-neutral) 8%, transparent);
 }
 
 .athlete-card--blue {
@@ -217,8 +216,8 @@
 }
 
 .athlete-card--winner {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+  border-color: var(--matcha);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--matcha) 12%, transparent);
 }
 
 .athlete-card__header {
@@ -270,9 +269,9 @@
   gap: 0.15rem;
   min-height: 4.9rem;
   padding: 0.7rem 0.5rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-muted);
-  background: #f8fafc;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
   color: var(--text-medium);
 }
 
@@ -281,6 +280,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-family: var(--ff-disp);
 }
 
 .athlete-score-counter strong {
@@ -290,13 +290,13 @@
 }
 
 .athlete-score-counter--ippon.athlete-score-counter--active {
-  background: linear-gradient(160deg, #fff8dc 0%, #f9d746 58%, #e6a700 100%);
-  border-color: rgba(255, 230, 140, 0.85);
-  color: #4a3000;
+  background: var(--score-highlight-bg);
+  border-color: var(--score-highlight-border);
+  color: var(--score-highlight);
 }
 
 .athlete-score-counter--ippon.athlete-score-counter--active strong {
-  color: #4a3000;
+  color: var(--score-highlight);
 }
 
 .athlete-card--blue .athlete-score-counter {
@@ -328,10 +328,10 @@
   grid-template-columns: 1fr auto;
   gap: 0.5rem;
   align-items: center;
-  border: 1px solid #eef1f4;
-  border-radius: 12px;
-  padding: 0.45rem 0.55rem;
-  background: #fafbfc;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  background: var(--surface-muted);
 }
 
 .score-row__label {
@@ -387,14 +387,15 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  font-family: var(--ff-disp);
 }
 
 .fight-vs {
   display: grid;
   place-items: center;
   min-height: 58px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--surface-muted) 0%, color-mix(in srgb, var(--surface-muted) 70%, var(--c-surface)) 100%);
   color: var(--text-strong);
   font-size: 1.9rem;
   font-weight: 900;
@@ -410,24 +411,24 @@
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
   background: var(--text-strong);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
 
 .timer--expired {
-  background: #c62828;
+  background: var(--aka-deep);
 }
 
 .timer--golden {
-  background: #f2c94c;
+  background: var(--shido);
   color: var(--text-strong);
 }
 
 .timer--paused {
-  background: #888;
-  color: #fff;
+  background: var(--state-neutral);
+  color: var(--text-on-accent);
 }
 
 .fight-controls {
@@ -438,10 +439,10 @@
 .osae-card {
   display: grid;
   gap: 0.65rem;
-  border: 1px solid var(--border-muted);
-  border-radius: 14px;
-  padding: 0.85rem;
-  background: #f8fafc;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  background: var(--surface-muted);
 }
 
 .osae-card__header {
@@ -479,6 +480,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  padding: 0.6rem 1rem;
 }
 
 .upcoming-list__header {
@@ -493,8 +495,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #374151;
+  color: var(--txt);
   margin: 0;
+  font-family: var(--ff-disp);
 }
 
 .upcoming-list__count {
@@ -505,8 +508,8 @@
   height: 1.6rem;
   padding: 0 0.4rem;
   border-radius: 999px;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--surface-muted);
+  color: var(--txt);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -525,8 +528,8 @@
   width: 1.9rem;
   height: 1.9rem;
   border-radius: 999px;
-  background: #1565c0;
-  color: #fff;
+  background: var(--aka);
+  color: var(--text-on-accent);
   font-weight: 700;
   font-size: 0.85rem;
 }
@@ -578,11 +581,11 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  background: #fff1f1;
-  color: #991b1b;
-  border: 1px solid #f4c3c3;
-  border-radius: 12px;
-  padding: 0.65rem 0.85rem;
+  background: color-mix(in srgb, var(--aka) 10%, var(--c-surface));
+  color: var(--aka-deep);
+  border: 1px solid color-mix(in srgb, var(--aka) 28%, var(--c-border));
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
 }
 
 .btn-close {

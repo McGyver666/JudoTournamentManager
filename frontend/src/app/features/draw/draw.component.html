@@ -1,8 +1,14 @@
 @if (!tournamentId) {
   <div class="empty">{{ 'tournaments.none' | t }}</div>
 } @else {
+  <section class="card section-panel">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.draw.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.draw.text' | t }}</p>
+    </header>
+  </section>
+
   <div class="toolbar">
-    <h1>{{ 'draw.title' | t }}</h1>
     <div class="toolbar-actions">
       <label>{{ 'draw.globalFormat' | t }}</label>
       <select [ngModel]="globalFormat()" (ngModelChange)="applyGlobalFormat($event)" name="globalFormat">
@@ -40,12 +46,12 @@
     <div class="empty">{{ 'draw.noCategories' | t }}</div>
   } @else {
     @for (cat of categories(); track cat.id) {
-      <div class="card category-section">
+      <div class="card category-section card-pad">
         <div class="toolbar category-header">
           <div>
             <h2>{{ cat.name }}</h2>
             @if (cat.isLocked) {
-              <p class="muted" style="margin:0.25rem 0 0;">{{ 'draw.locked' | t }}</p>
+              <p class="muted locked-note">{{ 'draw.locked' | t }}</p>
             }
           </div>
           <span class="badge">{{ fightsForCategory(cat.id).length }} {{ 'draw.fightsCount' | t }}</span>
@@ -53,7 +59,7 @@
 
         <div class="row category-controls">
           <div>
-            <label>{{ 'draw.format' | t }}</label>
+            <label class="component-label">{{ 'draw.format' | t }}</label>
             <select
               [ngModel]="categoryFormat(cat.id)"
               (ngModelChange)="setCategoryFormat(cat.id, $event)"

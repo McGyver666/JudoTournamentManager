@@ -1,44 +1,65 @@
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/translate.pipe';
 import { I18nService, AppLanguage } from './core/i18n.service';
+import { AppTheme, ThemeService } from './core/theme.service';
 import { TournamentContextService } from './core/tournament-context.service';
 import { AuthStateService } from './core/auth-state.service';
 import { ApiService } from './core/api.service';
+import { APP_VERSION } from './core/app-info';
 import { Tatami } from './core/models';
+import { TournamentHubService } from './core/tournament-hub.service';
 
 /**
- * Application shell: top navigation, active-tournament indicator and the
- * language switcher. All visible labels are resolved through the translation
- * pipe so the UI stays fully localizable.
+ * Application shell: SHIAI left sidebar, slim top bar, active-tournament
+ * indicator, theme toggle and the language switcher. All visible labels are
+ * resolved through the translation pipe so the UI stays fully localizable.
  */
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, DatePipe],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly i18n = inject(I18nService);
+  private readonly themeService = inject(ThemeService);
   private readonly auth = inject(AuthStateService);
   private readonly api = inject(ApiService);
+  private readonly hub = inject(TournamentHubService);
   private readonly router = inject(Router);
-  private readonly hostElement = inject(ElementRef<HTMLElement>);
   protected readonly context = inject(TournamentContextService);
 
   protected readonly language = this.i18n.language;
+  protected readonly theme = this.themeService.theme;
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly canOperate = this.auth.canOperate;
   protected readonly currentUser = this.auth.user;
+  protected readonly hubConnected = this.hub.connected;
   protected readonly displayTatamis = signal<Tatami[]>([]);
   protected readonly activeTatamis = computed(() =>
     this.displayTatamis().filter((tatami) => tatami.isActive));
+  /** Sidebar footer + nav-badge metadata (shell parity with the design mockup). */
+  protected readonly appVersion = APP_VERSION;
+  /** Live nav-item count badges; null hides the badge (also offline-safe on error). */
+  protected readonly tournamentCount = signal<number | null>(null);
+  protected readonly categoryCount = signal<number | null>(null);
+  protected readonly tatamiCount = computed(() => this.displayTatamis().length);
+  /** Expandable per-Tatami "Anzeigetafel" (display) section in the sidebar. */
   protected readonly displayMenuOpen = signal(false);
-  protected readonly tournamentleitungMenuOpen = signal(false);
-  protected readonly mattenrichterMenuOpen = signal(false);
+  /** Expandable per-Tatami "Mattenrichter" (match) section in the sidebar. */
+  protected readonly matchMenuOpen = signal(false);
+  /** Whether the authenticated user's settings popover is visible. */
+  protected readonly userMenuOpen = signal(false);
+  /** Desktop rail: collapses the sidebar to a kanji-only glyph rail. */
+  protected readonly sidebarCollapsed = signal(false);
+  protected readonly sidebarTooltip = signal<{ text: string; left: number; top: number } | null>(null);
+  /** Narrow screens: off-canvas hamburger drawer with full labels. */
+  protected readonly drawerOpen = signal(false);
   protected readonly showShell = signal(true);
   protected readonly routeTatamiId = signal<string | null>(null);
 
@@ -54,6 +75,39 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     const sub = this.loadTatamis(tournamentId);
+
+    onCleanup(() => sub.unsubscribe());
+  });
+
+  /** Loads the tournament-count badge whenever the user is authenticated. */
+  private readonly loadTournamentCountEffect = effect((onCleanup) => {
+    if (!this.isAuthenticated()) {
+      this.tournamentCount.set(null);
+      return;
+    }
+
+    const sub = this.api.getTournaments().subscribe({
+      next: (tournaments) => this.tournamentCount.set(tournaments.length),
+      error: () => this.tournamentCount.set(null),
+    });
+
+    onCleanup(() => sub.unsubscribe());
+  });
+
+  /** Loads the category-count badge for the active tournament. */
+  private readonly loadCategoryCountEffect = effect((onCleanup) => {
+    const tournamentId = this.context.tournamentId();
+    const authenticated = this.isAuthenticated();
+
+    if (!authenticated || !tournamentId) {
+      this.categoryCount.set(null);
+      return;
+    }
+
+    const sub = this.api.getCategories(tournamentId).subscribe({
+      next: (categories) => this.categoryCount.set(categories.length),
+      error: () => this.categoryCount.set(null),
+    });
 
     onCleanup(() => sub.unsubscribe());
   });
@@ -74,45 +128,84 @@ export class AppComponent implements OnInit, OnDestroy {
     this.i18n.use(value);
   }
 
+  protected toggleTheme(): void {
+    this.themeService.toggle();
+  }
+
+  protected setTheme(theme: AppTheme): void {
+    this.themeService.use(theme);
+  }
+
+  protected toggleUserMenu(): void {
+    this.userMenuOpen.update((open) => !open);
+  }
+
+  protected closeUserMenu(): void {
+    this.userMenuOpen.set(false);
+  }
+
+  protected toggleSidebar(): void {
+    this.sidebarCollapsed.update((collapsed) => !collapsed);
+    this.sidebarTooltip.set(null);
+  }
+
+  protected showSidebarTooltip(event: Event): void {
+    if (!this.sidebarCollapsed()) {
+      return;
+    }
+
+    const target = this.tooltipTarget(event);
+    const text = target?.getAttribute('title');
+    if (!target || !text) {
+      return;
+    }
+
+    const bounds = target.getBoundingClientRect();
+    this.sidebarTooltip.set({
+      text,
+      left: bounds.right + 10,
+      top: bounds.top + bounds.height / 2,
+    });
+  }
+
+  protected hideSidebarTooltip(event: Event): void {
+    const target = this.tooltipTarget(event);
+    const relatedTarget = 'relatedTarget' in event ? event.relatedTarget : null;
+    if (target && relatedTarget instanceof Node && target.contains(relatedTarget)) {
+      return;
+    }
+
+    this.sidebarTooltip.set(null);
+  }
+
+  protected toggleDrawer(): void {
+    this.drawerOpen.update((open) => !open);
+  }
+
+  protected closeDrawer(): void {
+    this.drawerOpen.set(false);
+  }
+
   protected toggleDisplayMenu(): void {
+    if (this.sidebarCollapsed()) {
+      this.sidebarCollapsed.set(false);
+    }
     const willOpen = !this.displayMenuOpen();
     this.displayMenuOpen.update((open) => !open);
     if (willOpen) {
       this.refreshTatamis();
-      this.tournamentleitungMenuOpen.set(false);
-      this.mattenrichterMenuOpen.set(false);
     }
   }
 
-  protected closeDisplayMenu(): void {
-    this.displayMenuOpen.set(false);
-  }
-
-  protected toggleTournamentleitungMenu(): void {
-    const willOpen = !this.tournamentleitungMenuOpen();
-    this.tournamentleitungMenuOpen.update((open) => !open);
-    if (willOpen) {
-      this.displayMenuOpen.set(false);
-      this.mattenrichterMenuOpen.set(false);
+  protected toggleMatchMenu(): void {
+    if (this.sidebarCollapsed()) {
+      this.sidebarCollapsed.set(false);
     }
-  }
-
-  protected closeTournamentleitungMenu(): void {
-    this.tournamentleitungMenuOpen.set(false);
-  }
-
-  protected toggleMattenrichterMenu(): void {
-    const willOpen = !this.mattenrichterMenuOpen();
-    this.mattenrichterMenuOpen.update((open) => !open);
+    const willOpen = !this.matchMenuOpen();
+    this.matchMenuOpen.update((open) => !open);
     if (willOpen) {
       this.refreshTatamis();
-      this.displayMenuOpen.set(false);
-      this.tournamentleitungMenuOpen.set(false);
     }
-  }
-
-  protected closeMattenrichterMenu(): void {
-    this.mattenrichterMenuOpen.set(false);
   }
 
   protected displayOverviewUrl(tournamentId: string): string {
@@ -149,35 +242,6 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  @HostListener('document:click', ['$event'])
-  protected onDocumentClick(event: MouseEvent): void {
-    if (!this.displayMenuOpen() && !this.tournamentleitungMenuOpen() && !this.mattenrichterMenuOpen()) {
-      return;
-    }
-
-    const target = event.target;
-    if (!(target instanceof Node)) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
-      return;
-    }
-
-    if (!this.hostElement.nativeElement.contains(target)) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
-      return;
-    }
-
-    const targetElement = target as Element;
-    if (!targetElement.closest('.nav-dropdown')) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
-    }
-  }
-
   private updateShellVisibility(url: string): void {
     const hideShell =
       url.startsWith('/display') ||
@@ -187,16 +251,27 @@ export class AppComponent implements OnInit, OnDestroy {
     const tatamiId = typeof params['tatamiId'] === 'string' ? params['tatamiId'] : null;
     this.routeTatamiId.set(tatamiId);
 
+    // Any SPA navigation dismisses the mobile drawer so the shell isn't left
+    // covering the routed page on narrow screens.
+    this.closeDrawer();
+    this.closeUserMenu();
+
     this.showShell.set(!hideShell);
     if (hideShell) {
-      this.closeDisplayMenu();
-      this.closeTournamentleitungMenu();
-      this.closeMattenrichterMenu();
+      this.displayMenuOpen.set(false);
+      this.matchMenuOpen.set(false);
     }
   }
 
   protected async logout(): Promise<void> {
+    this.closeUserMenu();
     await this.auth.logout();
     await this.router.navigateByUrl('/login', { replaceUrl: true });
+  }
+
+  private tooltipTarget(event: Event): HTMLElement | null {
+    return event.target instanceof Element
+      ? event.target.closest<HTMLElement>('.nav-item[title], .rail-toggle[title]')
+      : null;
   }
 }

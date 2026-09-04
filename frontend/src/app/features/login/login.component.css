@@ -1,42 +1,51 @@
 .auth-wrap {
+  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
-  min-height: 60vh;
+  min-height: calc(100vh - 8rem);
+  border-radius: var(--radius);
 }
 
 .auth-card {
+  position: relative;
+  z-index: 1;
   width: min(420px, 100%);
-  background: #fff;
-  border: 1px solid #dfe3eb;
-  border-radius: 12px;
-  padding: 1.25rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
   display: grid;
   gap: 0.75rem;
+  box-shadow: var(--shadow);
 }
 
-.auth-card h1 {
-  margin: 0;
-  font-size: 1.35rem;
-}
-
-.auth-card p {
-  margin: 0;
-  color: #485266;
+.auth-card .section-head {
+  border-bottom: 1px solid var(--c-border);
+  padding-bottom: 0.6rem;
 }
 
 .error {
-  color: #a61b29;
+  color: var(--aka);
 }
 
 label {
   font-weight: 600;
+  color: var(--c-text);
 }
 
 input {
   width: 100%;
   padding: 0.55rem 0.65rem;
-  border: 1px solid #c8cfdb;
-  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+
+input:focus-visible {
+  outline: 2px solid var(--aka);
+  outline-offset: 1px;
 }
 
 button.primary {

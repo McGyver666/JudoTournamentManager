@@ -1,18 +1,22 @@
 @if (!tournamentId) {
   <div class="empty">{{ 'tournaments.none' | t }}</div>
 } @else {
-  <section class="config-shell">
-    <div class="toolbar config-toolbar">
-      <h1 class="config-title">{{ 'config.title' | t }}</h1>
-    </div>
+  <section class="card section-panel config-toolbar">
+    <header class="section-head card-pad">
+      <h2 class="section-head__title">{{ 'sectionHeads.config.title' | t }}</h2>
+      <p class="section-head__text">{{ 'sectionHeads.config.text' | t }}</p>
+    </header>
+  </section>
 
-    <div class="tabs">
-      <button class="tab-btn" [class.active]="tab() === 'tatamis'" (click)="setTab('tatamis')">{{ 'config.tatamis' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'presets'" (click)="setTab('presets')">{{ 'config.presets' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'clubs'" (click)="setTab('clubs')">{{ 'config.clubs' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'athletes'" (click)="setTab('athletes')">{{ 'config.athletes' | t }}</button>
-      <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn" [class.active]="tab() === 'tatamis'" (click)="setTab('tatamis')">{{ 'config.tatamis' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'presets'" (click)="setTab('presets')">{{ 'config.presets' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'clubs'" (click)="setTab('clubs')">{{ 'config.clubs' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'athletes'" (click)="setTab('athletes')">{{ 'config.athletes' | t }}</button>
+    <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
+  </div>
+
+  <section class="card config-content">
 
   @if (error()) {
     <p class="error">{{ error() }}</p>
@@ -66,8 +70,10 @@
               <td>{{ t.name }}</td>
               <td>{{ (t.isActive ? 'common.yes' : 'common.no') | t }}</td>
               <td>
-                <button (click)="editTatami(t)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteTatami(t)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editTatami(t)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteTatami(t)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }
@@ -337,8 +343,10 @@
               <td>{{ c.weightClassKg !== null ? ('-' + c.weightClassKg + ' kg') : ('categories.weightOpen' | t) }}</td>
               <td>{{ assignedAthleteCountByCategory()(c.id) }}</td>
               <td>
-                <button (click)="editCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteCategory(c)" [disabled]="!canOperate() || c.isLocked">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }
@@ -400,8 +408,10 @@
               <td>{{ c.contactEmail ?? '' }}</td>
               <td>{{ c.contactPhone ?? '' }}</td>
               <td>
-                <button (click)="editClub(c)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteClub(c)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editClub(c)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteClub(c)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }
@@ -520,8 +530,10 @@
               <td>{{ a.weightKg }}</td>
               <td>{{ gradeLabel(a.grade) }}</td>
               <td>
-                <button (click)="editAthlete(a)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
-                <button class="danger" (click)="deleteAthlete(a)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                <div class="table-actions">
+                  <button (click)="editAthlete(a)" [disabled]="!canOperate()">{{ 'common.edit' | t }}</button>
+                  <button class="danger" (click)="deleteAthlete(a)" [disabled]="!canOperate()">{{ 'common.delete' | t }}</button>
+                </div>
               </td>
             </tr>
           }

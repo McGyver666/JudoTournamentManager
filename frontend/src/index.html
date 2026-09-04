@@ -6,6 +6,18 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="favicon.png">
+  <script>
+    // Apply the stored theme before first paint to avoid a flash of the wrong
+    // theme. Light is the default; ThemeService is the runtime source of truth.
+    (function () {
+      try {
+        var stored = localStorage.getItem('judo.theme');
+        document.documentElement.setAttribute('data-theme', stored === 'dark' ? 'dark' : 'light');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

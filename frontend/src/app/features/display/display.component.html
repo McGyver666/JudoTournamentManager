@@ -28,7 +28,7 @@
               class="hold-timer hold-timer--xl"
               [class.hold-timer--blue]="osaeKomiSideLabel(d.current) === 'blue'"
               [class.hold-timer--white]="osaeKomiSideLabel(d.current) === 'white'">
-              <div class="hold-timer-label">Osae-Komi</div>
+              <div class="hold-timer-label">{{ 'match.osaeKomi' | t }}</div>
               <div class="hold-timer-value-row">
                 <span class="hold-timer-value">{{ osaeKomiSecondsLabel(d.current) }}</span>
                 <span class="hold-timer-target">/ {{ osaeKomiCapSecondsLabel(d.current) }}</span>
@@ -38,11 +38,12 @@
             <div class="hold-timer-spacer" aria-hidden="true"></div>
           }
           @if (d.current) {
+            @let tparts = timerColonParts(d.current);
             <div
               class="fight-timer fight-timer--xl"
               [class.fight-timer--golden]="d.current.startedAtUtc && d.current.isGoldenScore"
               [class.fight-timer--paused]="d.current.startedAtUtc && d.current.status === 'Paused' && !d.current.isGoldenScore"
-              [attr.aria-label]="'display.fightTime' | t">{{ timerForFight(d.current) }}</div>
+              [attr.aria-label]="'display.fightTime' | t"><span class="timer-seg">{{ tparts.minutes }}</span><span class="timer-colon" aria-hidden="true">:</span><span class="timer-seg">{{ tparts.seconds }}</span></div>
           }
         </header>
 
@@ -121,7 +122,7 @@
                   <div class="next-category">{{ categoryName(fight.categoryId) }}</div>
                   <div class="next-line">
                     <span class="blue-name next-name--blue">{{ athleteName(fight.blueAthleteId) }}</span>
-                    <span class="next-vs">vs</span>
+                    <span class="next-vs">{{ 'common.vs' | t }}</span>
                     <span class="white-name next-name--white">{{ athleteName(fight.whiteAthleteId) }}</span>
                   </div>
                 </div>
@@ -206,7 +207,7 @@
                     <div class="next-category">{{ categoryName(fight.categoryId) }}</div>
                     <div class="next-line">
                       <span class="blue-name">{{ athleteName(fight.blueAthleteId) }}</span>
-                      <span class="next-vs">vs</span>
+                      <span class="next-vs">{{ 'common.vs' | t }}</span>
                       <span class="white-name">{{ athleteName(fight.whiteAthleteId) }}</span>
                     </div>
                   </div>

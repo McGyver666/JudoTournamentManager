@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { extractApiError } from '../../core/http-error';
+import { I18nService } from '../../core/i18n.service';
 import { CreateUserRequest, LocalUserAccount, UserRole } from '../../core/models';
 import { TranslatePipe } from '../../core/translate.pipe';
 
@@ -14,6 +15,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
 })
 export class UserManagementComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly i18n = inject(I18nService);
   private static readonly PASSWORD_MIN_LENGTH = 12;
 
   protected readonly users = signal<LocalUserAccount[]>([]);
@@ -43,7 +45,7 @@ export class UserManagementComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(extractApiError(err, 'Daten konnten nicht geladen werden.'));
+        this.error.set(extractApiError(err, this.i18n.translate('errors.load')));
         this.loading.set(false);
       },
     });
@@ -56,13 +58,13 @@ export class UserManagementComponent implements OnInit {
     this.info.set(null);
     this.api.createUser(form).subscribe({
       next: () => {
-        this.info.set('Benutzer wurde erstellt.');
+        this.info.set(this.i18n.translate('users.created'));
         this.form.set({ userName: '', role: 'Operator', password: '' });
         this.saving.set(false);
         this.load();
       },
       error: (err) => {
-        this.error.set(extractApiError(err, 'Benutzer konnte nicht erstellt werden.'));
+        this.error.set(extractApiError(err, this.i18n.translate('errors.save')));
         this.saving.set(false);
       },
     });
@@ -73,10 +75,10 @@ export class UserManagementComponent implements OnInit {
     this.info.set(null);
     this.api.setUserActive(user.id, { isActive: !user.isActive }).subscribe({
       next: () => {
-        this.info.set('Benutzerstatus wurde aktualisiert.');
+        this.info.set(this.i18n.translate('users.statusUpdated'));
         this.load();
       },
-      error: (err) => this.error.set(extractApiError(err, 'Status konnte nicht aktualisiert werden.')),
+      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
     });
   }
 
@@ -100,7 +102,7 @@ export class UserManagementComponent implements OnInit {
 
     const newPassword = this.resetPasswordValue().trim();
     if (newPassword.length < UserManagementComponent.PASSWORD_MIN_LENGTH) {
-      this.error.set('Das Passwort muss mindestens 12 Zeichen lang sein.');
+      this.error.set(this.i18n.translate('users.passwordMinLength'));
       return;
     }
 
@@ -108,10 +110,10 @@ export class UserManagementComponent implements OnInit {
     this.info.set(null);
     this.api.resetUserPassword(user.id, { newPassword }).subscribe({
       next: () => {
-        this.info.set('Passwort wurde zurückgesetzt.');
+        this.info.set(this.i18n.translate('users.passwordReset'));
         this.closeResetPassword();
       },
-      error: (err) => this.error.set(extractApiError(err, 'Passwort konnte nicht zurückgesetzt werden.')),
+      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
     });
   }
 
@@ -125,6 +127,17 @@ export class UserManagementComponent implements OnInit {
 
   protected updateRole(value: string): void {
     this.form.update((x) => ({ ...x, role: value as UserRole }));
+  }
+
+  protected roleLabelKey(role: UserRole): string {
+    switch (role) {
+      case 'Admin':
+        return 'users.roleAdmin';
+      case 'Display':
+        return 'users.roleDisplay';
+      default:
+        return 'users.roleOperator';
+    }
   }
 
   protected updateResetPassword(value: string): void {
