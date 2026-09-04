@@ -374,7 +374,13 @@ public sealed class MatchService : IMatchService
         var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
         if (fight is null) return MatchActionResult.FightNotFound;
 
-        if (fight.Status != InProgress || fight.OsaeKomiStartedAtUtc is not null) return MatchActionResult.InvalidState;
+        if (fight.Status != InProgress
+            || fight.OsaeKomiSide is not null
+            || fight.OsaeKomiStartedAtUtc is not null
+            || fight.OsaeKomiPausedAtUtc is not null)
+        {
+            return MatchActionResult.InvalidState;
+        }
         if (!TryGetSide(side, out var whiteSide)) return MatchActionResult.InvalidState;
 
         var now = DateTimeOffset.UtcNow;

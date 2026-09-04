@@ -573,6 +573,38 @@ public sealed class MatchServiceTests
         Assert.Equal(1, stopped.WhiteYukoCount);
     }
 
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StartOsaeKomi_PausedHold_RejectsStartingAnotherHold()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var final = (await ReadFightsAsync(db, cid)).Single();
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(final.Id, "Tisch1", CancellationToken.None);
+            await svc.StartOsaeKomiAsync(final.Id, "white", "Tisch1", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success,
+                await svc.PauseOsaeKomiAsync(final.Id, "Tisch1", CancellationToken.None));
+
+            var result = await svc.StartOsaeKomiAsync(final.Id, "blue", "Tisch1", CancellationToken.None);
+
+            Assert.Equal(MatchActionResult.InvalidState, result);
+        }
+
+        var paused = (await ReadFightsAsync(db, cid)).Single();
+        Assert.Equal("White", paused.OsaeKomiSide);
+        Assert.NotNull(paused.OsaeKomiPausedAtUtc);
+    }
+
     // ─── Confirm ──────────────────────────────────────────────────────────────
 
     [Fact]
