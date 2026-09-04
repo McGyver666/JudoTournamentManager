@@ -470,6 +470,15 @@ public sealed class MatchServiceTests
         Assert.Null(paused.OsaeKomiStartedAtUtc);
         Assert.NotNull(paused.OsaeKomiPausedAtUtc);
         Assert.InRange(paused.OsaeKomiElapsedMilliseconds, 2_500, 5_000);
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var entries = await ctx.AuditLogs
+                .AsNoTracking()
+                .Where(entry => entry.TournamentId == paused.TournamentId)
+                .ToListAsync();
+            Assert.Contains(entries, entry => entry.Action == "OsaeKomiPaused" && entry.EntityId == paused.Id);
+        }
     }
 
     [Fact]
@@ -515,6 +524,15 @@ public sealed class MatchServiceTests
         Assert.Null(resumed.OsaeKomiPausedAtUtc);
         Assert.InRange(resumed.OsaeKomiElapsedMilliseconds, 2_500, 5_000);
         Assert.InRange((resumed.StartedAtUtc!.Value - fightStartedAt).TotalSeconds, 3.5, 5.5);
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var entries = await ctx.AuditLogs
+                .AsNoTracking()
+                .Where(entry => entry.TournamentId == resumed.TournamentId)
+                .ToListAsync();
+            Assert.Contains(entries, entry => entry.Action == "OsaeKomiResumed" && entry.EntityId == resumed.Id);
+        }
     }
 
     [Fact]

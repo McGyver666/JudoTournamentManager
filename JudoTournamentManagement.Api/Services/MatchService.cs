@@ -412,6 +412,11 @@ public sealed class MatchService : IMatchService
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        await _auditLog.LogAsync(
+            fight.TournamentId, user, "OsaeKomiPaused", "Fight", fight.Id,
+            $"Side={fight.OsaeKomiSide};ElapsedMilliseconds={fight.OsaeKomiElapsedMilliseconds}",
+            cancellationToken);
+
         await BroadcastFightUpdatedAsync(fight);
 
         return MatchActionResult.Success;
@@ -438,6 +443,11 @@ public sealed class MatchService : IMatchService
         fight.OsaeKomiPausedAtUtc = null;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            fight.TournamentId, user, "OsaeKomiResumed", "Fight", fight.Id,
+            $"Side={fight.OsaeKomiSide};ElapsedMilliseconds={fight.OsaeKomiElapsedMilliseconds}",
+            cancellationToken);
 
         await BroadcastFightUpdatedAsync(fight);
 
