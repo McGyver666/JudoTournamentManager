@@ -85,9 +85,11 @@ public sealed class TatamiQueueService : ITatamiQueueService
         if (r.StartedAtUtc is null) return false;
         if (r.Category is null || !r.Category.GoldenScoreEnabled) return false;
 
-        var referenceTime = r.Status == Paused && r.PausedAtUtc is not null
-            ? r.PausedAtUtc.Value
-            : DateTimeOffset.UtcNow;
+        var referenceTime = r.OsaeKomiPausedAtUtc is not null
+            ? r.OsaeKomiPausedAtUtc.Value
+            : r.Status == Paused && r.PausedAtUtc is not null
+                ? r.PausedAtUtc.Value
+                : DateTimeOffset.UtcNow;
         var elapsedSeconds = (referenceTime - r.StartedAtUtc.Value).TotalSeconds;
         if (elapsedSeconds < r.Category.MatchDurationSeconds) return false;
 
@@ -132,6 +134,8 @@ public sealed class TatamiQueueService : ITatamiQueueService
             r.PausedAtUtc,
             r.OsaeKomiSide,
             r.OsaeKomiStartedAtUtc,
+            r.OsaeKomiPausedAtUtc,
+            r.OsaeKomiElapsedMilliseconds,
             r.StartedAtUtc,
             r.CompletedAtUtc,
             r.CreatedAtUtc,

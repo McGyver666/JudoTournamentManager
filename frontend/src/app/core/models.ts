@@ -378,6 +378,8 @@ export interface Fight {
   pausedAtUtc: string | null;
   osaeKomiSide: 'White' | 'Blue' | null;
   osaeKomiStartedAtUtc: string | null;
+  osaeKomiPausedAtUtc: string | null;
+  osaeKomiElapsedMilliseconds: number;
   startedAtUtc: string | null;
   completedAtUtc: string | null;
   isGoldenScore: boolean;

@@ -376,6 +376,18 @@ export class ApiService {
       `api/tournaments/${tournamentId}/fights/${fightId}/osae-komi/stop`, {});
   }
 
+  pauseOsaeKomi(tournamentId: string, fightId: string, userName: string): Observable<void> {
+    void userName;
+    return this.http.post<void>(
+      `api/tournaments/${tournamentId}/fights/${fightId}/osae-komi/pause`, {});
+  }
+
+  resumeOsaeKomi(tournamentId: string, fightId: string, userName: string): Observable<void> {
+    void userName;
+    return this.http.post<void>(
+      `api/tournaments/${tournamentId}/fights/${fightId}/osae-komi/resume`, {});
+  }
+
   confirmResult(
     tournamentId: string,
     fightId: string,

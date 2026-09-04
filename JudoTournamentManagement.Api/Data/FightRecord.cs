@@ -103,6 +103,12 @@ public sealed class FightRecord
     /// <summary>Timestamp when the active osae-komi hold started, if any.</summary>
     public DateTimeOffset? OsaeKomiStartedAtUtc { get; set; }
 
+    /// <summary>Timestamp when the osae-komi hold was paused, if any.</summary>
+    public DateTimeOffset? OsaeKomiPausedAtUtc { get; set; }
+
+    /// <summary>Accumulated osae-komi duration in milliseconds before the current segment.</summary>
+    public long OsaeKomiElapsedMilliseconds { get; set; }
+
     /// <summary>Timestamp when the fight was started; null while pending.</summary>
     public DateTimeOffset? StartedAtUtc { get; set; }
 

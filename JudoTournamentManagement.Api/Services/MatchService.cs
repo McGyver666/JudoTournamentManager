@@ -245,6 +245,8 @@ public sealed class MatchService : IMatchService
         fight.PausedAtUtc = null;
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -266,6 +268,8 @@ public sealed class MatchService : IMatchService
         fight.PausedAtUtc = now;
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -290,6 +294,8 @@ public sealed class MatchService : IMatchService
         fight.PausedAtUtc = null;
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -374,6 +380,62 @@ public sealed class MatchService : IMatchService
         var now = DateTimeOffset.UtcNow;
         fight.OsaeKomiSide = whiteSide ? "White" : "Blue";
         fight.OsaeKomiStartedAtUtc = now;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
+        fight.UpdatedAtUtc = now;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await BroadcastFightUpdatedAsync(fight);
+
+        return MatchActionResult.Success;
+    }
+
+    /// <inheritdoc />
+    public async Task<MatchActionResult> PauseOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken)
+    {
+        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
+        if (fight is null) return MatchActionResult.FightNotFound;
+
+        if (fight.Status != InProgress
+            || fight.OsaeKomiSide is null
+            || fight.OsaeKomiStartedAtUtc is null
+            || fight.OsaeKomiPausedAtUtc is not null)
+        {
+            return MatchActionResult.InvalidState;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var activeHoldStartedAt = fight.OsaeKomiStartedAtUtc.Value;
+        fight.OsaeKomiElapsedMilliseconds += Math.Max(0, (long)(now - activeHoldStartedAt).TotalMilliseconds);
+        fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = now;
+        fight.UpdatedAtUtc = now;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await BroadcastFightUpdatedAsync(fight);
+
+        return MatchActionResult.Success;
+    }
+
+    /// <inheritdoc />
+    public async Task<MatchActionResult> ResumeOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken)
+    {
+        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
+        if (fight is null) return MatchActionResult.FightNotFound;
+
+        if (fight.Status != InProgress
+            || fight.OsaeKomiSide is null
+            || fight.OsaeKomiStartedAtUtc is not null
+            || fight.OsaeKomiPausedAtUtc is null)
+        {
+            return MatchActionResult.InvalidState;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var osaeKomiPauseDuration = now - fight.OsaeKomiPausedAtUtc.Value;
+        fight.StartedAtUtc = fight.StartedAtUtc?.Add(osaeKomiPauseDuration);
+        fight.OsaeKomiStartedAtUtc = now;
+        fight.OsaeKomiPausedAtUtc = null;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -388,11 +450,26 @@ public sealed class MatchService : IMatchService
         var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
         if (fight is null) return MatchActionResult.FightNotFound;
 
-        if (fight.OsaeKomiStartedAtUtc is null || fight.OsaeKomiSide is null) return MatchActionResult.InvalidState;
+        if (fight.OsaeKomiSide is null
+            || (fight.OsaeKomiStartedAtUtc is null && fight.OsaeKomiPausedAtUtc is null))
+        {
+            return MatchActionResult.InvalidState;
+        }
 
         // Capture hold duration and side before clearing the timer fields.
         var now = DateTimeOffset.UtcNow;
-        var holdSeconds = (int)Math.Ceiling((now - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds);
+        var elapsedMilliseconds = fight.OsaeKomiElapsedMilliseconds;
+        if (fight.OsaeKomiStartedAtUtc is not null)
+        {
+            elapsedMilliseconds += Math.Max(0, (long)(now - fight.OsaeKomiStartedAtUtc.Value).TotalMilliseconds);
+        }
+
+        if (fight.OsaeKomiPausedAtUtc is not null)
+        {
+            fight.StartedAtUtc = fight.StartedAtUtc?.Add(now - fight.OsaeKomiPausedAtUtc.Value);
+        }
+
+        var holdSeconds = (int)Math.Ceiling(elapsedMilliseconds / 1000d);
         var holderIsWhite = fight.OsaeKomiSide == "White";
 
         // Load tournament Osae-komi rule settings.
@@ -431,6 +508,8 @@ public sealed class MatchService : IMatchService
 
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
         fight.UpdatedAtUtc = now;
 
         if (scoreToAward is not null)
@@ -473,6 +552,8 @@ public sealed class MatchService : IMatchService
         fight.PausedAtUtc = null;
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
         fight.UpdatedAtUtc = now;
 
         await UpdateAthletesLastFightMetadataAsync(fight, now, cancellationToken);
@@ -935,6 +1016,8 @@ public sealed class MatchService : IMatchService
         fight.PausedAtUtc = null;
         fight.OsaeKomiSide = null;
         fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
         fight.StartedAtUtc = null;
         fight.CompletedAtUtc = null;
         fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
@@ -983,7 +1066,8 @@ public sealed class MatchService : IMatchService
         r.WhiteScore, r.BlueScore, r.WhitePenalties, r.BluePenalties,
         r.WhiteIpponCount, r.WhiteWazaAriCount, r.WhiteYukoCount,
         r.BlueIpponCount, r.BlueWazaAriCount, r.BlueYukoCount,
-        r.PausedAtUtc, r.OsaeKomiSide, r.OsaeKomiStartedAtUtc,
+        r.PausedAtUtc, r.OsaeKomiSide, r.OsaeKomiStartedAtUtc, r.OsaeKomiPausedAtUtc,
+        r.OsaeKomiElapsedMilliseconds,
         r.StartedAtUtc, r.CompletedAtUtc,
         r.CreatedAtUtc, r.UpdatedAtUtc,
         IsGoldenScore: false);

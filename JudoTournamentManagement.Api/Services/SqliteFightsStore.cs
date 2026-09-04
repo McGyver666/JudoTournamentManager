@@ -80,6 +80,8 @@ public sealed class SqliteFightsStore : IFightsStore
             r.PausedAtUtc,
             r.OsaeKomiSide,
             r.OsaeKomiStartedAtUtc,
+            r.OsaeKomiPausedAtUtc,
+            r.OsaeKomiElapsedMilliseconds,
             r.StartedAtUtc,
             r.CompletedAtUtc,
             r.CreatedAtUtc,

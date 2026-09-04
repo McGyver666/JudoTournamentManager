@@ -92,7 +92,9 @@ public sealed class MatchClockEvaluator : BackgroundService
         var holderHasWazaAri = holderIsWhite ? fight.WhiteWazaAriCount > 0 : fight.BlueWazaAriCount > 0;
         var effectiveCapSeconds = holderHasWazaAri ? wazaAriSeconds : ipponSeconds;
 
-        var holdSeconds = (now - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds;
+        var accumulatedSeconds = fight.OsaeKomiElapsedMilliseconds / 1000d;
+        var currentSegmentSeconds = (now - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds;
+        var holdSeconds = accumulatedSeconds + currentSegmentSeconds;
         if (holdSeconds < effectiveCapSeconds)
         {
             return false;

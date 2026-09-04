@@ -34,6 +34,8 @@ namespace JudoTournamentManagement.Api.Models;
 /// <param name="PausedAtUtc">Timestamp when the fight was paused; null while running.</param>
 /// <param name="OsaeKomiSide">Side that currently has an active osae-komi hold; null when inactive.</param>
 /// <param name="OsaeKomiStartedAtUtc">Timestamp when the active osae-komi hold started.</param>
+/// <param name="OsaeKomiPausedAtUtc">Timestamp when the osae-komi hold was paused.</param>
+/// <param name="OsaeKomiElapsedMilliseconds">Accumulated osae-komi duration in milliseconds before the current segment.</param>
 /// <param name="StartedAtUtc">Timestamp when the fight was started; null while pending.</param>
 /// <param name="CompletedAtUtc">Timestamp when the fight was completed; null until confirmed.</param>
 /// <param name="CreatedAtUtc">Creation timestamp in UTC.</param>
@@ -75,6 +77,8 @@ public sealed record Fight(
     DateTimeOffset? PausedAtUtc,
     string? OsaeKomiSide,
     DateTimeOffset? OsaeKomiStartedAtUtc,
+    DateTimeOffset? OsaeKomiPausedAtUtc,
+    long OsaeKomiElapsedMilliseconds,
     DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc,
     DateTimeOffset CreatedAtUtc,

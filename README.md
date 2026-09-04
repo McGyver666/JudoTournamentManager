@@ -44,6 +44,7 @@ Already available:
 - Admin-only result correction in combat overview: edit scores + winner inline, with downstream-fight warning and cascade reset
 - public display view with realtime updates (SignalR)
 - server-authoritative synchronized fight and osae-komi timing across operator and display views
+- Sono-mama/Yoshi pause and resume for active osae-komi, preserving hold time and freezing the fight clock
 - tenth-second local display for running final fight seconds and active osae-komi countdowns
 - results and medal table views
 - local authentication flow (login/logout, session persistence, admin user management)
@@ -59,7 +60,7 @@ Already available:
 - authenticated server time endpoint for frontend clock synchronization (`GET /api/time`)
 - server-side match clock evaluator for timing-based fight and osae-komi decisions
 - osae-komi ippon immediately pauses the fight clock on the server
-- unit test project (247 passing tests, Category=UnitTest)
+- unit test project (350 passing tests, Category=UnitTest)
 - TLS/LAN operational stabilization and repeated field validation runs
 
 ## Architecture
@@ -428,6 +429,8 @@ are served at `/i18n/{lang}.json`.
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/score/adjust`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
+- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/pause`
+- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/resume`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
 - `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; enriched summaries of finished fights)
 - `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; correct scores and winner with a confirmation flow for affected downstream fights)

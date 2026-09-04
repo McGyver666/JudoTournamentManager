@@ -435,6 +435,126 @@ public sealed class MatchServiceTests
         Assert.NotNull(updated.OsaeKomiStartedAtUtc);
     }
 
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task PauseOsaeKomi_ActiveHold_PreservesHoldAndElapsedTime()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var final = (await ReadFightsAsync(db, cid)).Single();
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(final.Id, "Tisch1", CancellationToken.None);
+            await svc.StartOsaeKomiAsync(final.Id, "white", "Tisch1", CancellationToken.None);
+
+            var active = await ctx.Fights.SingleAsync(f => f.Id == final.Id);
+            active.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-3);
+            await ctx.SaveChangesAsync();
+
+            var result = await svc.PauseOsaeKomiAsync(final.Id, "Tisch1", CancellationToken.None);
+
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        var paused = (await ReadFightsAsync(db, cid)).Single();
+        Assert.Equal(FightStatus.InProgress.ToString(), paused.Status);
+        Assert.Equal("White", paused.OsaeKomiSide);
+        Assert.Null(paused.OsaeKomiStartedAtUtc);
+        Assert.NotNull(paused.OsaeKomiPausedAtUtc);
+        Assert.InRange(paused.OsaeKomiElapsedMilliseconds, 2_500, 5_000);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task ResumeOsaeKomi_PausedHold_ContinuesHoldAndFreezesFightClock()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var final = (await ReadFightsAsync(db, cid)).Single();
+        DateTimeOffset fightStartedAt;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(final.Id, "Tisch1", CancellationToken.None);
+            await svc.StartOsaeKomiAsync(final.Id, "white", "Tisch1", CancellationToken.None);
+
+            var active = await ctx.Fights.SingleAsync(f => f.Id == final.Id);
+            fightStartedAt = active.StartedAtUtc!.Value;
+            active.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-3);
+            await ctx.SaveChangesAsync();
+
+            Assert.Equal(MatchActionResult.Success,
+                await svc.PauseOsaeKomiAsync(final.Id, "Tisch1", CancellationToken.None));
+
+            active.OsaeKomiPausedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-4);
+            await ctx.SaveChangesAsync();
+
+            Assert.Equal(MatchActionResult.Success,
+                await svc.ResumeOsaeKomiAsync(final.Id, "Tisch1", CancellationToken.None));
+        }
+
+        var resumed = (await ReadFightsAsync(db, cid)).Single();
+        Assert.Equal(FightStatus.InProgress.ToString(), resumed.Status);
+        Assert.Equal("White", resumed.OsaeKomiSide);
+        Assert.NotNull(resumed.OsaeKomiStartedAtUtc);
+        Assert.Null(resumed.OsaeKomiPausedAtUtc);
+        Assert.InRange(resumed.OsaeKomiElapsedMilliseconds, 2_500, 5_000);
+        Assert.InRange((resumed.StartedAtUtc!.Value - fightStartedAt).TotalSeconds, 3.5, 5.5);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task StopOsaeKomi_PausedHold_UsesAccumulatedDuration()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var final = (await ReadFightsAsync(db, cid)).Single();
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(final.Id, "Tisch1", CancellationToken.None);
+            await svc.StartOsaeKomiAsync(final.Id, "white", "Tisch1", CancellationToken.None);
+
+            var active = await ctx.Fights.SingleAsync(f => f.Id == final.Id);
+            active.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-6);
+            await ctx.SaveChangesAsync();
+
+            Assert.Equal(MatchActionResult.Success,
+                await svc.PauseOsaeKomiAsync(final.Id, "Tisch1", CancellationToken.None));
+            Assert.Equal(MatchActionResult.Success,
+                await svc.StopOsaeKomiAsync(final.Id, "Tisch1", CancellationToken.None));
+        }
+
+        var stopped = (await ReadFightsAsync(db, cid)).Single();
+        Assert.Null(stopped.OsaeKomiSide);
+        Assert.Null(stopped.OsaeKomiStartedAtUtc);
+        Assert.Null(stopped.OsaeKomiPausedAtUtc);
+        Assert.Equal(0, stopped.OsaeKomiElapsedMilliseconds);
+        Assert.Equal(1, stopped.WhiteYukoCount);
+    }
+
     // ─── Confirm ──────────────────────────────────────────────────────────────
 
     [Fact]

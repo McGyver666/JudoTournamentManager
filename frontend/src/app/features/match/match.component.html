@@ -150,11 +150,12 @@
                 <div class="osae-card__controls">
                   <button class="btn btn--tiny btn--white" [disabled]="!canOperate() || !canRecordScore(fight) || !canStartOsaeKomi(fight, 'white')" (click)="startOsaeKomi(fight, 'white')">{{ 'match.startOsaeWhite' | t }}</button>
                   <button class="btn btn--tiny btn--secondary" [disabled]="!canOperate() || !canRecordScore(fight) || osaeKomiSide() === null" (click)="stopOsaeKomi(fight)">{{ 'match.stopOsae' | t }}</button>
+                  <button class="btn btn--tiny btn--secondary" [disabled]="!canOperate() || !canRecordScore(fight) || osaeKomiSide() === null" (click)="toggleOsaeKomi(fight)">{{ osaeKomiToggleLabelKey() | t }}</button>
                   <button class="btn btn--tiny btn--blue" [disabled]="!canOperate() || !canRecordScore(fight) || !canStartOsaeKomi(fight, 'blue')" (click)="startOsaeKomi(fight, 'blue')">{{ startOsaeLabelKey() | t }}</button>
                 </div>
                 <div class="osae-card__note" [class.osae-card__note--hidden]="osaeKomiSide() === null" [attr.aria-hidden]="osaeKomiSide() === null">
                   @if (osaeKomiSide(); as holdSide) {
-                    {{ 'match.holdActive' | t }} {{ holdSide === 'white' ? ('match.whiteSide' | t) : (sideLabelKey(holdSide) | t) }}
+                    {{ (osaeKomiPaused() ? 'match.holdPaused' : 'match.holdActive') | t }} {{ holdSide === 'white' ? ('match.whiteSide' | t) : (sideLabelKey(holdSide) | t) }}
                     @if (osaeKomiCapSeconds(); as cap) {
                       <span>({{ cap }}s)</span>
                     }

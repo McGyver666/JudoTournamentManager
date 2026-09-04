@@ -82,6 +82,8 @@ describe('MatchComponent', () => {
       pausedAtUtc: null,
       osaeKomiSide: null,
       osaeKomiStartedAtUtc: null,
+      osaeKomiPausedAtUtc: null,
+      osaeKomiElapsedMilliseconds: 0,
       startedAtUtc: new Date(Date.now() - 60_000).toISOString(),
       completedAtUtc: new Date().toISOString(),
       isGoldenScore: false,
@@ -197,6 +199,41 @@ describe('MatchComponent', () => {
     (fixture.componentInstance as any).restartTimer(stoppedFight);
 
     expect((fixture.componentInstance as any).holdTimerLabel()).toBe('5.4s / 20s');
+
+    fixture.destroy();
+  });
+
+  it('toggles Sono-mama and Yoshi while preserving the accumulated hold time', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    const pausedHold = createFight({
+      status: 'InProgress',
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: null,
+      osaeKomiPausedAtUtc: new Date().toISOString(),
+      osaeKomiElapsedMilliseconds: 3_400,
+    });
+
+    component.restartTimer(pausedHold);
+
+    expect(component.isOsaeKomiPaused(pausedHold)).toBeTrue();
+    expect(component.osaeKomiToggleLabelKey()).toBe('match.resumeOsae');
+    expect(component.holdTimerLabel()).toBe('3.4s / 20s');
+
+    const runningHold = createFight({
+      status: 'InProgress',
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: new Date().toISOString(),
+      osaeKomiPausedAtUtc: null,
+      osaeKomiElapsedMilliseconds: 3_400,
+    });
+
+    component.restartTimer(runningHold);
+
+    expect(component.isOsaeKomiPaused(runningHold)).toBeFalse();
+    expect(component.osaeKomiToggleLabelKey()).toBe('match.pauseOsae');
 
     fixture.destroy();
   });

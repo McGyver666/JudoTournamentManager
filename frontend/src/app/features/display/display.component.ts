@@ -357,6 +357,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return fight.osaeKomiSide !== null && fight.osaeKomiStartedAtUtc !== null;
   }
 
+  protected isOsaeKomiPaused(fight: Fight): boolean {
+    return fight.osaeKomiSide !== null && fight.osaeKomiPausedAtUtc !== null;
+  }
+
   protected hasPersistedOsaeKomi(fight: Fight): boolean {
     return this.persistedOsaeKomiMap.has(fight.id);
   }
@@ -370,17 +374,17 @@ export class DisplayComponent implements OnInit, OnDestroy {
   }
 
   protected osaeKomiSecondsLabel(fight: Fight): string {
-    if (fight.osaeKomiSide && fight.osaeKomiStartedAtUtc) {
+    if (fight.osaeKomiSide && (fight.osaeKomiStartedAtUtc || fight.osaeKomiPausedAtUtc)) {
       const side = this.osaeKomiSideLabel(fight);
       if (!side) {
         return '--';
       }
 
       const capSeconds = this.getOsaeKomiCapForFight(fight, side);
-      const elapsedExactSeconds = Math.max(0, Math.min(capSeconds, (this.time.nowMs() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000));
+      const elapsedExactSeconds = Math.max(0, Math.min(capSeconds, this.getOsaeKomiElapsedSeconds(fight)));
       const runningSeconds = Math.min(capSeconds, Math.max(0, Math.ceil(elapsedExactSeconds)));
       const remainingToCap = Math.max(0, capSeconds - elapsedExactSeconds);
-      const showTenths = remainingToCap <= 10;
+      const showTenths = fight.osaeKomiPausedAtUtc !== null || remainingToCap <= 10;
       return showTenths ? `${elapsedExactSeconds.toFixed(1)}s` : `${runningSeconds}s`;
     }
 
@@ -418,6 +422,13 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return t?.osaeKomiIpponSeconds ?? 20;
   }
 
+  private getOsaeKomiElapsedSeconds(fight: Fight, referenceMs = this.time.nowMs()): number {
+    const activeMilliseconds = fight.osaeKomiStartedAtUtc
+      ? Math.max(0, referenceMs - new Date(fight.osaeKomiStartedAtUtc).getTime())
+      : 0;
+    return ((fight.osaeKomiElapsedMilliseconds ?? 0) + activeMilliseconds) / 1000;
+  }
+
   // Osae-komi display state matrix for the tatami screen:
   // - Start: active backend fields win and refresh the persisted snapshot.
   // - Stop: keep the last snapshot visible until a new osae-komi starts.
@@ -429,10 +440,9 @@ export class DisplayComponent implements OnInit, OnDestroy {
     if (previousFight && this.isOsaeKomiRunning(previousFight) && !this.isOsaeKomiRunning(fight)) {
       const side = previousFight.osaeKomiSide === 'White' ? 'white' : 'blue';
       const cap = this.getOsaeKomiCapForFight(previousFight, side);
-      const startedAtMs = new Date(previousFight.osaeKomiStartedAtUtc!).getTime();
       const stoppedAtMs = new Date(fight.updatedAtUtc).getTime();
-      if (!Number.isNaN(startedAtMs) && !Number.isNaN(stoppedAtMs)) {
-        const seconds = Math.min(cap, Math.max(0, (stoppedAtMs - startedAtMs) / 1000));
+      if (!Number.isNaN(stoppedAtMs)) {
+        const seconds = Math.min(cap, Math.max(0, this.getOsaeKomiElapsedSeconds(previousFight, stoppedAtMs)));
         this.persistedOsaeKomiMap.set(fight.id, {
           seconds,
           cap,
@@ -445,8 +455,12 @@ export class DisplayComponent implements OnInit, OnDestroy {
     if (this.isOsaeKomiRunning(fight)) {
       const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
       const cap = this.getOsaeKomiCapForFight(fight, side);
-      const startedAtMs = new Date(fight.osaeKomiStartedAtUtc!).getTime();
-      const seconds = Math.min(cap, Math.max(0, Math.ceil((this.time.nowMs() - startedAtMs) / 1000)));
+      const seconds = Math.min(cap, Math.max(0, this.getOsaeKomiElapsedSeconds(fight)));
+      this.persistedOsaeKomiMap.set(fight.id, { seconds, cap, side, clearOnResume: false });
+    } else if (this.isOsaeKomiPaused(fight)) {
+      const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
+      const cap = this.getOsaeKomiCapForFight(fight, side);
+      const seconds = Math.min(cap, Math.max(0, this.getOsaeKomiElapsedSeconds(fight)));
       this.persistedOsaeKomiMap.set(fight.id, { seconds, cap, side, clearOnResume: false });
     } else if (fight.status === 'Pending' || fight.status === 'Completed') {
       this.persistedOsaeKomiMap.delete(fight.id);
@@ -530,8 +544,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
     const matchDuration = cat?.matchDurationSeconds ?? 300;
     const goldenScoreDuration = cat?.goldenScoreDurationSeconds ?? 180;
 
-    const timerReference = fight.status === 'Paused' && fight.pausedAtUtc
-      ? new Date(fight.pausedAtUtc).getTime()
+    const timerReference = fight.osaeKomiPausedAtUtc
+      ? new Date(fight.osaeKomiPausedAtUtc).getTime()
+      : fight.status === 'Paused' && fight.pausedAtUtc
+        ? new Date(fight.pausedAtUtc).getTime()
       : this.nowEpochMs();
     const elapsedSeconds = (timerReference - new Date(fight.startedAtUtc).getTime()) / 1000;
 

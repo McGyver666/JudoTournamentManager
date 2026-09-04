@@ -199,7 +199,8 @@ public sealed class AppDbContext : DbContext
              .HasForeignKey(x => x.TatamiId)
              .OnDelete(DeleteBehavior.SetNull);
 
-           fight.Property(x => x.OsaeKomiSide).HasMaxLength(10);
+        fight.Property(x => x.OsaeKomiSide).HasMaxLength(10);
+        fight.Property(x => x.OsaeKomiElapsedMilliseconds).HasDefaultValue(0L);
 
         var auditLog = modelBuilder.Entity<AuditLogRecord>();
         auditLog.ToTable("AuditLogs");

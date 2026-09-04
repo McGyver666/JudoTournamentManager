@@ -112,6 +112,18 @@ public interface IMatchService
         string user,
         CancellationToken cancellationToken);
 
+    /// <summary>Pauses the active osae-komi hold without stopping the fight.</summary>
+    Task<MatchActionResult> PauseOsaeKomiAsync(
+        Guid fightId,
+        string user,
+        CancellationToken cancellationToken);
+
+    /// <summary>Resumes a paused osae-komi hold without counting the pause duration.</summary>
+    Task<MatchActionResult> ResumeOsaeKomiAsync(
+        Guid fightId,
+        string user,
+        CancellationToken cancellationToken);
+
     /// <summary>
     /// Confirms the winner of an in-progress fight, completes it, propagates the result and writes an audit entry.
     /// </summary>

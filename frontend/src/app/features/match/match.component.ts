@@ -80,6 +80,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   protected readonly osaeKomiElapsedExactSeconds = signal<number | null>(null);
   protected readonly osaeKomiCapSeconds = signal<number | null>(null);
   protected readonly osaeKomiSide = signal<FightSide | null>(null);
+  protected readonly osaeKomiPaused = signal(false);
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   private lastClockResyncCheckAtMs = 0;
 
@@ -347,6 +348,7 @@ export class MatchComponent implements OnInit, OnDestroy {
       this.osaeKomiElapsedExactSeconds.set(null);
       this.osaeKomiCapSeconds.set(null);
       this.osaeKomiSide.set(null);
+      this.osaeKomiPaused.set(false);
       return;
     }
 
@@ -362,8 +364,10 @@ export class MatchComponent implements OnInit, OnDestroy {
         void this.time.synchronizeIfStale();
       }
 
-      const timerReferenceMs = fight.status === 'Paused' && fight.pausedAtUtc
-        ? new Date(fight.pausedAtUtc).getTime()
+      const timerReferenceMs = fight.osaeKomiPausedAtUtc
+        ? new Date(fight.osaeKomiPausedAtUtc).getTime()
+        : fight.status === 'Paused' && fight.pausedAtUtc
+          ? new Date(fight.pausedAtUtc).getTime()
         : this.time.nowMs();
       const elapsed = (timerReferenceMs - new Date(fight.startedAtUtc!).getTime()) / 1000;
       const regularRemaining = Math.max(0, duration - elapsed);
@@ -383,15 +387,20 @@ export class MatchComponent implements OnInit, OnDestroy {
       }
 
       // Update osae-komi display or use frozen display if stopped.
-      if (fight.osaeKomiSide && fight.osaeKomiStartedAtUtc) {
+      if (fight.osaeKomiSide) {
         const side = fight.osaeKomiSide === 'White' ? 'white' : 'blue';
         const cap = this.getOsaeKomiCap(fight, side);
-        const holdExactSeconds = Math.max(0, Math.min(cap, (this.time.nowMs() - new Date(fight.osaeKomiStartedAtUtc).getTime()) / 1000));
+        const activeMilliseconds = fight.osaeKomiStartedAtUtc
+          ? Math.max(0, this.time.nowMs() - new Date(fight.osaeKomiStartedAtUtc).getTime())
+          : 0;
+        const holdExactSeconds = Math.max(0, Math.min(cap,
+          ((fight.osaeKomiElapsedMilliseconds ?? 0) + activeMilliseconds) / 1000));
         const holdSeconds = Math.min(cap, Math.ceil(holdExactSeconds));
         this.osaeKomiSeconds.set(holdSeconds);
         this.osaeKomiElapsedExactSeconds.set(holdExactSeconds);
         this.osaeKomiCapSeconds.set(cap);
         this.osaeKomiSide.set(side);
+        this.osaeKomiPaused.set(fight.osaeKomiPausedAtUtc !== null);
         this.frozenOsaeKomiDisplay = null; // Active hold, no frozen display.
       } else {
         // No active osae-komi: clear signals (display will use frozen fallback).
@@ -400,6 +409,7 @@ export class MatchComponent implements OnInit, OnDestroy {
         this.osaeKomiElapsedExactSeconds.set(null);
         this.osaeKomiCapSeconds.set(null);
         this.osaeKomiSide.set(null);
+        this.osaeKomiPaused.set(false);
       }
     };
 
@@ -424,14 +434,18 @@ export class MatchComponent implements OnInit, OnDestroy {
 
     const side = previousFight.osaeKomiSide === 'White' ? 'white' : 'blue';
     const cap = this.getOsaeKomiCap(previousFight, side);
-    const startedAtMs = new Date(previousFight.osaeKomiStartedAtUtc).getTime();
     const stoppedAtMs = new Date(stoppedFight.updatedAtUtc).getTime();
-    if (Number.isNaN(startedAtMs) || Number.isNaN(stoppedAtMs)) {
+    if (Number.isNaN(stoppedAtMs)) {
       return null;
     }
 
+    const accumulatedMilliseconds = previousFight.osaeKomiElapsedMilliseconds ?? 0;
+    const activeMilliseconds = previousFight.osaeKomiStartedAtUtc
+      ? Math.max(0, stoppedAtMs - new Date(previousFight.osaeKomiStartedAtUtc).getTime())
+      : 0;
+
     return {
-      seconds: Math.min(cap, Math.max(0, (stoppedAtMs - startedAtMs) / 1000)),
+      seconds: Math.min(cap, Math.max(0, (accumulatedMilliseconds + activeMilliseconds) / 1000)),
       cap,
       side,
     };
@@ -643,6 +657,22 @@ export class MatchComponent implements OnInit, OnDestroy {
       });
     }
 
+    protected toggleOsaeKomi(fight: Fight): void {
+      if (!this.canOperate() || fight.osaeKomiSide === null) return;
+      const tid = this.context.tournamentId();
+      if (!tid) return;
+
+      const paused = this.isOsaeKomiPaused(fight);
+      const request = paused
+        ? this.api.resumeOsaeKomi(tid, fight.id, this.operatorName())
+        : this.api.pauseOsaeKomi(tid, fight.id, this.operatorName());
+      request.subscribe({
+        next: () => this.refreshQueue(),
+        error: () => this.errorMessage.set(this.i18n.translate(
+          paused ? 'match.osaeKomiResumeFailed' : 'match.osaeKomiPauseFailed')),
+      });
+    }
+
   protected confirmWinner(fight: Fight, winnerId: string): void {
     if (!this.canOperate() || this.confirmingWinner()) return;
     this.winnerConfirmation.set({
@@ -749,7 +779,9 @@ export class MatchComponent implements OnInit, OnDestroy {
       ? `${exactSeconds.toFixed(1)}s`
       : frozenDisplay
         ? `${seconds.toFixed(1)}s`
-        : `${seconds}s`;
+        : this.osaeKomiPaused() && exactSeconds !== null
+          ? `${exactSeconds.toFixed(1)}s`
+          : `${seconds}s`;
 
     return `${primary} / ${cap}s`;
   }
@@ -777,6 +809,14 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   protected canStartOsaeKomi(fight: Fight, side: FightSide): boolean {
     return fight.status === 'InProgress' && this.osaeKomiSide() === null;
+  }
+
+  protected isOsaeKomiPaused(fight: Fight): boolean {
+    return fight.osaeKomiSide !== null && fight.osaeKomiPausedAtUtc !== null;
+  }
+
+  protected osaeKomiToggleLabelKey(): string {
+    return this.osaeKomiPaused() ? 'match.resumeOsae' : 'match.pauseOsae';
   }
 
   protected sideLabelKey(side: FightSide): string {

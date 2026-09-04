@@ -57,6 +57,8 @@ describe('DisplayComponent', () => {
       pausedAtUtc: null,
       osaeKomiSide: null,
       osaeKomiStartedAtUtc: null,
+      osaeKomiPausedAtUtc: null,
+      osaeKomiElapsedMilliseconds: 0,
       startedAtUtc: new Date(Date.now() - 60_000).toISOString(),
       completedAtUtc: null,
       isGoldenScore: false,
@@ -202,6 +204,25 @@ describe('DisplayComponent', () => {
     fightUpdates.next(stoppedFight);
 
     expect((fixture.componentInstance as any).osaeKomiSecondsLabel(stoppedFight)).toBe('5.4s');
+
+    fixture.destroy();
+  });
+
+  it('shows a server-persisted paused Osae-Komi with its accumulated duration', () => {
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    const pausedHold = createFight({
+      status: 'InProgress',
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: null,
+      osaeKomiPausedAtUtc: new Date().toISOString(),
+      osaeKomiElapsedMilliseconds: 3_400,
+    });
+
+    expect(component.isOsaeKomiPaused(pausedHold)).toBeTrue();
+    expect(component.osaeKomiSecondsLabel(pausedHold)).toBe('3.4s');
 
     fixture.destroy();
   });

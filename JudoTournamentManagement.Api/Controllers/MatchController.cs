@@ -200,6 +200,42 @@ public sealed class MatchController : ControllerBase
     }
 
     /// <summary>
+    /// Pauses the active osae-komi timing while keeping the hold and fight active.
+    /// </summary>
+    [HttpPost("osae-komi/pause")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> PauseOsaeKomiAsync(
+        Guid tournamentId,
+        Guid fightId,
+        CancellationToken cancellationToken)
+    {
+        if (!await FightBelongsToTournamentAsync(tournamentId, fightId, cancellationToken)) return NotFound();
+
+        var result = await _matchService.PauseOsaeKomiAsync(fightId, CurrentUser(), cancellationToken);
+        return MapResult(result);
+    }
+
+    /// <summary>
+    /// Resumes a paused osae-komi timing.
+    /// </summary>
+    [HttpPost("osae-komi/resume")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ResumeOsaeKomiAsync(
+        Guid tournamentId,
+        Guid fightId,
+        CancellationToken cancellationToken)
+    {
+        if (!await FightBelongsToTournamentAsync(tournamentId, fightId, cancellationToken)) return NotFound();
+
+        var result = await _matchService.ResumeOsaeKomiAsync(fightId, CurrentUser(), cancellationToken);
+        return MapResult(result);
+    }
+
+    /// <summary>
     /// Confirms the winner of an in-progress fight and propagates the result through the bracket.
     /// </summary>
     [HttpPost("result")]
