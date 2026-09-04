@@ -60,7 +60,7 @@ Bereits verfuegbar:
 - authentifizierter Serverzeit-Endpunkt fuer die Frontend-Zeitsynchronisation (`GET /api/time`)
 - serverseitiger Kampfzeit-Auswerter fuer zeitbasierte Kampf- und Osae-komi-Entscheidungen
 - Osae-komi-Ippon haelt die Kampfzeit auf dem Server sofort an
-- Unit-Test-Projekt (350 erfolgreiche Tests, Category=UnitTest)
+- Unit-Test-Projekt (352 erfolgreiche Tests, Category=UnitTest)
 - TLS/LAN-Betriebsstabilisierung und wiederholte Feldvalidierung
 
 ## Architektur
