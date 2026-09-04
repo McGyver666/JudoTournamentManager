@@ -17,15 +17,6 @@
   min-width: 0;
 }
 
-.page-header__clock {
-  font-variant-numeric: tabular-nums;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--paper);
-  white-space: nowrap;
-  font-family: var(--ff-mono);
-}
-
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -460,14 +451,28 @@
 }
 
 .osae-card__controls {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+.osae-card__controls .btn {
+  width: 100%;
+  min-width: 0;
 }
 
 .osae-card__note {
   color: var(--text-medium);
   font-size: 0.85rem;
+  line-height: 1.2rem;
+  height: 2.4rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.osae-card__note--hidden {
+  visibility: hidden;
 }
 
 .confirm-row {

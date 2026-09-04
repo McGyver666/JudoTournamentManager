@@ -3,6 +3,7 @@
   "app.subtitle": "Turnier-Manager",
   "app.brandName": "Judo Turnier Manager",
   "app.brandTagline": "Unterstützt von Anfang bis Ende",
+  "app.clockLabel": "Uhrzeit",
   "app.connectionLive": "Live",
   "app.connectionOffline": "Offline",
   "app.tatamiCount": "{count} Tatami",

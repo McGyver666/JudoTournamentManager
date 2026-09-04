@@ -10,6 +10,7 @@ import { AuthStateService } from './core/auth-state.service';
 import { ApiService } from './core/api.service';
 import { APP_VERSION } from './core/app-info';
 import { Tatami } from './core/models';
+import { TimeService } from './core/time.service';
 import { TournamentHubService } from './core/tournament-hub.service';
 
 /**
@@ -31,6 +32,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly hub = inject(TournamentHubService);
   private readonly router = inject(Router);
+  private readonly time = inject(TimeService);
   protected readonly context = inject(TournamentContextService);
 
   protected readonly language = this.i18n.language;
@@ -62,8 +64,14 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly drawerOpen = signal(false);
   protected readonly showShell = signal(true);
   protected readonly routeTatamiId = signal<string | null>(null);
+  protected readonly nowEpochMs = signal<number>(Date.now());
+  protected readonly currentTimeLabel = computed(() => this.formatCurrentTime(this.nowEpochMs()));
 
   private shellRouteSub?: Subscription;
+  private serverTimeSub?: Subscription;
+  private reconnectSub?: Subscription;
+  private clockHandle: ReturnType<typeof setInterval> | null = null;
+  private lastClockResyncCheckAtMs = 0;
 
   private readonly loadTatamisEffect = effect((onCleanup) => {
     const tournamentId = this.context.tournamentId();
@@ -113,6 +121,15 @@ export class AppComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    void this.time.synchronize(5);
+    this.startClock();
+    this.serverTimeSub = this.hub.serverTimeSync$.subscribe((serverNowUtc) => {
+      this.time.ingestServerNowUtc(serverNowUtc);
+    });
+    this.reconnectSub = this.hub.reconnected$.subscribe(() => {
+      void this.time.synchronize(5);
+    });
+
     this.updateShellVisibility(this.router.url);
     this.shellRouteSub = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -121,6 +138,40 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.shellRouteSub?.unsubscribe();
+    this.serverTimeSub?.unsubscribe();
+    this.reconnectSub?.unsubscribe();
+    this.stopClock();
+  }
+
+  private startClock(): void {
+    this.refreshCurrentTime();
+    this.clockHandle = setInterval(() => {
+      this.refreshCurrentTime();
+    }, 1000);
+  }
+
+  private stopClock(): void {
+    if (this.clockHandle !== null) {
+      clearInterval(this.clockHandle);
+      this.clockHandle = null;
+    }
+  }
+
+  private refreshCurrentTime(): void {
+    const localNowMs = Date.now();
+    if (localNowMs - this.lastClockResyncCheckAtMs >= 10_000) {
+      this.lastClockResyncCheckAtMs = localNowMs;
+      void this.time.synchronizeIfStale();
+    }
+
+    this.nowEpochMs.set(this.time.nowMs());
+  }
+
+  private formatCurrentTime(epochMs: number): string {
+    return new Intl.DateTimeFormat('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(epochMs);
   }
 
   protected switchLanguage(event: Event): void {

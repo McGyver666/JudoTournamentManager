@@ -209,6 +209,11 @@
         }
       }
 
+      <div class="shell-clock top-tourney" [attr.aria-label]="(currentTimeLabel() + ' ' + ('app.clockLabel' | t))">
+        <span class="page-header__clock">{{ currentTimeLabel() }}</span>
+        <span class="top-tourney-meta">{{ 'app.clockLabel' | t }}</span>
+      </div>
+
       <span class="top-spacer"></span>
 
       @if (isAuthenticated()) {
@@ -246,8 +251,7 @@
             aria-controls="user-settings-menu"
             [title]="(userMenuOpen() ? 'userMenu.close' : 'userMenu.open') | t"
             (click)="toggleUserMenu()">
-            <span class="user-menu-icon user-menu-icon--account" aria-hidden="true">人</span>
-            <span class="user-menu-icon user-menu-icon--settings" aria-hidden="true">⚙</span>
+            <span class="user-menu-icon" aria-hidden="true">設</span>
           </button>
 
           @if (userMenuOpen()) {

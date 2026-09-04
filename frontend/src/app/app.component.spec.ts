@@ -11,6 +11,7 @@ import { AuthStateService } from './core/auth-state.service';
 import { I18nService } from './core/i18n.service';
 import { Tatami } from './core/models';
 import { ThemeService } from './core/theme.service';
+import { TimeService } from './core/time.service';
 import { TournamentContextService } from './core/tournament-context.service';
 import { TournamentHubService } from './core/tournament-hub.service';
 
@@ -57,7 +58,23 @@ describe('AppComponent shell navigation', () => {
         { provide: AuthStateService, useValue: auth },
         { provide: I18nService, useValue: { translate: (key: string) => key, language: signal('de'), use: () => undefined } },
         { provide: ThemeService, useValue: { theme: signal('light'), toggle: () => undefined } },
-        { provide: TournamentHubService, useValue: { connected: signal(false) } },
+        {
+          provide: TournamentHubService,
+          useValue: {
+            connected: signal(false),
+            serverTimeSync$: of(),
+            reconnected$: of(),
+          },
+        },
+        {
+          provide: TimeService,
+          useValue: {
+            nowMs: () => Date.now(),
+            synchronize: () => Promise.resolve(),
+            synchronizeIfStale: () => Promise.resolve(),
+            ingestServerNowUtc: () => undefined,
+          },
+        },
         {
           provide: TournamentContextService,
           useValue: {
@@ -237,6 +254,16 @@ describe('AppComponent shell navigation', () => {
     expect(segments).toContain('06. August 2026');
   });
 
+  it('renders the central shell clock with its meta label', () => {
+    configure();
+    const el = render().nativeElement as HTMLElement;
+
+    const clock = el.querySelector('.shell-clock');
+    expect(clock).not.toBeNull();
+    expect(clock?.querySelector('.page-header__clock')?.textContent?.trim()).toMatch(/^\d{2}:\d{2}$/);
+    expect(clock?.querySelector('.top-tourney-meta')?.textContent?.trim()).toBe('app.clockLabel');
+  });
+
   it('opens the user settings menu beside the username', () => {
     configure();
     const fixture = render();
@@ -248,8 +275,7 @@ describe('AppComponent shell navigation', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('.top-user-name')?.textContent?.trim()).toBe('M. Kaminski');
-    expect(el.querySelector('.user-menu-icon--account')?.textContent?.trim()).toBe('人');
-    expect(el.querySelector('.user-menu-icon--settings')?.textContent?.trim()).toBe('⚙');
+    expect(el.querySelector('.user-menu-icon')?.textContent?.trim()).toBe('設');
     expect(el.querySelector('.user-menu-chevron')).toBeNull();
     expect(el.querySelector('.user-menu-panel')).not.toBeNull();
     expect(el.querySelector('.user-menu-panel select')).not.toBeNull();

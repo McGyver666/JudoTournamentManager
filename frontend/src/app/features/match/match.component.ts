@@ -99,7 +99,6 @@ export class MatchComponent implements OnInit, OnDestroy {
     const currentId = q.current?.id;
     return q.upcoming.filter((fight) => fight.id !== currentId);
   });
-  protected readonly currentTimeLabel = computed(() => this.formatCurrentTime(this.nowEpochMs()));
   protected readonly insufficientRestAthleteIds = computed(() => {
     const nowMs = this.nowEpochMs();
     const minimumGapSeconds = this.context.tournament()?.minimumRestBetweenFightsSeconds ?? 0;
@@ -132,7 +131,7 @@ export class MatchComponent implements OnInit, OnDestroy {
   private serverTimeSub?: Subscription;
   private reconnectSub?: Subscription;
   private querySub?: Subscription;
-  private headerClockHandle: ReturnType<typeof setInterval> | null = null;
+  private timeRefreshHandle: ReturnType<typeof setInterval> | null = null;
 
   private readonly selectedTatamiEffect = effect(() => {
     const tournamentId = this.context.tournamentId();
@@ -151,7 +150,7 @@ export class MatchComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void this.time.synchronize(5);
-    this.startHeaderClock();
+    this.startTimeRefresh();
 
     const tid = this.context.tournamentId();
     if (!tid) return;
@@ -249,7 +248,7 @@ export class MatchComponent implements OnInit, OnDestroy {
     this.serverTimeSub?.unsubscribe();
     this.reconnectSub?.unsubscribe();
     this.stopTimer();
-    this.stopHeaderClock();
+    this.stopTimeRefresh();
   }
 
   private handleCategoryFightsUpdated(evt: CategoryFightsUpdatedEvent): void {
@@ -309,13 +308,17 @@ export class MatchComponent implements OnInit, OnDestroy {
       const wasPausedNowRunning = this.previousFight.status === 'Paused' && fight.status === 'InProgress';
       const isNowPaused = fight.status === 'Paused';
 
-      // Osae-komi was active and is now stopped: freeze the display (but not if fight is being paused or just resumed).
-      if (prevHadOsaeKomi && !newHasOsaeKomi && !isNowPaused && !wasPausedNowRunning) {
-        const s = this.osaeKomiSeconds();
-        const c = this.osaeKomiCapSeconds();
-        const side = this.osaeKomiSide();
-        if (s !== null && c !== null && side !== null) {
-          this.frozenOsaeKomiDisplay = { seconds: s, cap: c, side };
+      if (prevHadOsaeKomi && !newHasOsaeKomi && !wasPausedNowRunning) {
+        const serverStoppedDisplay = this.getServerStoppedOsaeKomiDisplay(this.previousFight, fight);
+        if (serverStoppedDisplay) {
+          this.frozenOsaeKomiDisplay = serverStoppedDisplay;
+        } else if (!isNowPaused) {
+          const s = this.osaeKomiSeconds();
+          const c = this.osaeKomiCapSeconds();
+          const side = this.osaeKomiSide();
+          if (s !== null && c !== null && side !== null) {
+            this.frozenOsaeKomiDisplay = { seconds: s, cap: c, side };
+          }
         }
       }
 
@@ -411,17 +414,40 @@ export class MatchComponent implements OnInit, OnDestroy {
     }
   }
 
-  private startHeaderClock(): void {
+  private getServerStoppedOsaeKomiDisplay(
+    previousFight: Fight,
+    stoppedFight: Fight,
+  ): { seconds: number; cap: number; side: FightSide } | null {
+    if (!previousFight.osaeKomiSide || !previousFight.osaeKomiStartedAtUtc) {
+      return null;
+    }
+
+    const side = previousFight.osaeKomiSide === 'White' ? 'white' : 'blue';
+    const cap = this.getOsaeKomiCap(previousFight, side);
+    const startedAtMs = new Date(previousFight.osaeKomiStartedAtUtc).getTime();
+    const stoppedAtMs = new Date(stoppedFight.updatedAtUtc).getTime();
+    if (Number.isNaN(startedAtMs) || Number.isNaN(stoppedAtMs)) {
+      return null;
+    }
+
+    return {
+      seconds: Math.min(cap, Math.max(0, (stoppedAtMs - startedAtMs) / 1000)),
+      cap,
+      side,
+    };
+  }
+
+  private startTimeRefresh(): void {
     this.refreshCurrentTime();
-    this.headerClockHandle = setInterval(() => {
+    this.timeRefreshHandle = setInterval(() => {
       this.refreshCurrentTime();
     }, 1000);
   }
 
-  private stopHeaderClock(): void {
-    if (this.headerClockHandle !== null) {
-      clearInterval(this.headerClockHandle);
-      this.headerClockHandle = null;
+  private stopTimeRefresh(): void {
+    if (this.timeRefreshHandle !== null) {
+      clearInterval(this.timeRefreshHandle);
+      this.timeRefreshHandle = null;
     }
   }
 
@@ -433,13 +459,6 @@ export class MatchComponent implements OnInit, OnDestroy {
     }
 
     this.nowEpochMs.set(this.time.nowMs());
-  }
-
-  private formatCurrentTime(epochMs: number): string {
-    return new Intl.DateTimeFormat('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(epochMs);
   }
 
   private formatWholeSeconds(seconds: number): string {
@@ -717,9 +736,10 @@ export class MatchComponent implements OnInit, OnDestroy {
   }
 
   protected holdTimerLabel(): string {
-    const seconds = this.osaeKomiSeconds() ?? this.frozenOsaeKomiDisplay?.seconds ?? null;
+    const frozenDisplay = this.frozenOsaeKomiDisplay;
+    const seconds = this.osaeKomiSeconds() ?? frozenDisplay?.seconds ?? null;
     const exactSeconds = this.osaeKomiElapsedExactSeconds();
-    const cap = this.osaeKomiCapSeconds() ?? this.frozenOsaeKomiDisplay?.cap ?? 25;
+    const cap = this.osaeKomiCapSeconds() ?? frozenDisplay?.cap ?? 25;
     if (seconds === null) return '--s';
 
     const isRunning = this.osaeKomiSide() !== null && exactSeconds !== null;
@@ -727,7 +747,9 @@ export class MatchComponent implements OnInit, OnDestroy {
     const showTenths = isRunning && remainingToCap <= 10;
     const primary = showTenths && exactSeconds !== null
       ? `${exactSeconds.toFixed(1)}s`
-      : `${seconds}s`;
+      : frozenDisplay
+        ? `${seconds.toFixed(1)}s`
+        : `${seconds}s`;
 
     return `${primary} / ${cap}s`;
   }

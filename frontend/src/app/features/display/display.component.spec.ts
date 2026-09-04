@@ -181,6 +181,64 @@ describe('DisplayComponent', () => {
     fixture.destroy();
   });
 
+  it('uses the server mutation timestamp when freezing a stopped Osae-Komi', () => {
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    const startedAt = new Date('2026-09-04T10:00:00.000Z');
+    const activeHold = createFight({
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: startedAt.toISOString(),
+    });
+    const stoppedFight = createFight({
+      updatedAtUtc: new Date(startedAt.getTime() + 5_400).toISOString(),
+    });
+
+    (fixture.componentInstance as any).displays.set([
+      { tatami: createTatami(), current: activeHold, nextFights: [] },
+    ]);
+
+    fightUpdates.next(activeHold);
+    fightUpdates.next(stoppedFight);
+
+    expect((fixture.componentInstance as any).osaeKomiSecondsLabel(stoppedFight)).toBe('5.4s');
+
+    fixture.destroy();
+  });
+
+  it('keeps the cap that applied before a stop awarded Waza-ari', () => {
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    component.tournament.set({
+      osaeKomiIpponSeconds: 20,
+      osaeKomiWazaAriSeconds: 10,
+    });
+
+    const startedAt = new Date('2026-09-04T10:00:00.000Z');
+    const activeHold = createFight({
+      osaeKomiSide: 'White',
+      osaeKomiStartedAtUtc: startedAt.toISOString(),
+      whiteWazaAriCount: 0,
+    });
+    const stoppedFight = createFight({
+      updatedAtUtc: new Date(startedAt.getTime() + 10_000).toISOString(),
+      whiteWazaAriCount: 1,
+    });
+
+    component.displays.set([
+      { tatami: createTatami(), current: activeHold, nextFights: [] },
+    ]);
+
+    fightUpdates.next(activeHold);
+    fightUpdates.next(stoppedFight);
+
+    expect(component.osaeKomiCapSecondsLabel(stoppedFight)).toBe('20s');
+
+    fixture.destroy();
+  });
+
   it('keeps a stopped Osae-Komi visible through pause and clears it on resume', () => {
     const fixture = TestBed.createComponent(DisplayComponent);
     fixture.detectChanges();

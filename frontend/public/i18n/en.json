@@ -3,6 +3,7 @@
   "app.subtitle": "Tournament Manager",
   "app.brandName": "Judo Tournament Manager",
   "app.brandTagline": "Supporting you from start to finish",
+  "app.clockLabel": "Time",
   "app.connectionLive": "Live",
   "app.connectionOffline": "Offline",
   "app.tatamiCount": "{count} Tatami",

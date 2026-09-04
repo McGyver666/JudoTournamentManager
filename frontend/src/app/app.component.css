@@ -43,7 +43,7 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
   height: 92px;
   padding: 26px 24px 20px;
   background: var(--panel-brand);
@@ -397,36 +397,36 @@
 
 .live-badge {
   padding: 0.4rem 0.65rem;
-  border: 1px solid color-mix(in srgb, var(--aka) 40%, var(--c-border));
+  border: 1px solid color-mix(in srgb, var(--matcha) 40%, var(--c-border));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--aka) 10%, transparent);
-  color: var(--aka-bright);
+  background: color-mix(in srgb, var(--matcha) 10%, transparent);
+  color: var(--matcha);
   text-transform: uppercase;
   font-weight: 700;
 }
 
 .live-badge i {
-  background: var(--aka);
-  box-shadow: 0 0 0 0 var(--aka-glow);
+  background: var(--matcha);
+  box-shadow: 0 0 0 0 var(--matcha);
   animation: shellLivePulse 1.6s infinite;
 }
 
 .live-badge--offline {
-  border-color: color-mix(in srgb, var(--shido) 44%, var(--c-border));
-  background: color-mix(in srgb, var(--shido) 10%, transparent);
-  color: var(--shido);
+  border-color: color-mix(in srgb, var(--aka) 44%, var(--c-border));
+  background: color-mix(in srgb, var(--aka) 10%, transparent);
+  color: var(--aka);
 }
 
 .live-badge--offline i {
-  background: var(--shido);
+  background: var(--aka);
   box-shadow: none;
   animation: none;
 }
 
 @keyframes shellLivePulse {
-  0% { box-shadow: 0 0 0 0 var(--aka-glow); }
-  70% { box-shadow: 0 0 0 0.45rem color-mix(in srgb, var(--aka) 0%, transparent); }
-  100% { box-shadow: 0 0 0 0 var(--aka-glow); }
+  0% { box-shadow: 0 0 0 0 var(--matcha); }
+  70% { box-shadow: 0 0 0 0.45rem color-mix(in srgb, var(--matcha) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 var(--matcha); }
 }
 
 .hamburger {
@@ -575,23 +575,6 @@
   font-size: 1.05rem;
   line-height: 1;
   font-weight: 700;
-}
-
-.user-menu-icon--settings {
-  display: none;
-  font-family: "Segoe UI Symbol", var(--ff-ui);
-}
-
-.user-menu-toggle:hover .user-menu-icon--account,
-.user-menu-toggle:focus-visible .user-menu-icon--account,
-.user-menu-toggle[aria-expanded='true'] .user-menu-icon--account {
-  display: none;
-}
-
-.user-menu-toggle:hover .user-menu-icon--settings,
-.user-menu-toggle:focus-visible .user-menu-icon--settings,
-.user-menu-toggle[aria-expanded='true'] .user-menu-icon--settings {
-  display: inline;
 }
 
 .user-menu-panel {
