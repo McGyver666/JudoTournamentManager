@@ -483,6 +483,58 @@ public sealed class MatchServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task PauseFight_DuringPausedOsaeKomi_ExcludesSonoMamaFromFightClock()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var final = (await ReadFightsAsync(db, cid)).Single();
+        DateTimeOffset fightStartedAt;
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(final.Id, "Tisch1", CancellationToken.None);
+            await svc.StartOsaeKomiAsync(final.Id, "white", "Tisch1", CancellationToken.None);
+
+            var active = await ctx.Fights.SingleAsync(f => f.Id == final.Id);
+            fightStartedAt = active.StartedAtUtc!.Value;
+            active.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-2);
+            await ctx.SaveChangesAsync();
+
+            Assert.Equal(MatchActionResult.Success,
+                await svc.PauseOsaeKomiAsync(final.Id, "Tisch1", CancellationToken.None));
+
+            active.OsaeKomiPausedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-4);
+            await ctx.SaveChangesAsync();
+
+            Assert.Equal(MatchActionResult.Success,
+                await svc.PauseAsync(final.Id, "Tisch1", CancellationToken.None));
+        }
+
+        var paused = (await ReadFightsAsync(db, cid)).Single();
+        Assert.Equal(FightStatus.Paused.ToString(), paused.Status);
+        Assert.InRange((paused.StartedAtUtc!.Value - fightStartedAt).TotalSeconds, 3.5, 5.5);
+        Assert.Null(paused.OsaeKomiSide);
+        Assert.Null(paused.OsaeKomiPausedAtUtc);
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var entries = await ctx.AuditLogs
+                .AsNoTracking()
+                .Where(entry => entry.TournamentId == paused.TournamentId)
+                .ToListAsync();
+            Assert.Contains(entries, entry => entry.Action == "FightPaused" && entry.EntityId == paused.Id);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task ResumeOsaeKomi_PausedHold_ContinuesHoldAndFreezesFightClock()
     {
         var db = CreateDatabasePath();

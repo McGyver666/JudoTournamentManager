@@ -264,6 +264,11 @@ public sealed class MatchService : IMatchService
         if (fight.Status != InProgress) return MatchActionResult.InvalidState;
 
         var now = DateTimeOffset.UtcNow;
+        if (fight.OsaeKomiPausedAtUtc is not null && fight.StartedAtUtc is not null)
+        {
+            fight.StartedAtUtc = fight.StartedAtUtc.Value.Add(now - fight.OsaeKomiPausedAtUtc.Value);
+        }
+
         fight.Status = Paused;
         fight.PausedAtUtc = now;
         fight.OsaeKomiSide = null;
@@ -272,6 +277,9 @@ public sealed class MatchService : IMatchService
         fight.OsaeKomiElapsedMilliseconds = 0;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            fight.TournamentId, user, "FightPaused", "Fight", fight.Id, null, cancellationToken);
 
         await BroadcastFightUpdatedAsync(fight);
 
@@ -298,6 +306,9 @@ public sealed class MatchService : IMatchService
         fight.OsaeKomiElapsedMilliseconds = 0;
         fight.UpdatedAtUtc = now;
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLog.LogAsync(
+            fight.TournamentId, user, "FightResumed", "Fight", fight.Id, null, cancellationToken);
 
         await BroadcastFightUpdatedAsync(fight);
 
