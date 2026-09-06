@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_DIR="/opt/judo-tournament"
+INSTALL_DIR="/opt/shiai-manager"
 HOSTNAME=""
 EMAIL=""
 RUN_CERTBOT=true
@@ -17,7 +17,7 @@ Options:
   --hostname NAME       Public DNS hostname for nginx and the TLS certificate.
   --email ADDRESS       Email address used for Let's Encrypt notifications.
   --source DIRECTORY    Extracted release folder (default: parent of deploy/).
-  --install-dir PATH    Installation directory (default: /opt/judo-tournament).
+  --install-dir PATH    Installation directory (default: /opt/shiai-manager).
   --skip-certbot        Configure HTTP only; do not request a TLS certificate.
   -h, --help            Show this help.
 EOF
@@ -72,7 +72,7 @@ if [[ -z "$HOSTNAME" ]]; then
 fi
 
 SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
-if [[ ! -x "$SOURCE_DIR/app/JudoTournamentManagement.Api" ]] || [[ ! -f "$SOURCE_DIR/deploy/judo-tournament.service" ]]; then
+if [[ ! -x "$SOURCE_DIR/app/ShiaiManager.Api" ]] || [[ ! -f "$SOURCE_DIR/deploy/shiai-manager.service" ]]; then
   echo "'$SOURCE_DIR' is not a release folder (app and deploy files are required)." >&2
   exit 1
 fi
@@ -89,31 +89,31 @@ if [[ "$RUN_CERTBOT" == true ]]; then
   apt-get install -y certbot python3-certbot-nginx
 fi
 
-if ! id judo >/dev/null 2>&1; then
-  useradd --system --create-home --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin judo
+if ! id shiai >/dev/null 2>&1; then
+  useradd --system --create-home --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin shiai
 fi
 
-systemctl stop judo-tournament.service 2>/dev/null || true
-install -d -o judo -g judo "$INSTALL_DIR/app/App_Data" "$INSTALL_DIR/deploy"
+systemctl stop shiai-manager.service 2>/dev/null || true
+install -d -o shiai -g shiai "$INSTALL_DIR/app/App_Data" "$INSTALL_DIR/deploy"
 
 # App_Data contains the SQLite database and is intentionally excluded so that
 # upgrades do not overwrite tournament data.
 rsync -a --delete --exclude 'app/App_Data/' "$SOURCE_DIR/" "$INSTALL_DIR/"
-install -d -o judo -g judo "$INSTALL_DIR/app/App_Data"
-chown -R judo:judo "$INSTALL_DIR"
-chmod +x "$INSTALL_DIR/app/JudoTournamentManagement.Api"
+install -d -o shiai -g shiai "$INSTALL_DIR/app/App_Data"
+chown -R shiai:shiai "$INSTALL_DIR"
+chmod +x "$INSTALL_DIR/app/ShiaiManager.Api"
 
-if [[ ! -f /etc/default/judo-tournament ]]; then
+if [[ ! -f /etc/default/shiai-manager ]]; then
   SECRET="$(openssl rand -base64 48 | tr -d '\n')"
-  printf 'Security__AuthTokenHmacSecret=%s\n' "$SECRET" > /etc/default/judo-tournament
-  chmod 600 /etc/default/judo-tournament
+  printf 'Security__AuthTokenHmacSecret=%s\n' "$SECRET" > /etc/default/shiai-manager
+  chmod 600 /etc/default/shiai-manager
 fi
 
-cp "$INSTALL_DIR/deploy/judo-tournament.service" /etc/systemd/system/judo-tournament.service
+cp "$INSTALL_DIR/deploy/shiai-manager.service" /etc/systemd/system/shiai-manager.service
 
 # Start with HTTP so Certbot can complete its ACME challenge. Certbot replaces
 # this server block with a TLS-enabled one when it is run below.
-cat > /etc/nginx/sites-available/judo-tournament <<EOF
+cat > /etc/nginx/sites-available/shiai-manager <<EOF
 server {
     listen 80;
     server_name $HOSTNAME;
@@ -135,13 +135,13 @@ server {
     }
 }
 EOF
-ln -sfn /etc/nginx/sites-available/judo-tournament /etc/nginx/sites-enabled/judo-tournament
+ln -sfn /etc/nginx/sites-available/shiai-manager /etc/nginx/sites-enabled/shiai-manager
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx
 
 systemctl daemon-reload
-systemctl enable --now judo-tournament.service
+systemctl enable --now shiai-manager.service
 
 if [[ "$RUN_CERTBOT" == true ]]; then
   CERTBOT_ARGS=(--nginx -d "$HOSTNAME" --non-interactive --agree-tos --redirect)
@@ -156,7 +156,7 @@ fi
 echo
 echo "Deployment complete."
 echo "Application health: http://$HOSTNAME/health"
-echo "Service status:     systemctl status judo-tournament --no-pager"
+echo "Service status:     systemctl status shiai-manager --no-pager"
 
 # --- Initial admin account ---------------------------------------------------
 # On a fresh install the database has no users, so the operator has no way to

@@ -251,7 +251,7 @@ json_count() {
 print(len(json.load(sys.stdin)))'
 }
 
-echo "=== Seeding Judo Tournament Management test data ==="
+echo "=== Seeding Shiai Manager test data ==="
 echo "Base URL: $BASE_URL"
 echo "Admin-Passwort Quelle: $ADMIN_PASSWORD_SOURCE"
 

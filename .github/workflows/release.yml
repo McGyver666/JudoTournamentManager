@@ -72,10 +72,10 @@ jobs:
         run: npm run build
 
       - name: Restore .NET dependencies
-        run: dotnet restore JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj
+        run: dotnet restore ShiaiManager.Api/ShiaiManager.Api.csproj
 
       - name: Build deployable application
-        run: dotnet build JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj --configuration Release --no-restore
+        run: dotnet build ShiaiManager.Api/ShiaiManager.Api.csproj --configuration Release --no-restore
 
       - name: Create Linux release folder
         shell: bash
@@ -83,7 +83,7 @@ jobs:
           rm -rf release release.zip
           mkdir -p release/app/App_Data release/deploy
 
-          dotnet publish JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj \
+          dotnet publish ShiaiManager.Api/ShiaiManager.Api.csproj \
             --configuration Release \
             --runtime linux-x64 \
             --self-contained true \
@@ -98,11 +98,11 @@ jobs:
           rm -rf release/app/App_Data
           mkdir -p release/app/App_Data
           find release/app -name '*.pdb' -delete
-          cp deploy/judo-tournament-release.service release/deploy/judo-tournament.service
-          cp deploy/judo-tournament.nginx.conf release/deploy/judo-tournament.nginx.conf
+          cp deploy/shiai-manager-release.service release/deploy/shiai-manager.service
+          cp deploy/shiai-manager.nginx.conf release/deploy/shiai-manager.nginx.conf
           cp deploy/install_release.sh release/deploy/install_release.sh
           cp deploy/release-README.md release/README.md
-          chmod +x release/app/JudoTournamentManagement.Api
+          chmod +x release/app/ShiaiManager.Api
           chmod +x release/deploy/install_release.sh
 
       - name: Create release archive
@@ -114,7 +114,7 @@ jobs:
       - name: Upload release package
         uses: actions/upload-artifact@v4
         with:
-          name: judo-tournament-linux-release
+          name: shiai-manager-linux-release
           path: |
             release/
             release.zip

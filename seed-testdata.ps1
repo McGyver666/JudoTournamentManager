@@ -81,7 +81,7 @@ function Get-RandomWeightKg {
     return [math]::Round((Get-Random -Minimum $minimumTenths -Maximum $maximumTenthsExclusive) / 10.0, 1)
 }
 
-Write-Host "=== Seeding Judo Tournament Management test data ===" -ForegroundColor Cyan
+Write-Host "=== Seeding Shiai Manager test data ===" -ForegroundColor Cyan
 Write-Host "Base URL: $BaseUrl" -ForegroundColor DarkGray
 Write-Host "Admin-Passwort Quelle: $(if ([string]::IsNullOrWhiteSpace($env:JUDO_TEST_PASSWORD)) { 'zufaellig generiert' } else { 'JUDO_TEST_PASSWORD' })" -ForegroundColor DarkGray
 

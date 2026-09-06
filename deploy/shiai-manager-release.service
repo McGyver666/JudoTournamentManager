@@ -1,0 +1,19 @@
+[Unit]
+Description=Shiai Manager API
+After=network.target
+
+[Service]
+Type=simple
+User=shiai
+Group=shiai
+WorkingDirectory=/opt/shiai-manager/app
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+Environment=HOME=/opt/shiai-manager
+EnvironmentFile=/etc/default/shiai-manager
+ExecStart=/opt/shiai-manager/app/ShiaiManager.Api
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

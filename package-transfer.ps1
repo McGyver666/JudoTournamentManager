@@ -12,7 +12,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$apiProject = Join-Path $projectRoot "JudoTournamentManagement.Api\JudoTournamentManagement.Api.csproj"
+$apiProject = Join-Path $projectRoot "ShiaiManager.Api\ShiaiManager.Api.csproj"
 
 if (-not (Test-Path $apiProject)) {
     throw "API project not found: '$apiProject'."
@@ -71,7 +71,7 @@ else {
 }
 
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$bundleName = "judo-tournament-transfer-$timestamp"
+$bundleName = "shiai-manager-transfer-$timestamp"
 $bundleRoot = Join-Path $resolvedOutputDirectory $bundleName
 $publishDirectory = Join-Path $bundleRoot "app"
 $zipPath = "$bundleRoot.zip"
@@ -116,7 +116,7 @@ Get-ChildItem -Path $publishDirectory -Filter "*.xml" -File -ErrorAction Silentl
 Get-ChildItem -Path $publishDirectory -Filter "appsettings.Development.json" -File -ErrorAction SilentlyContinue | Remove-Item -Force
 
 if ($IncludeDatabase) {
-    $sourceDataDirectory = Join-Path $projectRoot "JudoTournamentManagement.Api\App_Data"
+    $sourceDataDirectory = Join-Path $projectRoot "ShiaiManager.Api\App_Data"
     if (Test-Path $sourceDataDirectory) {
         Write-Host "Including App_Data in bundle..." -ForegroundColor Yellow
         Copy-Item -Path $sourceDataDirectory -Destination (Join-Path $publishDirectory "App_Data") -Recurse -Force
@@ -124,7 +124,7 @@ if ($IncludeDatabase) {
 }
 
 if ($IncludeDevCertificate) {
-    $sourceCertificateDirectory = Join-Path $projectRoot "JudoTournamentManagement.Api\App_Data\certs"
+    $sourceCertificateDirectory = Join-Path $projectRoot "ShiaiManager.Api\App_Data\certs"
     if (Test-Path $sourceCertificateDirectory) {
         Write-Host "Including development TLS certificate folder in bundle..." -ForegroundColor Yellow
         New-Item -ItemType Directory -Path (Join-Path $publishDirectory "App_Data") -Force | Out-Null
@@ -147,7 +147,7 @@ $ErrorActionPreference = "Stop"
 $bundleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $appRoot = Join-Path $bundleRoot "app"
 
-$exe = Get-ChildItem -Path $appRoot -Filter "JudoTournamentManagement.Api*.exe" -File -ErrorAction SilentlyContinue |
+$exe = Get-ChildItem -Path $appRoot -Filter "ShiaiManager.Api*.exe" -File -ErrorAction SilentlyContinue |
     Sort-Object Length -Descending |
     Select-Object -First 1
 
@@ -161,9 +161,9 @@ if ($null -eq $dotnet) {
     throw "dotnet runtime not found in PATH and no self-contained executable found."
 }
 
-$dllPath = Join-Path $appRoot "JudoTournamentManagement.Api.dll"
+$dllPath = Join-Path $appRoot "ShiaiManager.Api.dll"
 if (-not (Test-Path $dllPath)) {
-    throw "Could not find JudoTournamentManagement.Api.dll in '$appRoot'."
+    throw "Could not find ShiaiManager.Api.dll in '$appRoot'."
 }
 
 & $dotnet.Source $dllPath --urls $Urls
@@ -178,13 +178,13 @@ URLS="${1:-http://0.0.0.0:5080}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$SCRIPT_DIR/app"
 
-if [[ -x "$APP_DIR/JudoTournamentManagement.Api" ]]; then
-  "$APP_DIR/JudoTournamentManagement.Api" --urls "$URLS"
+if [[ -x "$APP_DIR/ShiaiManager.Api" ]]; then
+  "$APP_DIR/ShiaiManager.Api" --urls "$URLS"
   exit $?
 fi
 
 if command -v dotnet >/dev/null 2>&1; then
-  exec dotnet "$APP_DIR/JudoTournamentManagement.Api.dll" --urls "$URLS"
+  exec dotnet "$APP_DIR/ShiaiManager.Api.dll" --urls "$URLS"
 fi
 
 echo "dotnet runtime not found and no self-contained executable present." >&2
@@ -192,7 +192,7 @@ exit 1
 '@ | Set-Content -Path $startShPath -Encoding UTF8
 
 @'
-Judo Tournament Management - Transfer Bundle
+Shiai Manager - Transfer Bundle
 
 Contents
 - app/: published runtime files

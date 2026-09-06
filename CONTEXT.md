@@ -1,4 +1,4 @@
-# Context: Judo Tournament Management
+# Context: Shiai Manager
 
 Durable product and domain context for this repo. Work items (open tasks, bugs, features) live in
 **GitHub Issues** (see `docs/agents/issue-tracker.md`); hard-to-reverse decisions live as ADRs in

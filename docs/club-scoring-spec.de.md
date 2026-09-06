@@ -243,11 +243,11 @@ Optionale Optimierung:
 
 ## 8.1 Geplante Backend-Dateien
 
-- JudoTournamentManagement.Api/Services/IRankingService.cs
-- JudoTournamentManagement.Api/Services/RankingService.cs
-- JudoTournamentManagement.Api/Controllers/ResultsController.cs
-- JudoTournamentManagement.Api/Models (neue DTO-Dateien)
-- JudoTournamentManagement.Api.Tests (neue Tests)
+- ShiaiManager.Api/Services/IRankingService.cs
+- ShiaiManager.Api/Services/RankingService.cs
+- ShiaiManager.Api/Controllers/ResultsController.cs
+- ShiaiManager.Api/Models (neue DTO-Dateien)
+- ShiaiManager.Api.Tests (neue Tests)
 
 ## 8.2 Geplante Frontend-Dateien
 

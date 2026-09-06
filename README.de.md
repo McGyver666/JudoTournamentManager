@@ -1,15 +1,15 @@
-# Judo-Turnierverwaltung
+# Shiai Manager
 
 [English](README.md)
 
-Eine Turnierverwaltungsanwendung fuer Judo-Veranstaltungen vor Ort. Sie ist fuer einen zuverlaessigen Betrieb offline auf einem einzelnen Laptop oder im lokalen LAN ausgelegt, kann aber auch internet-gehostet hinter einem nginx-Reverse-Proxy betrieben werden, und verwendet Deutsch als primaere Produktsprache. Sie kombiniert offline-faehige ASP.NET-Core-Backenddienste, SQLite-Persistenz und ein Angular-Frontend fuer Turnierplanung, Kampfbetrieb, Meldungen und Echtzeit-Anzeigeablaeufe.
+**Shiai Manager** (Marke **SHIAI**) ist eine Turnierverwaltungsanwendung fuer Judo-Veranstaltungen vor Ort. Sie ist fuer einen zuverlaessigen Betrieb offline auf einem einzelnen Laptop oder im lokalen LAN ausgelegt, kann aber auch internet-gehostet hinter einem nginx-Reverse-Proxy betrieben werden, und verwendet Deutsch als primaere Produktsprache. Sie kombiniert ein offline-faehiges ASP.NET-Core-Backend, SQLite-Persistenz und ein Angular-Frontend — gestaltet mit dem SHIAI-Dual-Theme-Dojo-Design-System (hell/dunkel) — fuer Turnierplanung, Kampfbetrieb, Meldungen und Echtzeit-Anzeigeablaeufe.
 
 ## Schnellinstallationsanleitung
 
 Auf einem frischen Debian/Ubuntu-Host (Proxmox/LXC) installieren Sie einen Release-Build mit einem einzigen Befehl:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
+curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
   | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 ```
 
@@ -27,10 +27,11 @@ Initial admin credentials (save these now):
 
 ## Projektstatus
 
-Dieses Projekt befindet sich in aktiver MVP-Umsetzung; die meisten zentralen Turnierablaeufe sind bereits umgesetzt.
+Die erste getaggte Beta (`v1.0.0-beta`) ist verfuegbar. Alle zentralen Turnierablaeufe sind umgesetzt, und die Betreiber-/Admin-Oberflaeche wurde mit dem SHIAI-Dual-Theme-Dojo-Design-System (hell/dunkel) und einer Seitenleisten-Shell neu gestaltet (siehe [ADR-0008](docs/adr/0008-frontend-design-system.md)).
 
 Bereits verfuegbar:
 - .NET-10-Backendloesung mit SQLite-Persistenz (EF Core)
+- SHIAI-Dual-Theme-Dojo-Design-System (hell/dunkel) mit Seitenleisten-Shell und selbstgehosteten OFL-Schriften (offline, kein CDN)
 - lokales Startskript
 - Health-Endpunkt
 - APIs fuer Turniere, Tatamis, Gewichtsklassen, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
@@ -92,9 +93,9 @@ Bereits verfuegbar:
 ## Projektstruktur
 
 ```text
-JudoTournamentManagement.sln
-JudoTournamentManagement.Api/
-JudoTournamentManagement.Api.Tests/
+ShiaiManager.sln
+ShiaiManager.Api/
+ShiaiManager.Api.Tests/
 frontend/
 deploy/
 docs/
@@ -140,7 +141,7 @@ Frontend-Build ueberspringen und nur das Backend starten (Windows / PowerShell):
 .\start-local.ps1 -SkipFrontendBuild
 ```
 
-Falls `JudoTournamentManagement.Api/wwwroot/index.html` noch nicht existiert, fuehrt das Startskript auch mit `-SkipFrontendBuild` einmalig einen Frontend-Build aus, damit die UI nicht mit `404` endet.
+Falls `ShiaiManager.Api/wwwroot/index.html` noch nicht existiert, fuehrt das Startskript auch mit `-SkipFrontendBuild` einmalig einen Frontend-Build aus, damit die UI nicht mit `404` endet.
 
 Mit optionaler HTTPS-Bindung fuer den LAN-Modus starten (Windows / PowerShell):
 
@@ -161,7 +162,7 @@ Frontend-Build ueberspringen und nur das Backend starten (Linux/macOS / bash):
 ./start-local.sh --skip-frontend-build
 ```
 
-Falls `JudoTournamentManagement.Api/wwwroot/index.html` noch nicht existiert, fuehrt das Startskript auch mit `--skip-frontend-build` einmalig einen Frontend-Build aus, damit die UI nicht mit `404` endet.
+Falls `ShiaiManager.Api/wwwroot/index.html` noch nicht existiert, fuehrt das Startskript auch mit `--skip-frontend-build` einmalig einen Frontend-Build aus, damit die UI nicht mit `404` endet.
 
 Mit optionaler HTTPS-Bindung fuer den LAN-Modus starten (Linux/macOS / bash):
 
@@ -190,7 +191,7 @@ Nuetzliche Endpunkte:
 - Swagger (Development): `http://localhost:5080/swagger`
 
 Bei einer aelteren lokalen Datenbank ergaenzt der Start fehlende Legacy-Spalten, die von aktuellen Funktionen benoetigt werden.
-Bei groesseren lokalen Schemaabweichungen die lokale Datenbank durch Loeschen von `JudoTournamentManagement.Api/App_Data/judo-tournament.db*` zuruecksetzen und anschliessend neu starten.
+Bei groesseren lokalen Schemaabweichungen die lokale Datenbank durch Loeschen von `ShiaiManager.Api/App_Data/judo-tournament.db*` zuruecksetzen und anschliessend neu starten.
 
 ## Produktivbetrieb (internet-gehostet)
 
@@ -202,7 +203,7 @@ ersetzt wird. Die API vertraut den Headern `X-Forwarded-Proto` und `X-Forwarded-
 vom Loopback-Proxy (`127.0.0.1`), sodass `HttpContext.Request.Scheme` das urspruengliche
 HTTPS widerspiegelt und generierte Links (z. B. die oeffentliche Gast-Freigabe-URL)
 `https://` verwenden. Im Offline-/LAN-Betrieb ohne Proxy sind keine Forwarded-Header
-vorhanden und das Schema bleibt `http`. Siehe `deploy/README.md` und `deploy/judo-tournament.nginx.conf` fuer systemd-Unit,
+vorhanden und das Schema bleibt `http`. Siehe `deploy/README.md` und `deploy/shiai-manager.nginx.conf` fuer systemd-Unit,
 nginx-Konfiguration und Certbot-Einrichtung.
 
 Anders als im Offline-/LAN-Modus ist dieser Modus oeffentlich erreichbar und verlaesst sich
@@ -249,37 +250,37 @@ Nach erfolgreichem Bootstrap unter `http://localhost:5080/login` mit den Zugangs
 Die Loesung bauen (Windows mit lokalem SDK):
 
 ```powershell
-.\.dotnet\dotnet.exe build .\JudoTournamentManagement.sln
+.\.dotnet\dotnet.exe build .\ShiaiManager.sln
 ```
 
 Die Loesung bauen (Linux/macOS mit lokalem SDK):
 
 ```bash
-./.dotnet/dotnet build ./JudoTournamentManagement.sln
+./.dotnet/dotnet build ./ShiaiManager.sln
 ```
 
 Die Loesung bauen (jedes Betriebssystem mit globalem SDK):
 
 ```bash
-dotnet build ./JudoTournamentManagement.sln
+dotnet build ./ShiaiManager.sln
 ```
 
 Alle Unit-Tests ausfuehren (Windows mit lokalem SDK):
 
 ```powershell
-.\.dotnet\dotnet.exe test .\JudoTournamentManagement.sln --filter Category=UnitTest
+.\.dotnet\dotnet.exe test .\ShiaiManager.sln --filter Category=UnitTest
 ```
 
 Alle Unit-Tests ausfuehren (Linux/macOS mit lokalem SDK):
 
 ```bash
-./.dotnet/dotnet test ./JudoTournamentManagement.sln --filter Category=UnitTest
+./.dotnet/dotnet test ./ShiaiManager.sln --filter Category=UnitTest
 ```
 
 Alle Unit-Tests ausfuehren (jedes Betriebssystem mit globalem SDK):
 
 ```bash
-dotnet test ./JudoTournamentManagement.sln --filter Category=UnitTest
+dotnet test ./ShiaiManager.sln --filter Category=UnitTest
 ```
 
 Smoke-Test fuer Auslosungs-/Sperrablauf ausfuehren (Windows / PowerShell):

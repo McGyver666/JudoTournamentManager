@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "judo-frontend": {
+    "shiai-frontend": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -14,7 +14,7 @@
           "builder": "@angular-devkit/build-angular:application",
           "options": {
             "outputPath": {
-              "base": "../JudoTournamentManagement.Api/wwwroot",
+              "base": "../ShiaiManager.Api/wwwroot",
               "browser": ""
             },
             "index": "src/index.html",
@@ -65,10 +65,10 @@
           },
           "configurations": {
             "production": {
-              "buildTarget": "judo-frontend:build:production"
+              "buildTarget": "shiai-frontend:build:production"
             },
             "development": {
-              "buildTarget": "judo-frontend:build:development"
+              "buildTarget": "shiai-frontend:build:development"
             }
           },
           "defaultConfiguration": "development"

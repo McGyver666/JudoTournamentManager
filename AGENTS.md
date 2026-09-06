@@ -1,7 +1,7 @@
-# JudoTournamentManager
+# Shiai Manager
 
 ## Product Context
-- This project builds an offline-capable judo tournament management application for on-site tournament use.
+- This project builds an offline-capable judo tournament management application (branded **SHIAI / Shiai Manager**) for on-site tournament use.
 - The app must keep running on a single laptop or a local LAN even with unstable or no internet — SQLite storage and a locally served UI, with no hard cloud dependency at runtime.
 - It is currently also deployed as an internet-hosted single server behind an nginx reverse proxy (see Architecture and `deploy/`); both the offline/LAN and internet-hosted models must stay supported.
 - German is the primary product language.
@@ -9,7 +9,7 @@
 
 ## Architecture
 - Keep the architecture simple: modular monolith first.
-- Backend is ASP.NET Core Web API on .NET 10 (`JudoTournamentManagement.Api`).
+- Backend is ASP.NET Core Web API on .NET 10 (`ShiaiManager.Api`).
 - Persistence is SQLite via EF Core with migrations (`AppDbContext`, `App_Data/`) for offline durability.
 - Frontend is an Angular SPA (`frontend/`), built into the API's `wwwroot` and served by the API (static files + SPA fallback to `index.html`).
 - Realtime updates (fight table/display) use SignalR at `/hubs/tournament`.
@@ -19,8 +19,8 @@
 
 ## Build and Test
 - Use the .NET 10 SDK available on `PATH`.
-- Build backend with: `dotnet build .\JudoTournamentManagement.sln`
-- Run backend tests with: `dotnet test .\JudoTournamentManagement.sln --filter Category=UnitTest`
+- Build backend with: `dotnet build .\ShiaiManager.sln`
+- Run backend tests with: `dotnet test .\ShiaiManager.sln --filter Category=UnitTest`
 - Frontend lives in `frontend\`: build with `npm run build`, test with `npm run test:ci`.
 - Start locally with: `.\start-local.ps1` (builds the Angular frontend into `wwwroot`, then runs the API).
 
@@ -49,7 +49,7 @@
 
 ### Issue tracker
 
-Issues are tracked as GitHub Issues in `McGyver666/JudoTournamentManager` (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+Issues are tracked as GitHub Issues in `McGyver666/Shiai-Manager` (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# One-command Proxmox/LXC installer for Judo Tournament Management.
+# One-command Proxmox/LXC installer for Shiai Manager.
 #
 # Downloads a published GitHub release, verifies its integrity, and hands the
 # extracted package to deploy/install_release.sh — turning a fresh Debian/Ubuntu
@@ -10,13 +10,13 @@ set -euo pipefail
 #
 #   sudo apt-get update
 #   sudo apt-get install -y curl ca-certificates unzip
-#   curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
+#   curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
 #     | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 #
 # Re-running (default latest, or a newer --version) is the upgrade path: the
 # bundled installer is idempotent and preserves app/App_Data/ (the SQLite DB).
 
-REPO="McGyver666/JudoTournamentManager"
+REPO="McGyver666/Shiai-Manager"
 ASSET_NAME="release.zip"
 CHECKSUM_NAME="release.zip.sha256"
 
@@ -35,7 +35,7 @@ All other options are forwarded unchanged to deploy/install_release.sh, for exam
   --hostname NAME    Public DNS hostname for nginx and the TLS certificate (required).
   --email ADDRESS    Email address used for Let's Encrypt notifications.
   --skip-certbot     Configure HTTP only; do not request a TLS certificate.
-  --install-dir PATH Installation directory (default: /opt/judo-tournament).
+  --install-dir PATH Installation directory (default: /opt/shiai-manager).
 EOF
 }
 

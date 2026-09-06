@@ -1,0 +1,26 @@
+    [Unit]
+    Description=Shiai Manager API
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=shiai
+    Group=shiai
+    PermissionsStartOnly=true
+    WorkingDirectory=/opt/shiai-manager
+    Environment=ASPNETCORE_ENVIRONMENT=Production
+    Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+    Environment=HOME=/opt/shiai-manager
+    Environment=DOTNET_CLI_HOME=/opt/shiai-manager/.dotnet
+    Environment=DOTNET_ROOT=/usr/share/dotnet
+    Environment=DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+    Environment=DOTNET_NOLOGO=1
+    EnvironmentFile=/etc/default/shiai-manager
+    ExecStartPre=/usr/bin/bash -lc 'set -e; test -d /opt/shiai-manager; chown -R shiai:shiai /opt/shiai-manager; install -d -o shiai -g shiai /opt/shiai-manager/.dotnet /opt/shiai-manager/publish'
+    ExecStartPre=/usr/bin/bash -lc 'set -e; cd /opt/shiai-manager; /usr/bin/dotnet publish ShiaiManager.Api/ShiaiManager.Api.csproj -c Release -o /opt/shiai-manager/publish'
+    ExecStart=/usr/bin/dotnet /opt/shiai-manager/publish/ShiaiManager.Api.dll
+    Restart=always
+    RestartSec=10
+
+    [Install]
+    WantedBy=multi-user.target

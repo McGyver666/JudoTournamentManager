@@ -9,7 +9,7 @@ on a single laptop or a small LAN, and stay simple to operate and maintain by a 
 
 ## Decision
 
-Build a single **modular monolith** as an ASP.NET Core Web API on **.NET 10** (`JudoTournamentManagement.Api`),
+Build a single **modular monolith** as an ASP.NET Core Web API on **.NET 10** (`ShiaiManager.Api`),
 with clearly separated modules inside one deployable app. No distributed services unless a concrete
 requirement forces it.
 

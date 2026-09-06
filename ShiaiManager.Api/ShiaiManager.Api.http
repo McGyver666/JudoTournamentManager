@@ -1,0 +1,6 @@
+@ShiaiManager.Api_HostAddress = http://localhost:5048
+
+GET {{ShiaiManager.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -30,7 +30,7 @@ if ($null -eq $dotnetExecutable) {
 }
 
 $frontendRoot = Join-Path $projectRoot "frontend"
-$frontendOutputRoot = Join-Path $projectRoot "JudoTournamentManagement.Api\wwwroot"
+$frontendOutputRoot = Join-Path $projectRoot "ShiaiManager.Api\wwwroot"
 $frontendIndexPath = Join-Path $frontendOutputRoot "index.html"
 
 function Invoke-FrontendBuild {
@@ -83,11 +83,11 @@ else {
     }
 }
 
-Write-Host "Starte JudoTournamentManagement API lokal..." -ForegroundColor Green
+Write-Host "Starte ShiaiManager API lokal..." -ForegroundColor Green
 
 $urls = "http://0.0.0.0:5080"
 if ($EnableTls) {
-    $certDirectory = Join-Path $projectRoot "JudoTournamentManagement.Api\App_Data\certs"
+    $certDirectory = Join-Path $projectRoot "ShiaiManager.Api\App_Data\certs"
     $certPath = Join-Path $certDirectory "dev-lan-cert.pfx"
     New-Item -ItemType Directory -Path $certDirectory -Force | Out-Null
 
@@ -135,4 +135,4 @@ if ([string]::IsNullOrWhiteSpace($env:Security__AuthTokenHmacSecret)) {
     Write-Host "Security__AuthTokenHmacSecret wurde fuer diese Sitzung zufaellig erzeugt." -ForegroundColor Yellow
 }
 
-& $dotnetExecutable run --project (Join-Path $projectRoot "JudoTournamentManagement.Api\JudoTournamentManagement.Api.csproj") --urls $urls
+& $dotnetExecutable run --project (Join-Path $projectRoot "ShiaiManager.Api\ShiaiManager.Api.csproj") --urls $urls

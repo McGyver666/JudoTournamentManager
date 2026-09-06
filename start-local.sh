@@ -51,7 +51,7 @@ else
 fi
 
 FRONTEND_ROOT="$PROJECT_ROOT/frontend"
-FRONTEND_OUTPUT_ROOT="$PROJECT_ROOT/JudoTournamentManagement.Api/wwwroot"
+FRONTEND_OUTPUT_ROOT="$PROJECT_ROOT/ShiaiManager.Api/wwwroot"
 FRONTEND_INDEX_PATH="$FRONTEND_OUTPUT_ROOT/index.html"
 
 build_frontend() {
@@ -90,11 +90,11 @@ else
   fi
 fi
 
-echo "Starte JudoTournamentManagement API lokal..."
+echo "Starte ShiaiManager API lokal..."
 URLS="http://0.0.0.0:5080"
 
 if [[ "$ENABLE_TLS" == "1" ]]; then
-  CERT_DIR="$PROJECT_ROOT/JudoTournamentManagement.Api/App_Data/certs"
+  CERT_DIR="$PROJECT_ROOT/ShiaiManager.Api/App_Data/certs"
   CERT_PATH="$CERT_DIR/dev-lan-cert.pfx"
   mkdir -p "$CERT_DIR"
 
@@ -120,4 +120,4 @@ if [[ -z "${Security__AuthTokenHmacSecret:-}" ]]; then
   echo "Security__AuthTokenHmacSecret wurde fuer diese Sitzung zufaellig erzeugt."
 fi
 
-"$DOTNET_CMD" run --project "$PROJECT_ROOT/JudoTournamentManagement.Api/JudoTournamentManagement.Api.csproj" --urls "$URLS"
+"$DOTNET_CMD" run --project "$PROJECT_ROOT/ShiaiManager.Api/ShiaiManager.Api.csproj" --urls "$URLS"

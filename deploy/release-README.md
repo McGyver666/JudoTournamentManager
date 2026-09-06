@@ -1,4 +1,4 @@
-# Judo Tournament Management Linux release
+# Shiai Manager Linux release
 
 This folder is a ready-to-run `linux-x64` package. It contains the self-contained
 application in `app/`, plus systemd and nginx configuration in `deploy/`.
@@ -15,14 +15,14 @@ available on the host (`curl` is not preinstalled on a minimal Debian 13 image):
 ```bash
 sudo apt-get update
 sudo apt-get install -y curl ca-certificates unzip
-curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
+curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
   | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 ```
 
 Pin a specific release with `--version`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh \
+curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
   | sudo bash -s -- --version v1.2.3 --hostname tournament.example.com --email admin@example.com
 ```
 
@@ -38,7 +38,7 @@ unseen. To review it first, download, read, then execute:
 
 ```bash
 curl -fsSL -o bootstrap_install.sh \
-  https://raw.githubusercontent.com/McGyver666/JudoTournamentManager/main/deploy/bootstrap_install.sh
+  https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh
 less bootstrap_install.sh
 sudo bash bootstrap_install.sh --hostname tournament.example.com --email admin@example.com
 ```
@@ -53,8 +53,8 @@ sudo bash bootstrap_install.sh --hostname tournament.example.com --email admin@e
    sudo ./deploy/install_release.sh --hostname tournament.example.com --email admin@example.com
    ```
 
-   It installs nginx, creates the `judo` service account and an application
-   secret, copies the app to `/opt/judo-tournament`, preserves any existing
+   It installs nginx, creates the `shiai` service account and an application
+   secret, copies the app to `/opt/shiai-manager`, preserves any existing
    SQLite database, enables the systemd service, and requests a TLS certificate.
 
    On a fresh install it also creates an initial `admin` account with a random
@@ -69,6 +69,6 @@ sudo bash bootstrap_install.sh --hostname tournament.example.com --email admin@e
 For an upgrade, extract the new release and rerun the same command. The installer
 does not overwrite `app/App_Data/`, which contains the SQLite database.
 
-The SQLite database is created at `/opt/judo-tournament/app/App_Data/` and must be
+The SQLite database is created at `/opt/shiai-manager/app/App_Data/` and must be
 included in backups and retained when upgrading. On an upgrade, stop the service,
 replace `app/` and `deploy/`, preserve `app/App_Data/`, then start the service.
