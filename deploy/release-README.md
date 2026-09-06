@@ -6,15 +6,29 @@ No .NET SDK or Node.js installation is required on the target host.
 
 ## One-command install (recommended)
 
-On a fresh, minimal Debian/Ubuntu LXC host you can go from "empty container" to
+On a fresh, minimal Debian/Ubuntu or RHEL-compatible LXC host you can go from
+"empty container" to
 "running app" with a single command once the bootstrap fetch prerequisites are
 available. The bootstrap script installs its own runtime prerequisites inside
 the download/verification phase, but the outer shell still needs a downloader
-available on the host (`curl` is not preinstalled on a minimal Debian 13 image):
+and CA certificates available on the host.
+
+Debian/Ubuntu prerequisites:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y curl ca-certificates unzip
+```
+
+RHEL-compatible prerequisites, including Oracle Linux 10:
+
+```bash
+sudo dnf install -y curl ca-certificates unzip
+```
+
+Run the same bootstrap command on either platform:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
   | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 ```
@@ -43,7 +57,13 @@ less bootstrap_install.sh
 sudo bash bootstrap_install.sh --hostname tournament.example.com --email admin@example.com
 ```
 
-## Manual install on Debian/Ubuntu LXC
+## Manual install on Debian/Ubuntu or RHEL-compatible LXC
+
+The bundled installer detects the host distribution automatically. On RHEL-compatible
+hosts, including Oracle Linux 10, it uses `dnf` or `yum`, places the nginx site in
+`/etc/nginx/conf.d/`, and enables the required SELinux proxy permission when SELinux
+is enforcing. Certbot is installed from the configured repositories; if Certbot is
+not available, enable EPEL or use `--skip-certbot`.
 
 1. Copy and extract `release.zip` on the LXC host.
 2. Run the bundled installer from the extracted `release/` folder:

@@ -6,7 +6,25 @@
 
 ## Quick installation guide
 
-On a fresh Debian/Ubuntu (Proxmox/LXC) host, install a released build with a single command:
+On a fresh Debian/Ubuntu or RHEL-compatible (for example Oracle Linux 10)
+Proxmox/LXC host, install a released build with the bootstrap command.
+
+Install the downloader prerequisites first.
+
+Debian/Ubuntu:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y curl ca-certificates unzip
+```
+
+RHEL-compatible systems:
+
+```bash
+sudo dnf install -y curl ca-certificates unzip
+```
+
+Then run the bootstrap command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \

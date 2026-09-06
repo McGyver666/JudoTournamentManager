@@ -5,11 +5,18 @@ set -euo pipefail
 #
 # Downloads a published GitHub release, verifies its integrity, and hands the
 # extracted package to deploy/install_release.sh — turning a fresh Debian/Ubuntu
-# container into a running instance with a single command once the fetch
-# prerequisites are present on the host:
+# or RHEL-compatible container into a running instance with a single command
+# once the fetch prerequisites are present on the host:
 #
 #   sudo apt-get update
 #   sudo apt-get install -y curl ca-certificates unzip
+#
+# On RHEL-compatible systems, use the equivalent dnf command:
+#
+#   sudo dnf install -y curl ca-certificates unzip
+#
+# Then run:
+#
 #   curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
 #     | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 #
@@ -22,10 +29,11 @@ CHECKSUM_NAME="release.zip.sha256"
 
 usage() {
   cat <<'EOF'
-Usage: sudo apt-get update && sudo apt-get install -y curl ca-certificates unzip && \
-       curl -fsSL <raw-url>/deploy/bootstrap_install.sh | sudo bash -s -- --hostname NAME [options]
+Usage: sudo bash bootstrap_install.sh --hostname NAME [options]
 
 Download the latest (or a pinned) GitHub release and run the bundled installer.
+On a fresh host, install curl and ca-certificates before piping this script from a URL.
+The script installs unzip through the host's package manager when it is missing.
 
 Bootstrap options:
   --version vX.Y.Z   Install a specific tagged release (default: latest published).
@@ -42,6 +50,9 @@ EOF
 log()  { printf '==> %s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
 die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+OS_ID=""
+PACKAGE_MANAGER=""
 
 VERSION=""
 FORWARD_ARGS=()
@@ -80,18 +91,69 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 1) Install our own prerequisites; do not assume they are preinstalled.
+# 1) Select the host package manager and install our own prerequisites; do not
+# assume they are preinstalled.
+select_rhel_package_manager() {
+  if command -v dnf >/dev/null 2>&1; then
+    PACKAGE_MANAGER="dnf"
+  elif command -v yum >/dev/null 2>&1; then
+    PACKAGE_MANAGER="yum"
+  else
+    die "RHEL-compatible systems require dnf or yum."
+  fi
+}
+
+detect_package_manager() {
+  if [[ ! -r /etc/os-release ]]; then
+    die "Cannot determine the Linux distribution: /etc/os-release is missing."
+  fi
+
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  OS_ID="${ID:-}"
+
+  case "$OS_ID" in
+    debian|ubuntu)
+      PACKAGE_MANAGER="apt-get"
+      ;;
+    rhel|fedora|centos|rocky|almalinux|ol)
+      select_rhel_package_manager
+      ;;
+    *)
+      case "${ID_LIKE:-}" in
+        *debian*)
+          PACKAGE_MANAGER="apt-get"
+          ;;
+        *rhel*|*fedora*|*centos*)
+          select_rhel_package_manager
+          ;;
+        *)
+          die "Unsupported Linux distribution '$OS_ID'. Supported families are Debian/Ubuntu and RHEL-compatible distributions."
+          ;;
+      esac
+      ;;
+  esac
+}
+
 ensure_prerequisites() {
   local missing=()
   command -v curl >/dev/null 2>&1 || missing+=(curl)
   command -v unzip >/dev/null 2>&1 || missing+=(unzip)
-  dpkg -s ca-certificates >/dev/null 2>&1 || missing+=(ca-certificates)
+  if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+    dpkg -s ca-certificates >/dev/null 2>&1 || missing+=(ca-certificates)
+  else
+    rpm -q ca-certificates >/dev/null 2>&1 || missing+=(ca-certificates)
+  fi
 
   if [[ ${#missing[@]} -gt 0 ]]; then
     log "Installing prerequisites: ${missing[*]}"
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y "${missing[@]}"
+    if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y "${missing[@]}"
+    else
+      "$PACKAGE_MANAGER" install -y "${missing[@]}"
+    fi
   fi
 }
 
@@ -107,6 +169,7 @@ asset_url() {
     | tr -d '"'
 }
 
+detect_package_manager
 ensure_prerequisites
 
 # 2) Resolve which release to fetch.

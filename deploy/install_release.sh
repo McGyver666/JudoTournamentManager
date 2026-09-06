@@ -10,7 +10,7 @@ usage() {
   cat <<'EOF'
 Usage: sudo ./deploy/install_release.sh --hostname example.com [options]
 
-Install the extracted release folder on a Debian/Ubuntu host. Run this script
+Install the extracted release folder on a Debian/Ubuntu or RHEL-compatible host. Run this script
 from the release folder, or provide its path with --source.
 
 Options:
@@ -25,6 +25,13 @@ EOF
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+OS_ID=""
+OS_VERSION_MAJOR=""
+PACKAGE_MANAGER=""
+NGINX_CONFIG_PATH=""
+NGINX_LINK_PATH=""
+NOLOGIN_SHELL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -60,6 +67,107 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+detect_platform() {
+  if [[ ! -r /etc/os-release ]]; then
+    echo "Cannot determine the Linux distribution: /etc/os-release is missing." >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  OS_ID="${ID:-}"
+  OS_VERSION_MAJOR="${VERSION_ID:-}"
+  OS_VERSION_MAJOR="${OS_VERSION_MAJOR%%.*}"
+
+  case "$OS_ID" in
+    debian|ubuntu)
+      PACKAGE_MANAGER="apt-get"
+      NGINX_CONFIG_PATH="/etc/nginx/sites-available/shiai-manager"
+      NGINX_LINK_PATH="/etc/nginx/sites-enabled/shiai-manager"
+      ;;
+    rhel|fedora|centos|rocky|almalinux|ol)
+      if command -v dnf >/dev/null 2>&1; then
+        PACKAGE_MANAGER="dnf"
+      elif command -v yum >/dev/null 2>&1; then
+        PACKAGE_MANAGER="yum"
+      else
+        echo "RHEL-compatible systems require dnf or yum." >&2
+        exit 1
+      fi
+      NGINX_CONFIG_PATH="/etc/nginx/conf.d/shiai-manager.conf"
+      ;;
+    *)
+      case "${ID_LIKE:-}" in
+        *debian*)
+          PACKAGE_MANAGER="apt-get"
+          NGINX_CONFIG_PATH="/etc/nginx/sites-available/shiai-manager"
+          NGINX_LINK_PATH="/etc/nginx/sites-enabled/shiai-manager"
+          ;;
+        *rhel*|*fedora*|*centos*)
+          if command -v dnf >/dev/null 2>&1; then
+            PACKAGE_MANAGER="dnf"
+          elif command -v yum >/dev/null 2>&1; then
+            PACKAGE_MANAGER="yum"
+          else
+            echo "RHEL-compatible systems require dnf or yum." >&2
+            exit 1
+          fi
+          NGINX_CONFIG_PATH="/etc/nginx/conf.d/shiai-manager.conf"
+          ;;
+        *)
+          echo "Unsupported Linux distribution '$OS_ID'. Supported families are Debian/Ubuntu and RHEL-compatible distributions." >&2
+          exit 1
+          ;;
+      esac
+      ;;
+  esac
+
+  NOLOGIN_SHELL="$(command -v nologin || true)"
+  if [[ -z "$NOLOGIN_SHELL" ]]; then
+    NOLOGIN_SHELL="/usr/sbin/nologin"
+  fi
+}
+
+install_packages() {
+  if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y nginx openssl rsync curl ca-certificates
+    if [[ "$RUN_CERTBOT" == true ]]; then
+      apt-get install -y certbot python3-certbot-nginx
+    fi
+    return
+  fi
+
+  "$PACKAGE_MANAGER" install -y nginx openssl rsync curl ca-certificates policycoreutils
+  if [[ "$RUN_CERTBOT" != true ]]; then
+    return
+  fi
+
+  if ! "$PACKAGE_MANAGER" install -y certbot python3-certbot-nginx; then
+    # Certbot is commonly supplied through EPEL on RHEL-compatible systems.
+    # Oracle Linux publishes a versioned EPEL release package.
+    if [[ "$OS_ID" == "ol" && "$PACKAGE_MANAGER" == "dnf" && -n "$OS_VERSION_MAJOR" ]]; then
+      "$PACKAGE_MANAGER" install -y "oracle-epel-release-el${OS_VERSION_MAJOR}" || true
+    else
+      "$PACKAGE_MANAGER" install -y epel-release || true
+    fi
+
+    if ! "$PACKAGE_MANAGER" install -y certbot python3-certbot-nginx; then
+      echo "Certbot packages are unavailable. Enable EPEL or rerun with --skip-certbot." >&2
+      exit 1
+    fi
+  fi
+}
+
+configure_selinux() {
+  if [[ -z "$NGINX_LINK_PATH" ]] && command -v getenforce >/dev/null 2>&1; then
+    if [[ "$(getenforce)" == "Enforcing" ]]; then
+      setsebool -P httpd_can_network_connect 1
+    fi
+  fi
+}
+
 if [[ $EUID -ne 0 ]]; then
   echo "Run this installer as root, for example: sudo $0 --hostname example.com" >&2
   exit 1
@@ -82,15 +190,12 @@ if ! command -v systemctl >/dev/null 2>&1; then
   exit 1
 fi
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y nginx openssl rsync curl
-if [[ "$RUN_CERTBOT" == true ]]; then
-  apt-get install -y certbot python3-certbot-nginx
-fi
+detect_platform
+install_packages
+configure_selinux
 
 if ! id shiai >/dev/null 2>&1; then
-  useradd --system --create-home --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin shiai
+  useradd --system --create-home --home-dir "$INSTALL_DIR" --shell "$NOLOGIN_SHELL" shiai
 fi
 
 systemctl stop shiai-manager.service 2>/dev/null || true
@@ -103,6 +208,7 @@ install -d -o shiai -g shiai "$INSTALL_DIR/app/App_Data"
 chown -R shiai:shiai "$INSTALL_DIR"
 chmod +x "$INSTALL_DIR/app/ShiaiManager.Api"
 
+install -d /etc/default
 if [[ ! -f /etc/default/shiai-manager ]]; then
   SECRET="$(openssl rand -base64 48 | tr -d '\n')"
   printf 'Security__AuthTokenHmacSecret=%s\n' "$SECRET" > /etc/default/shiai-manager
@@ -113,7 +219,8 @@ cp "$INSTALL_DIR/deploy/shiai-manager.service" /etc/systemd/system/shiai-manager
 
 # Start with HTTP so Certbot can complete its ACME challenge. Certbot replaces
 # this server block with a TLS-enabled one when it is run below.
-cat > /etc/nginx/sites-available/shiai-manager <<EOF
+install -d "$(dirname "$NGINX_CONFIG_PATH")"
+cat > "$NGINX_CONFIG_PATH" <<EOF
 server {
     listen 80;
     server_name $HOSTNAME;
@@ -135,7 +242,10 @@ server {
     }
 }
 EOF
-ln -sfn /etc/nginx/sites-available/shiai-manager /etc/nginx/sites-enabled/shiai-manager
+if [[ -n "$NGINX_LINK_PATH" ]]; then
+  install -d "$(dirname "$NGINX_LINK_PATH")"
+  ln -sfn "$NGINX_CONFIG_PATH" "$NGINX_LINK_PATH"
+fi
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx

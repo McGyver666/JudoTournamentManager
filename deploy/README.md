@@ -1,6 +1,11 @@
 # Deployment notes for Proxmox/LXC
 
-These files are intended for a Debian/Ubuntu container that will host the Shiai Manager app.
+These files support Debian/Ubuntu and RHEL-compatible containers that host the Shiai Manager app.
+
+The bundled `install_release.sh` installer also supports RHEL-compatible hosts,
+including Oracle Linux 10. It selects `dnf` or `yum`, writes nginx configuration
+to `/etc/nginx/conf.d/`, and enables the SELinux nginx-to-API permission when
+SELinux is enforcing. The manual commands below remain Debian/Ubuntu examples.
 
 ## One-command install
 
@@ -8,12 +13,25 @@ For a released build, the fastest path is the bootstrap script, which downloads
 the latest (or a pinned `--version vX.Y.Z`) GitHub release, verifies its
 `release.zip.sha256` checksum, and runs `install_release.sh` for you.
 
-On a fresh Debian/Ubuntu host, the bootstrap fetch itself needs the downloader
-prerequisites available first:
+On a fresh host, install the bootstrap downloader prerequisites with the host's
+package manager first.
+
+Debian/Ubuntu:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y curl ca-certificates unzip
+```
+
+RHEL-compatible systems, including Oracle Linux 10:
+
+```bash
+sudo dnf install -y curl ca-certificates unzip
+```
+
+Then run the bootstrap command on either platform:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
   | sudo bash -s -- --hostname tournament.example.com --email admin@example.com
 ```
