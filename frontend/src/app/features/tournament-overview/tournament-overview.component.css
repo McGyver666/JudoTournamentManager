@@ -340,10 +340,9 @@
 }
 
 /* Full-width command-stand layout and mockup-aligned live board. */
-.overview-page {
+:host {
+  display: block;
   width: 100%;
-  max-width: none;
-  padding: 1.25rem clamp(1rem, 2.5vw, 2.15rem) 2.5rem;
 }
 
 .overview-section,
@@ -355,6 +354,10 @@
 
 .overview-section {
   margin-top: 1.5rem;
+}
+
+.overview-section--hero {
+  margin-top: 0;
 }
 
 .overview-section > .section-head {
@@ -423,7 +426,7 @@
 .hero-fighter {
   min-width: 0;
   min-height: 19rem;
-  padding: 3.35rem 2.1rem 1.35rem;
+  padding: 2.25rem 2.1rem 1.35rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -476,6 +479,11 @@
   align-items: flex-end;
   gap: clamp(0.85rem, 2.2vw, 1.65rem);
   margin-top: 1.55rem;
+}
+
+.fighter-score-row > .fighter-score {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .hero-fighter--shiro .fighter-score-row,
