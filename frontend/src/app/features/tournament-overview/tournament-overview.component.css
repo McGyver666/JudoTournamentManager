@@ -1,60 +1,3 @@
-.overview-page {
-  min-height: 100%;
-  padding: 1.5rem 1.75rem 2.5rem;
-  background: var(--center-inset);
-  color: var(--txt);
-}
-
-.overview-header,
-.section-heading,
-.tatami-status-header,
-.hero-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.overview-header {
-  max-width: 1200px;
-  margin: 0 auto 1.5rem;
-}
-
-.overview-eyebrow,
-.section-kicker,
-.hero-label,
-.fighter-side-label,
-.stat-label,
-.queue-tatami {
-  margin: 0;
-  color: var(--txt-dim);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.overview-header h1,
-.overview-empty h1,
-.section-heading h2 {
-  margin: 0;
-  font-family: var(--ff-disp);
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.overview-header h1,
-.overview-empty h1 {
-  font-size: 2.15rem;
-  line-height: 1.12;
-}
-
-.overview-tournament-name {
-  margin: 0.25rem 0 0;
-  color: var(--txt-dim);
-  font-size: 0.98rem;
-}
-
 .overview-connection {
   display: inline-flex;
   align-items: center;
@@ -79,41 +22,6 @@
   background: currentColor;
   box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
   animation: livePulse 2.2s ease-out infinite;
-}
-
-.overview-hero,
-.overview-section,
-.stats-strip,
-.overview-lower-grid {
-  max-width: 1200px;
-  margin-right: auto;
-  margin-left: auto;
-}
-
-.overview-hero {
-  padding: 1.25rem;
-  border: 1px solid var(--c-border);
-  border-top: 3px solid var(--aka);
-  background: var(--hero-bg);
-  box-shadow: var(--shadow);
-}
-
-.section-heading {
-  margin-bottom: 0.9rem;
-}
-
-.section-heading h2 {
-  margin-top: 0.12rem;
-  font-size: 1.35rem;
-}
-
-.section-heading--hero {
-  align-items: flex-end;
-}
-
-.section-heading--compact {
-  align-items: flex-start;
-  margin-bottom: 0.7rem;
 }
 
 .section-count {
@@ -171,160 +79,6 @@
   border-color: var(--aka);
   background: var(--aka);
   color: var(--text-on-accent);
-}
-
-.hero-scoreboard {
-  overflow: hidden;
-  border: 1px solid var(--c-border);
-  background: color-mix(in srgb, var(--ink-850) 76%, var(--aka) 24%);
-}
-
-.hero-meta {
-  min-height: 4.75rem;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--c-border);
-}
-
-.hero-meta strong,
-.hero-category {
-  display: block;
-}
-
-.hero-meta strong {
-  margin-top: 0.15rem;
-  font-size: 1.05rem;
-}
-
-.hero-category {
-  margin-top: 0.18rem;
-  color: var(--txt-dim);
-  font-size: 0.83rem;
-}
-
-.hero-timers {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.hero-fight-timer,
-.hold-timer {
-  min-width: 7.5rem;
-  padding: 0.4rem 0.65rem;
-  border: 1px solid var(--c-border);
-  text-align: center;
-}
-
-.hero-fight-timer span,
-.hold-timer span {
-  display: block;
-  color: var(--txt-dim);
-  font-size: 0.67rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.hero-fight-timer strong,
-.hold-timer strong {
-  display: block;
-  margin-top: 0.12rem;
-  font-family: var(--ff-mono);
-  font-size: 1.65rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.hero-fight-timer--paused {
-  color: var(--txt-dim);
-}
-
-.hold-timer {
-  border-color: var(--side-accent);
-}
-
-.hold-timer--accent strong {
-  color: var(--side-accent-contrast);
-}
-
-.hero-fighters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: stretch;
-  gap: 0.75rem;
-  padding: 0.85rem;
-}
-
-.hero-fighter {
-  min-width: 0;
-  padding: 1rem;
-  border: 2px solid var(--c-border);
-  background: var(--fighter-shiro);
-}
-
-.hero-fighter--accent {
-  border-color: var(--side-accent);
-  background: linear-gradient(145deg, var(--side-accent-soft), transparent 70%);
-}
-
-.hero-fighter h3 {
-  overflow-wrap: anywhere;
-  margin: 0.45rem 0 0;
-  font-size: 1.65rem;
-  line-height: 1.1;
-}
-
-.hero-fighter p {
-  min-height: 1.35rem;
-  margin: 0.3rem 0 1rem;
-  color: var(--txt-dim);
-  overflow-wrap: anywhere;
-}
-
-.hero-fighter--accent .fighter-side-label {
-  color: var(--side-accent);
-}
-
-.fighter-score-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
-}
-
-.fighter-score {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 3.25rem;
-  gap: 0.35rem;
-  padding: 0.45rem 0.55rem;
-  border: 1px solid var(--c-border);
-  background: color-mix(in srgb, var(--ink-900) 78%, transparent);
-}
-
-.fighter-score span:first-child {
-  color: var(--txt-dim);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.fighter-score strong {
-  font-family: var(--ff-mono);
-  font-size: 1.35rem;
-}
-
-.fighter-score--active {
-  border-color: var(--score-highlight-border);
-  background: var(--score-highlight-bg);
-  color: var(--score-highlight);
-}
-
-.hero-versus {
-  align-self: center;
-  color: var(--txt-dim);
-  font-family: var(--ff-disp);
-  font-size: 1.05rem;
-  font-weight: 700;
 }
 
 .shido-bubbles {
@@ -598,7 +352,6 @@
   font-family: var(--ff-mono);
 }
 
-.overview-empty,
 .overview-empty-inline {
   padding: 1.25rem;
   border: 1px dashed var(--c-border);
@@ -618,40 +371,349 @@
   }
 }
 
+/* Full-width command-stand layout and mockup-aligned live board. */
+.overview-page {
+  width: 100%;
+  max-width: none;
+  padding: 1.25rem clamp(1rem, 2.5vw, 2.15rem) 2.5rem;
+}
+
+.overview-page-head {
+  width: 100%;
+  margin: 0 0 1.1rem;
+}
+
+.overview-page-head .overview-connection {
+  margin-left: auto;
+}
+
+.overview-section,
+.stats-strip,
+.overview-lower-grid {
+  width: 100%;
+  max-width: none;
+}
+
+.overview-section {
+  margin-top: 1.5rem;
+}
+
+.overview-section > .section-head {
+  margin-bottom: 0.75rem;
+}
+
+.overview-section > .section-head .section-count {
+  margin-left: auto;
+}
+
+.overview-hero {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hero-scoreboard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ink-line);
+  border-radius: 6px;
+  background: var(--hero-bg);
+  box-shadow: var(--shadow);
+}
+
+.hero-tag {
+  position: absolute;
+  z-index: 3;
+  top: 1rem;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  transform: translateX(-50%);
+  color: var(--txt-dim);
+  font-family: var(--ff-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hero-tag__mat {
+  padding: 0.18rem 0.55rem;
+  border: 1px solid var(--tatami-dp);
+  border-radius: var(--radius);
+  color: var(--tatami);
+  font-weight: 700;
+}
+
+.hero-vertical {
+  position: absolute;
+  z-index: 2;
+  top: 3rem;
+  right: 0.75rem;
+  color: color-mix(in srgb, var(--tatami) 55%, transparent);
+  font-family: var(--ff-disp);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  writing-mode: vertical-rl;
+}
+
+.hero-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 10.5rem) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.hero-fighter {
+  min-width: 0;
+  min-height: 19rem;
+  padding: 3.35rem 2.1rem 1.35rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.hero-fighter--accent {
+  background: linear-gradient(135deg, rgba(229, 53, 42, 0.18), rgba(160, 24, 16, 0.04) 70%);
+}
+
+.hero-fighter--shiro {
+  background: var(--fighter-shiro);
+  text-align: right;
+}
+
+.fighter-side-label {
+  margin-bottom: 0.6rem;
+  font-family: var(--ff-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hero-fighter--accent .fighter-side-label {
+  color: var(--aka-bright);
+}
+
+.hero-fighter--shiro .fighter-side-label {
+  color: var(--paper-dim);
+}
+
+.hero-fighter h3 {
+  margin: 0;
+  color: var(--paper);
+  font-family: var(--ff-disp);
+  font-size: clamp(1.8rem, 3vw, 2.65rem);
+  font-weight: 800;
+  line-height: 1.02;
+}
+
+.hero-fighter p {
+  min-height: 0;
+  margin: 0.45rem 0 0;
+  color: var(--txt-dim);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+}
+
+.fighter-score-row {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(0.85rem, 2.2vw, 1.65rem);
+  margin-top: 1.55rem;
+}
+
+.hero-fighter--shiro .fighter-score-row,
+.hero-fighter--shiro .hero-shido-row {
+  justify-content: flex-end;
+}
+
+.fighter-score {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.fighter-score span:first-child {
+  display: block;
+  color: var(--txt-faint);
+  font-family: var(--ff-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.fighter-score strong {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--paper);
+  font-family: var(--ff-mono);
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.fighter-score--active {
+  border: 0;
+  background: transparent;
+}
+
+.fighter-score--active strong {
+  color: var(--aka-bright);
+  text-shadow: 0 0 1.5rem var(--aka-glow);
+}
+
+.hero-shido-row {
+  display: flex;
+  margin-top: 1rem;
+}
+
+.hero-shido-row .fighter-score {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.hero-shido-row .fighter-score span:first-child {
+  margin: 0;
+}
+
+.hero-center {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 0 1.4rem;
+  border-right: 1px solid var(--ink-line);
+  border-left: 1px solid var(--ink-line);
+  background: var(--center-inset);
+}
+
+.hero-disc {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8rem;
+  height: 8rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(229, 53, 42, 0.1), transparent 68%);
+  transform: translate(-50%, -50%);
+}
+
+.hero-versus {
+  z-index: 1;
+  color: var(--tatami);
+  font-family: var(--ff-disp);
+  font-size: 1.1rem;
+  letter-spacing: 0.3em;
+}
+
+.hero-fight-timer {
+  z-index: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--paper);
+  font-family: var(--ff-mono);
+  font-size: clamp(2.15rem, 4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-fight-timer--paused {
+  color: var(--txt-dim);
+}
+
+.hero-osae {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--shido);
+  font-family: var(--ff-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.hero-osae span {
+  color: var(--txt-faint);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero-osae--accent {
+  color: var(--side-accent-contrast);
+}
+
+.hero-osae--idle {
+  color: var(--txt-faint);
+}
+
+.hero-progress {
+  height: 0.22rem;
+}
+
+.overview-panel > .section-head {
+  margin: -1rem -1rem 0.8rem;
+  border-bottom: 1px solid var(--c-border);
+}
+
 @media (max-width: 900px) {
-  .overview-page {
-    padding: 1.1rem;
-  }
-
-  .hero-meta,
-  .section-heading--hero {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .hero-timers {
-    width: 100%;
-  }
-
-  .hero-fight-timer,
-  .hold-timer {
-    flex: 1;
-  }
-
-  .overview-lower-grid {
+  .hero-board {
     grid-template-columns: 1fr;
+  }
+
+  .hero-tag {
+    position: static;
+    justify-content: center;
+    padding: 0.85rem 1rem 0;
+    transform: none;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .hero-vertical {
+    display: none;
+  }
+
+  .hero-fighter {
+    min-height: 0;
+    padding: 1.5rem 1.25rem;
+  }
+
+  .hero-fighter--shiro {
+    text-align: left;
+  }
+
+  .hero-fighter--shiro .fighter-score-row,
+  .hero-fighter--shiro .hero-shido-row {
+    justify-content: flex-start;
+  }
+
+  .hero-center {
+    order: 2;
+    min-height: 8.5rem;
+    flex-direction: row;
+    padding: 1rem;
+    border: 0;
+    border-top: 1px solid var(--ink-line);
+    border-bottom: 1px solid var(--ink-line);
   }
 }
 
 @media (max-width: 640px) {
-  .overview-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .overview-header h1,
-  .overview-empty h1 {
-    font-size: 1.8rem;
+  .overview-page-head .overview-connection {
+    width: 100%;
+    margin-left: 0;
   }
 
   .hero-controls {
@@ -664,19 +726,7 @@
     max-width: calc(100% - 5rem);
   }
 
-  .hero-fighters {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-versus {
-    display: none;
-  }
-
-  .hero-fighter h3 {
-    font-size: 1.35rem;
-  }
-
-  .stats-strip {
-    grid-template-columns: 1fr;
+  .fighter-score-row {
+    gap: 0.75rem;
   }
 }

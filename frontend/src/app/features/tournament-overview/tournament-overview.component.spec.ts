@@ -210,6 +210,9 @@ describe('TournamentOverviewComponent', () => {
     expect(element.querySelector('.overview-connection--offline')).not.toBeNull();
     expect(element.querySelectorAll('.tatami-status-card').length).toBe(2);
     expect(element.querySelectorAll('.hero-selector').length).toBe(2);
+    expect(element.querySelector('.overview-page-head.section-head')).not.toBeNull();
+    expect(element.querySelectorAll('.fighter-score').length).toBe(8);
+    expect(element.textContent).toContain('match.yuko');
     expect(element.querySelector('.hero-fighter--accent h3')?.textContent).toContain('Blau, Ben');
     expect(element.querySelector('.hero-fighter--shiro h3')?.textContent).toContain('Weiß, Ada');
 

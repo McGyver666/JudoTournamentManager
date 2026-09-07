@@ -1,36 +1,28 @@
 <main class="overview-page">
-  @if (!tournamentId()) {
-    <section class="overview-empty">
-      <h1>{{ 'tournamentOverview.title' | t }}</h1>
-      <p>{{ 'common.noTournamentSelected' | t }}</p>
-    </section>
-  } @else {
-    <header class="overview-header">
-      <div>
-        <p class="overview-eyebrow">{{ 'tournamentOverview.eyebrow' | t }}</p>
-        <h1>{{ 'tournamentOverview.title' | t }}</h1>
-        @if (tournament(); as currentTournament) {
-          <p class="overview-tournament-name">{{ currentTournament.name }}</p>
-        }
-      </div>
+  <header class="section-head card-pad overview-page-head">
+    <h2 class="section-head__title">{{ 'sectionHeads.tournamentOverview.title' | t }}</h2>
+    @if (tournament(); as currentTournament) {
+      <p class="section-head__text">{{ currentTournament.name }}</p>
+    } @else {
+      <p class="section-head__text">{{ 'sectionHeads.tournamentOverview.text' | t }}</p>
+    }
+    @if (tournamentId()) {
       <div class="overview-connection" [class.overview-connection--offline]="!hubConnected()">
         <span class="connection-dot" aria-hidden="true"></span>
         <span>{{ (hubConnected() ? 'app.connectionLive' : 'match.offline') | t }}</span>
       </div>
-    </header>
+    }
+  </header>
 
-    <section
-      class="overview-hero"
-      (mouseenter)="setHeroHoverPaused(true)"
-      (mouseleave)="setHeroHoverPaused(false)"
-      (focusin)="setHeroFocusPaused(true)"
-      (focusout)="onHeroFocusOut($event)"
-      [attr.aria-label]="'tournamentOverview.currentFight' | t">
-      <div class="section-heading section-heading--hero">
-        <div>
-          <p class="section-kicker">{{ 'tournamentOverview.liveKicker' | t }}</p>
-          <h2>{{ 'tournamentOverview.currentFight' | t }}</h2>
-        </div>
+  @if (!tournamentId()) {
+    <section class="overview-empty card card-pad">
+      <p>{{ 'common.noTournamentSelected' | t }}</p>
+    </section>
+  } @else {
+    <section class="overview-section overview-section--hero">
+      <header class="section-head card-pad">
+        <h2 class="section-head__title">{{ 'tournamentOverview.currentFight' | t }}</h2>
+        <p class="section-head__text">{{ 'tournamentOverview.liveKicker' | t }}</p>
         @if (runningFights().length > 1) {
           <div class="hero-controls" role="group" [attr.aria-label]="'tournamentOverview.heroControls' | t">
             <button
@@ -59,33 +51,26 @@
               [title]="'tournamentOverview.nextFight' | t">›</button>
           </div>
         }
-      </div>
+      </header>
 
+      <div
+        class="overview-hero"
+      (mouseenter)="setHeroHoverPaused(true)"
+      (mouseleave)="setHeroHoverPaused(false)"
+      (focusin)="setHeroFocusPaused(true)"
+      (focusout)="onHeroFocusOut($event)"
+      [attr.aria-label]="'tournamentOverview.currentFight' | t">
       @if (heroFight(); as hero) {
         <div class="hero-scoreboard" [class.hero-scoreboard--paused]="isPaused(hero.fight)" aria-live="polite">
-          <div class="hero-meta">
-            <div>
-              <span class="hero-label">{{ 'tournamentOverview.tatami' | t }}</span>
-              <strong>{{ hero.tatami.name }}</strong>
-              <span class="hero-category">{{ categoryName(hero.fight.categoryId) }}</span>
-            </div>
-            <div class="hero-timers">
-              @if (isOsaeKomiActive(hero.fight)) {
-                <div class="hold-timer" [class.hold-timer--accent]="hero.fight.osaeKomiSide === 'Blue'">
-                  <span>{{ 'match.osaeKomi' | t }}</span>
-                  <strong>{{ osaeKomiLabel(hero.fight) }}</strong>
-                </div>
-              }
-              <div class="hero-fight-timer" [class.hero-fight-timer--paused]="isPaused(hero.fight)">
-                <span>{{ 'match.matchTimer' | t }}</span>
-                <strong>{{ timerForFight(hero.fight) }}</strong>
-              </div>
-            </div>
+          <div class="hero-tag">
+            <span class="hero-tag__mat">{{ hero.tatami.name }}</span>
+            <span>{{ categoryName(hero.fight.categoryId) }}</span>
           </div>
+          <div class="hero-vertical" aria-hidden="true">{{ 'tournamentOverview.liveMark' | t }}</div>
 
-          <div class="hero-fighters">
+          <div class="hero-board">
             <article class="hero-fighter hero-fighter--accent">
-              <div class="fighter-side-label">{{ sideLabel('blue') }}</div>
+              <div class="fighter-side-label">{{ 'tournamentOverview.aka' | t }} · {{ sideLabel('blue') }}</div>
               <h3>{{ athleteName(hero.fight.blueAthleteId) }}</h3>
               <p>{{ athleteClub(hero.fight.blueAthleteId) }}</p>
               <div class="fighter-score-row">
@@ -98,6 +83,12 @@
                   <strong>{{ hero.fight.blueWazaAriCount }}</strong>
                 </div>
                 <div class="fighter-score">
+                  <span>{{ 'match.yuko' | t }}</span>
+                  <strong>{{ hero.fight.blueYukoCount }}</strong>
+                </div>
+              </div>
+              <div class="hero-shido-row">
+                <div class="fighter-score">
                   <span>{{ 'match.shido' | t }}</span>
                   <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
                     @for (slot of shidoSlots(); track slot) {
@@ -108,10 +99,27 @@
               </div>
             </article>
 
-            <div class="hero-versus" aria-hidden="true">{{ 'common.vs' | t }}</div>
+            <div class="hero-center">
+              <div class="hero-disc" aria-hidden="true"></div>
+              <div class="hero-versus" aria-hidden="true">{{ 'tournamentOverview.versusMark' | t }}</div>
+              <div class="hero-fight-timer" [class.hero-fight-timer--paused]="isPaused(hero.fight)" [attr.aria-label]="'match.matchTimer' | t">
+                {{ timerForFight(hero.fight) }}
+              </div>
+              @if (isOsaeKomiActive(hero.fight)) {
+                <div class="hero-osae" [class.hero-osae--accent]="hero.fight.osaeKomiSide === 'Blue'">
+                  <span>{{ 'match.osaeKomi' | t }}</span>
+                  {{ osaeKomiLabel(hero.fight) }}
+                </div>
+              } @else {
+                <div class="hero-osae hero-osae--idle">
+                  <span>{{ 'match.osaeKomi' | t }}</span>
+                  --
+                </div>
+              }
+            </div>
 
             <article class="hero-fighter hero-fighter--shiro">
-              <div class="fighter-side-label">{{ sideLabel('white') }}</div>
+              <div class="fighter-side-label">{{ 'tournamentOverview.shiro' | t }} · {{ sideLabel('white') }}</div>
               <h3>{{ athleteName(hero.fight.whiteAthleteId) }}</h3>
               <p>{{ athleteClub(hero.fight.whiteAthleteId) }}</p>
               <div class="fighter-score-row">
@@ -123,6 +131,12 @@
                   <span>{{ 'match.wazaari' | t }}</span>
                   <strong>{{ hero.fight.whiteWazaAriCount }}</strong>
                 </div>
+                <div class="fighter-score">
+                  <span>{{ 'match.yuko' | t }}</span>
+                  <strong>{{ hero.fight.whiteYukoCount }}</strong>
+                </div>
+              </div>
+              <div class="hero-shido-row">
                 <div class="fighter-score">
                   <span>{{ 'match.shido' | t }}</span>
                   <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
@@ -146,16 +160,15 @@
           <span>{{ 'tournamentOverview.noRunningFightsHint' | t }}</span>
         </div>
       }
+      </div>
     </section>
 
     <section class="overview-section">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker">{{ 'tournamentOverview.matsKicker' | t }}</p>
-          <h2>{{ 'tournamentOverview.matsTitle' | t }}</h2>
-        </div>
+      <header class="section-head card-pad">
+        <h2 class="section-head__title">{{ 'tournamentOverview.matsTitle' | t }}</h2>
+        <p class="section-head__text">{{ 'tournamentOverview.matsKicker' | t }}</p>
         <span class="section-count">{{ activeTatamiViews().length }}</span>
-      </div>
+      </header>
       @if (activeTatamiViews().length > 0) {
         <div class="tatami-status-grid">
           @for (view of activeTatamiViews(); track view.tatami.id) {
@@ -210,12 +223,10 @@
 
     <section class="overview-lower-grid">
       <section class="overview-panel">
-        <div class="section-heading section-heading--compact">
-          <div>
-            <p class="section-kicker">{{ 'tournamentOverview.queueKicker' | t }}</p>
-            <h2>{{ 'tournamentOverview.queueTitle' | t }}</h2>
-          </div>
-        </div>
+        <header class="section-head card-pad">
+          <h2 class="section-head__title">{{ 'tournamentOverview.queueTitle' | t }}</h2>
+          <p class="section-head__text">{{ 'tournamentOverview.queueKicker' | t }}</p>
+        </header>
         @if (nextFights().length > 0) {
           <ol class="queue-list">
             @for (entry of nextFights(); track entry.fight.id; let i = $index) {
@@ -235,12 +246,10 @@
       </section>
 
       <section class="overview-panel">
-        <div class="section-heading section-heading--compact">
-          <div>
-            <p class="section-kicker">{{ 'tournamentOverview.scoringKicker' | t }}</p>
-            <h2>{{ 'tournamentOverview.scoringTitle' | t }}</h2>
-          </div>
-        </div>
+        <header class="section-head card-pad">
+          <h2 class="section-head__title">{{ 'tournamentOverview.scoringTitle' | t }}</h2>
+          <p class="section-head__text">{{ 'tournamentOverview.scoringKicker' | t }}</p>
+        </header>
         @if (clubScoring(); as scoring) {
           @if (scoring.clubs.length > 0) {
             <ol class="scoring-list">
