@@ -215,6 +215,8 @@ describe('TournamentOverviewComponent', () => {
     expect(heroHeaderActions?.closest('.section-head')).not.toBeNull();
     expect(element.querySelector('.hero-tag__mat')).toBeNull();
     expect(element.querySelector('.hero-vertical')).toBeNull();
+    expect(element.querySelector('.hero-fighter--blue .fighter-side-label')?.textContent)
+      .toContain('tournamentOverview.blueSideLabel');
     expect(element.querySelectorAll('.fighter-score').length).toBe(8);
     expect(element.textContent).toContain('match.yuko');
     expect(element.querySelector('.hero-fighter--accent h3')?.textContent).toContain('Blau, Ben');

@@ -55,8 +55,8 @@
           </div>
 
           <div class="hero-board">
-            <article class="hero-fighter hero-fighter--accent">
-              <div class="fighter-side-label">{{ 'tournamentOverview.aka' | t }} · {{ sideLabel('blue') }}</div>
+            <article class="hero-fighter hero-fighter--accent" [class.hero-fighter--blue]="tournament()?.accentSideColor !== 'Red'">
+              <div class="fighter-side-label">{{ fighterSideLabel() }}</div>
               <h3>{{ athleteName(hero.fight.blueAthleteId) }}</h3>
               <p>{{ athleteClub(hero.fight.blueAthleteId) }}</p>
               <div class="fighter-score-row">

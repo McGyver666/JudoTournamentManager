@@ -453,6 +453,10 @@
   color: var(--aka-bright);
 }
 
+.hero-fighter--blue .fighter-side-label {
+  color: #1565c0;
+}
+
 .hero-fighter--shiro .fighter-side-label {
   color: var(--paper-dim);
 }

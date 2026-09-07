@@ -322,6 +322,13 @@ export class TournamentOverviewComponent implements OnDestroy {
     return this.i18n.translate(this.sideTheme.sideLabelKey(side, this.tournament()));
   }
 
+  protected fighterSideLabel(): string {
+    const translationKey = this.tournament()?.accentSideColor === 'Red'
+      ? 'tournamentOverview.redSideLabel'
+      : 'tournamentOverview.blueSideLabel';
+    return this.i18n.translate(translationKey, { side: this.sideLabel('blue') });
+  }
+
   protected isOsaeKomiActive(fight: Fight | null): boolean {
     return fight?.osaeKomiSide !== null
       && fight?.osaeKomiSide !== undefined
