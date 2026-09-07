@@ -17,6 +17,12 @@ permissions:
 jobs:
   build-package:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime:
+          - linux-x64
+          - linux-arm64
 
     steps:
       - name: Check out source
@@ -80,14 +86,16 @@ jobs:
       - name: Create Linux release folder
         shell: bash
         run: |
-          rm -rf release release.zip
-          mkdir -p release/app/App_Data release/deploy
+          release_dir="release-${{ matrix.runtime }}"
+          archive_name="${release_dir}.zip"
+          rm -rf "$release_dir" "$archive_name" "$archive_name.sha256"
+          mkdir -p "$release_dir/app/App_Data" "$release_dir/deploy"
 
           dotnet publish ShiaiManager.Api/ShiaiManager.Api.csproj \
             --configuration Release \
-            --runtime linux-x64 \
+            --runtime "${{ matrix.runtime }}" \
             --self-contained true \
-            --output release/app \
+            --output "$release_dir/app" \
             -p:UseAppHost=true \
             -p:DebugType=None \
             -p:DebugSymbols=false \
@@ -95,42 +103,60 @@ jobs:
 
           # Runtime data is deliberately empty; do not ship the repository's
           # development certificate or any local SQLite database.
-          rm -rf release/app/App_Data
-          mkdir -p release/app/App_Data
-          find release/app -name '*.pdb' -delete
-          cp deploy/shiai-manager-release.service release/deploy/shiai-manager.service
-          cp deploy/shiai-manager.nginx.conf release/deploy/shiai-manager.nginx.conf
-          cp deploy/install_release.sh release/deploy/install_release.sh
-          cp deploy/release-README.md release/README.md
-          chmod +x release/app/ShiaiManager.Api
-          chmod +x release/deploy/install_release.sh
+          rm -rf "$release_dir/app/App_Data"
+          mkdir -p "$release_dir/app/App_Data"
+          printf '%s\n' "${{ matrix.runtime }}" > "$release_dir/runtime.txt"
+          find "$release_dir/app" -name '*.pdb' -delete
+          cp deploy/shiai-manager-release.service "$release_dir/deploy/shiai-manager.service"
+          cp deploy/shiai-manager.nginx.conf "$release_dir/deploy/shiai-manager.nginx.conf"
+          cp deploy/install_release.sh "$release_dir/deploy/install_release.sh"
+          cp deploy/release-README.md "$release_dir/README.md"
+          chmod +x "$release_dir/app/ShiaiManager.Api"
+          chmod +x "$release_dir/deploy/install_release.sh"
 
       - name: Create release archive
-        run: zip -r release.zip release
+        run: zip -r "release-${{ matrix.runtime }}.zip" "release-${{ matrix.runtime }}"
 
       - name: Create release checksum
-        run: sha256sum release.zip > release.zip.sha256
+        run: sha256sum "release-${{ matrix.runtime }}.zip" > "release-${{ matrix.runtime }}.zip.sha256"
 
       - name: Upload release package
         uses: actions/upload-artifact@v4
         with:
-          name: shiai-manager-linux-release
+          name: shiai-manager-${{ matrix.runtime }}-release
           path: |
-            release/
-            release.zip
-            release.zip.sha256
+            release-${{ matrix.runtime }}.zip
+            release-${{ matrix.runtime }}.zip.sha256
           if-no-files-found: error
 
-      - name: Publish GitHub Release for version tags
-        if: startsWith(github.ref, 'refs/tags/v')
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download release packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shiai-manager-linux-*-release
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub Release for version tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          assets=(release-assets/release-linux-*.zip release-assets/release-linux-*.zip.sha256)
+          if [[ ! -e "${assets[0]}" ]]; then
+            echo "No release assets were downloaded." >&2
+            exit 1
+          fi
+
           # A release may already exist (e.g. created via the GitHub UI, which
           # also pushes the tag that triggers this workflow). Upload the assets
           # to the existing release in that case; otherwise create a new one.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" release.zip release.zip.sha256 --clobber
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" release.zip release.zip.sha256 --title "$GITHUB_REF_NAME" --generate-notes
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --title "$GITHUB_REF_NAME" --generate-notes
           fi

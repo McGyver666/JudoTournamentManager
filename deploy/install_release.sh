@@ -32,6 +32,43 @@ PACKAGE_MANAGER=""
 NGINX_CONFIG_PATH=""
 NGINX_LINK_PATH=""
 NOLOGIN_SHELL=""
+HOST_RUNTIME=""
+
+detect_host_runtime() {
+  local machine
+  machine="$(uname -m)"
+  case "$machine" in
+    x86_64|amd64)
+      HOST_RUNTIME="linux-x64"
+      ;;
+    aarch64|arm64)
+      HOST_RUNTIME="linux-arm64"
+      ;;
+    *)
+      echo "Unsupported Linux architecture '$machine'. Supported architectures are x86_64 and ARM64 (aarch64)." >&2
+      exit 1
+      ;;
+  esac
+}
+
+validate_release_runtime() {
+  local runtime_file="$SOURCE_DIR/runtime.txt"
+  if [[ ! -f "$runtime_file" ]]; then
+    if [[ "$HOST_RUNTIME" == "linux-arm64" ]]; then
+      echo "The release package has no runtime.txt; refusing to install an unverified package on ARM64." >&2
+      exit 1
+    fi
+    echo "WARNING: runtime.txt is missing; assuming a legacy linux-x64 package." >&2
+    return
+  fi
+
+  local packaged_runtime
+  packaged_runtime="$(tr -d '[:space:]' < "$runtime_file")"
+  if [[ "$packaged_runtime" != "$HOST_RUNTIME" ]]; then
+    echo "Release runtime '$packaged_runtime' does not match host runtime '$HOST_RUNTIME'." >&2
+    exit 1
+  fi
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -179,11 +216,13 @@ if [[ -z "$HOSTNAME" ]]; then
   exit 1
 fi
 
+detect_host_runtime
 SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
 if [[ ! -x "$SOURCE_DIR/app/ShiaiManager.Api" ]] || [[ ! -f "$SOURCE_DIR/deploy/shiai-manager.service" ]]; then
   echo "'$SOURCE_DIR' is not a release folder (app and deploy files are required)." >&2
   exit 1
 fi
+validate_release_runtime
 
 if ! command -v systemctl >/dev/null 2>&1; then
   echo "systemd is required. Enable nesting/systemd support for this LXC container first." >&2
@@ -308,8 +347,8 @@ generate_admin_password() {
 seed_initial_admin() {
   local api="http://127.0.0.1:5080"
 
-  # Wait for the service to answer before attempting to seed. A fresh install
-  # compiles the app in ExecStartPre, so allow a generous window.
+  # Wait for the self-contained service to answer before attempting to seed.
+  # Allow a generous window on a fresh installation.
   local ready=false i
   for ((i = 0; i < 180; i++)); do
     if curl -fsS -o /dev/null "$api/health" 2>/dev/null; then

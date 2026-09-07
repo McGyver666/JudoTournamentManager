@@ -22,10 +22,13 @@ set -euo pipefail
 #
 # Re-running (default latest, or a newer --version) is the upgrade path: the
 # bundled installer is idempotent and preserves app/App_Data/ (the SQLite DB).
+# The release pipeline publishes separate linux-x64 and linux-arm64 assets; the
+# host architecture is detected below so an incompatible apphost is never run.
 
 REPO="McGyver666/Shiai-Manager"
-ASSET_NAME="release.zip"
-CHECKSUM_NAME="release.zip.sha256"
+HOST_RUNTIME=""
+ASSET_NAME=""
+CHECKSUM_NAME=""
 
 usage() {
   cat <<'EOF'
@@ -34,6 +37,7 @@ Usage: sudo bash bootstrap_install.sh --hostname NAME [options]
 Download the latest (or a pinned) GitHub release and run the bundled installer.
 On a fresh host, install curl and ca-certificates before piping this script from a URL.
 The script installs unzip through the host's package manager when it is missing.
+The matching linux-x64 or linux-arm64 release asset is selected automatically.
 
 Bootstrap options:
   --version vX.Y.Z   Install a specific tagged release (default: latest published).
@@ -53,6 +57,25 @@ die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 OS_ID=""
 PACKAGE_MANAGER=""
+
+detect_host_runtime() {
+  local machine
+  machine="$(uname -m)"
+  case "$machine" in
+    x86_64|amd64)
+      HOST_RUNTIME="linux-x64"
+      ;;
+    aarch64|arm64)
+      HOST_RUNTIME="linux-arm64"
+      ;;
+    *)
+      die "Unsupported Linux architecture '$machine'. Supported architectures are x86_64 and ARM64 (aarch64)."
+      ;;
+  esac
+
+  ASSET_NAME="release-${HOST_RUNTIME}.zip"
+  CHECKSUM_NAME="${ASSET_NAME}.sha256"
+}
 
 VERSION=""
 FORWARD_ARGS=()
@@ -164,7 +187,7 @@ ensure_prerequisites() {
 
 # Extract the browser_download_url of an asset by its exact file name. Parses the
 # unauthenticated GitHub REST response without depending on jq. Anchoring on the
-# closing quote keeps release.zip from matching release.zip.sha256.
+# closing quote keeps a zip asset from matching its checksum asset.
 asset_url() {
   local json="$1" name="$2" escaped
   escaped="${name//./\\.}"
@@ -174,6 +197,27 @@ asset_url() {
     | tr -d '"'
 }
 
+resolve_asset_urls() {
+  local json="$1"
+  download_url="$(asset_url "$json" "$ASSET_NAME")"
+  checksum_url="$(asset_url "$json" "$CHECKSUM_NAME")"
+
+  # Keep existing x64 releases installable while ARM64 requires the new
+  # architecture-specific asset.
+  if [[ -z "$download_url" && "$HOST_RUNTIME" == "linux-x64" ]]; then
+    local legacy_asset="release.zip"
+    local legacy_checksum="release.zip.sha256"
+    download_url="$(asset_url "$json" "$legacy_asset")"
+    checksum_url="$(asset_url "$json" "$legacy_checksum")"
+    if [[ -n "$download_url" ]]; then
+      ASSET_NAME="$legacy_asset"
+      CHECKSUM_NAME="$legacy_checksum"
+      warn "Using legacy x64 release asset '${ASSET_NAME}'."
+    fi
+  fi
+}
+
+detect_host_runtime
 detect_package_manager
 ensure_prerequisites
 
@@ -191,16 +235,15 @@ if ! release_json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$api_u
     fallback_url="https://api.github.com/repos/${REPO}/releases"
     if release_list_json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$fallback_url")"; then
       if [[ "$release_list_json" == "[]" ]]; then
-        die "No published GitHub Releases are available for ${REPO}. The one-command installer requires a published GitHub Release with release.zip and release.zip.sha256 assets. Publish a release first or use the manual install path from the repository source."
+        die "No published GitHub Releases are available for ${REPO}. The one-command installer requires a published GitHub Release with ${ASSET_NAME} and its checksum. Publish a release first or use the manual install path from the repository source."
       fi
 
-      download_url="$(asset_url "$release_list_json" "$ASSET_NAME")"
-      checksum_url="$(asset_url "$release_list_json" "$CHECKSUM_NAME")"
-      if [[ -n "$download_url" && -n "$checksum_url" ]]; then
+      resolve_asset_urls "$release_list_json"
+      if [[ -n "$download_url" ]]; then
         warn "GitHub's 'latest' endpoint is not available for this repository state; falling back to the newest release entry in the releases list."
         release_json="$release_list_json"
       else
-        die "No published GitHub Release assets are available for ${REPO}. The one-command installer requires release.zip and release.zip.sha256 in the release metadata. Publish a release with those assets or use the manual install path from the repository source."
+        die "No published GitHub Release asset '${ASSET_NAME}' is available for ${REPO}. Publish a release with the matching Linux architecture or use the manual install path from the repository source."
       fi
     else
       die "Could not query the GitHub API at ${fallback_url} (network error or rate limit)."
@@ -210,11 +253,10 @@ if ! release_json="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$api_u
   fi
 fi
 
-download_url="$(asset_url "$release_json" "$ASSET_NAME")"
-[[ -n "$download_url" ]] || die "The resolved release has no '${ASSET_NAME}' asset."
-checksum_url="$(asset_url "$release_json" "$CHECKSUM_NAME")"
+resolve_asset_urls "$release_json"
+[[ -n "$download_url" ]] || die "The resolved release has no compatible '${ASSET_NAME}' asset for ${HOST_RUNTIME}."
 
-# 3) Download release.zip into a fresh working directory.
+# 3) Download the architecture-specific release into a fresh working directory.
 work_dir="$(mktemp -d)"
 zip_path="$work_dir/${ASSET_NAME}"
 log "Downloading ${ASSET_NAME}"

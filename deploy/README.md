@@ -11,7 +11,10 @@ SELinux is enforcing. The manual commands below remain Debian/Ubuntu examples.
 
 For a released build, the fastest path is the bootstrap script, which downloads
 the latest (or a pinned `--version vX.Y.Z`) GitHub release, verifies its
-`release.zip.sha256` checksum, and runs `install_release.sh` for you.
+checksum for the matching architecture, and runs `install_release.sh` for you.
+The release pipeline publishes `release-linux-x64.zip` and
+`release-linux-arm64.zip`; the bootstrap script selects the correct one from
+the host's `uname -m` value.
 
 On a fresh host, install the bootstrap downloader prerequisites with the host's
 package manager first.
@@ -29,7 +32,7 @@ RHEL-compatible systems, including Oracle Linux 10:
 sudo dnf install -y curl ca-certificates unzip
 ```
 
-Then run the bootstrap command on either platform:
+Then run the bootstrap command on either x64 or ARM64 Linux:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \

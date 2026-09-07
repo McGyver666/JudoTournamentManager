@@ -1,7 +1,9 @@
 # Shiai Manager Linux release
 
-This folder is a ready-to-run `linux-x64` package. It contains the self-contained
-application in `app/`, plus systemd and nginx configuration in `deploy/`.
+This folder is a ready-to-run self-contained package for either `linux-x64` or
+`linux-arm64`. The release pipeline publishes one archive per architecture and
+the bootstrap installer selects the matching package automatically. It contains
+the application in `app/`, plus systemd and nginx configuration in `deploy/`.
 No .NET SDK or Node.js installation is required on the target host.
 
 ## One-command install (recommended)
@@ -26,7 +28,7 @@ RHEL-compatible prerequisites, including Oracle Linux 10:
 sudo dnf install -y curl ca-certificates unzip
 ```
 
-Run the same bootstrap command on either platform:
+Run the same bootstrap command on either x64 or ARM64 Linux:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
@@ -65,8 +67,10 @@ hosts, including Oracle Linux 10, it uses `dnf` or `yum`, places the nginx site 
 is enforcing. Certbot is installed from the configured repositories; if Certbot is
 not available, enable EPEL or use `--skip-certbot`.
 
-1. Copy and extract `release.zip` on the LXC host.
-2. Run the bundled installer from the extracted `release/` folder:
+1. Copy and extract the archive matching the host architecture on the LXC host:
+  `release-linux-x64.zip` for x86_64 or `release-linux-arm64.zip` for ARM64.
+2. Run the bundled installer from the extracted `release-linux-x64/` or
+  `release-linux-arm64/` folder:
 
    ```bash
    chmod +x deploy/install_release.sh
