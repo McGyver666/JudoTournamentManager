@@ -58,8 +58,6 @@
   "sectionHeads.results.text": "Platzierungen, Medaillen und Vereinswertungen strukturiert bereitstellen.",
   "sectionHeads.users.title": "Benutzerverwaltung",
   "sectionHeads.users.text": "Zugänge anlegen, Rollen vergeben und Passwörter sicher zurücksetzen.",
-  "sectionHeads.tournamentOverview.title": "Turnierübersicht",
-  "sectionHeads.tournamentOverview.text": "Live-Leitstand für Matten, Kämpfe, Warteschlange und Vereinswertung.",
 
   "tournamentOverview.title": "Turnierübersicht",
   "tournamentOverview.eyebrow": "Leitstand",
@@ -68,7 +66,6 @@
   "tournamentOverview.heroControls": "Kampf-Auswahl",
   "tournamentOverview.aka": "Aka",
   "tournamentOverview.shiro": "Shiro",
-  "tournamentOverview.liveMark": "Kampf läuft",
   "tournamentOverview.versusMark": "対",
   "tournamentOverview.previousFight": "Vorherigen laufenden Kampf anzeigen",
   "tournamentOverview.nextFight": "Nächsten laufenden Kampf anzeigen",

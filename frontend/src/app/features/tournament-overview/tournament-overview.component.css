@@ -1,29 +1,3 @@
-.overview-connection {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 2rem;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--state-success);
-  color: var(--state-success);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.overview-connection--offline {
-  border-color: var(--state-warning);
-  color: var(--state-warning);
-}
-
-.connection-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
-  animation: livePulse 2.2s ease-out infinite;
-}
-
 .section-count {
   display: grid;
   place-items: center;
@@ -357,13 +331,7 @@
   border: 1px dashed var(--c-border);
 }
 
-@keyframes livePulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 38%, transparent); }
-  50% { box-shadow: 0 0 0 0.32rem color-mix(in srgb, currentColor 0%, transparent); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .connection-dot,
   .hero-progress span,
   .progress-track span {
     animation: none;
@@ -376,15 +344,6 @@
   width: 100%;
   max-width: none;
   padding: 1.25rem clamp(1rem, 2.5vw, 2.15rem) 2.5rem;
-}
-
-.overview-page-head {
-  width: 100%;
-  margin: 0 0 1.1rem;
-}
-
-.overview-page-head .overview-connection {
-  margin-left: auto;
 }
 
 .overview-section,
@@ -403,6 +362,20 @@
 }
 
 .overview-section > .section-head .section-count {
+  margin-left: auto;
+}
+
+.hero-header-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.hero-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
   margin-left: auto;
 }
 
@@ -439,27 +412,6 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.hero-tag__mat {
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--tatami-dp);
-  border-radius: var(--radius);
-  color: var(--tatami);
-  font-weight: 700;
-}
-
-.hero-vertical {
-  position: absolute;
-  z-index: 2;
-  top: 3rem;
-  right: 0.75rem;
-  color: color-mix(in srgb, var(--tatami) 55%, transparent);
-  font-family: var(--ff-disp);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  writing-mode: vertical-rl;
 }
 
 .hero-board {
@@ -681,10 +633,6 @@
     text-align: center;
   }
 
-  .hero-vertical {
-    display: none;
-  }
-
   .hero-fighter {
     min-height: 0;
     padding: 1.5rem 1.25rem;
@@ -711,9 +659,14 @@
 }
 
 @media (max-width: 640px) {
-  .overview-page-head .overview-connection {
+  .hero-header-copy {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+  }
+
+  .hero-header-actions {
     width: 100%;
-    margin-left: 0;
+    justify-content: flex-end;
   }
 
   .hero-controls {

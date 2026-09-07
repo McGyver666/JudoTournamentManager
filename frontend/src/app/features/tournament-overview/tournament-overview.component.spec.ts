@@ -207,10 +207,14 @@ describe('TournamentOverviewComponent', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelector('.overview-connection--offline')).not.toBeNull();
     expect(element.querySelectorAll('.tatami-status-card').length).toBe(2);
     expect(element.querySelectorAll('.hero-selector').length).toBe(2);
-    expect(element.querySelector('.overview-page-head.section-head')).not.toBeNull();
+    expect(element.querySelector('.overview-page-head')).toBeNull();
+    const heroHeaderActions = element.querySelector('.hero-header-actions');
+    expect(heroHeaderActions).not.toBeNull();
+    expect(heroHeaderActions?.closest('.section-head')).not.toBeNull();
+    expect(element.querySelector('.hero-tag__mat')).toBeNull();
+    expect(element.querySelector('.hero-vertical')).toBeNull();
     expect(element.querySelectorAll('.fighter-score').length).toBe(8);
     expect(element.textContent).toContain('match.yuko');
     expect(element.querySelector('.hero-fighter--accent h3')?.textContent).toContain('Blau, Ben');

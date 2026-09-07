@@ -58,8 +58,6 @@
   "sectionHeads.results.text": "Publish rankings, medal tables, and club scoring in a clear structure.",
   "sectionHeads.users.title": "User administration",
   "sectionHeads.users.text": "Create accounts, assign roles, and reset passwords securely.",
-  "sectionHeads.tournamentOverview.title": "Tournament Overview",
-  "sectionHeads.tournamentOverview.text": "Live command stand for tatamis, fights, queue and club ranking.",
 
   "tournamentOverview.title": "Tournament Overview",
   "tournamentOverview.eyebrow": "Command stand",
@@ -68,7 +66,6 @@
   "tournamentOverview.heroControls": "Fight selection",
   "tournamentOverview.aka": "Aka",
   "tournamentOverview.shiro": "Shiro",
-  "tournamentOverview.liveMark": "Fight in progress",
   "tournamentOverview.versusMark": "対",
   "tournamentOverview.previousFight": "Show previous running fight",
   "tournamentOverview.nextFight": "Show next running fight",

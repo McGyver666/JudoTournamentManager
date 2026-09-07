@@ -1,19 +1,4 @@
 <main class="overview-page">
-  <header class="section-head card-pad overview-page-head">
-    <h2 class="section-head__title">{{ 'sectionHeads.tournamentOverview.title' | t }}</h2>
-    @if (tournament(); as currentTournament) {
-      <p class="section-head__text">{{ currentTournament.name }}</p>
-    } @else {
-      <p class="section-head__text">{{ 'sectionHeads.tournamentOverview.text' | t }}</p>
-    }
-    @if (tournamentId()) {
-      <div class="overview-connection" [class.overview-connection--offline]="!hubConnected()">
-        <span class="connection-dot" aria-hidden="true"></span>
-        <span>{{ (hubConnected() ? 'app.connectionLive' : 'match.offline') | t }}</span>
-      </div>
-    }
-  </header>
-
   @if (!tournamentId()) {
     <section class="overview-empty card card-pad">
       <p>{{ 'common.noTournamentSelected' | t }}</p>
@@ -21,36 +6,40 @@
   } @else {
     <section class="overview-section overview-section--hero">
       <header class="section-head card-pad">
-        <h2 class="section-head__title">{{ 'tournamentOverview.currentFight' | t }}</h2>
-        <p class="section-head__text">{{ 'tournamentOverview.liveKicker' | t }}</p>
-        @if (runningFights().length > 1) {
-          <div class="hero-controls" role="group" [attr.aria-label]="'tournamentOverview.heroControls' | t">
-            <button
-              type="button"
-              class="icon-button"
-              (click)="previousHero()"
-              [attr.aria-label]="'tournamentOverview.previousFight' | t"
-              [title]="'tournamentOverview.previousFight' | t">‹</button>
-            <div class="hero-selectors" role="tablist" [attr.aria-label]="'tournamentOverview.tatamiSelector' | t">
-              @for (entry of runningFights(); track entry.fight.id; let i = $index) {
-                <button
-                  type="button"
-                  class="hero-selector"
-                  [class.hero-selector--active]="heroIndex() === i"
-                  role="tab"
-                  [attr.aria-selected]="heroIndex() === i"
-                  [attr.aria-label]="'tournamentOverview.selectTatami' | t: { name: entry.tatami.name }"
-                  (click)="selectHero(i)">{{ entry.tatami.name }}</button>
-              }
+        <div class="hero-header-copy">
+          <h2 class="section-head__title">{{ 'tournamentOverview.currentFight' | t }}</h2>
+          <p class="section-head__text">{{ 'tournamentOverview.liveKicker' | t }}</p>
+        </div>
+        <div class="hero-header-actions">
+          @if (runningFights().length > 1) {
+            <div class="hero-controls" role="group" [attr.aria-label]="'tournamentOverview.heroControls' | t">
+              <button
+                type="button"
+                class="icon-button"
+                (click)="previousHero()"
+                [attr.aria-label]="'tournamentOverview.previousFight' | t"
+                [title]="'tournamentOverview.previousFight' | t">‹</button>
+              <div class="hero-selectors" role="tablist" [attr.aria-label]="'tournamentOverview.tatamiSelector' | t">
+                @for (entry of runningFights(); track entry.fight.id; let i = $index) {
+                  <button
+                    type="button"
+                    class="hero-selector"
+                    [class.hero-selector--active]="heroIndex() === i"
+                    role="tab"
+                    [attr.aria-selected]="heroIndex() === i"
+                    [attr.aria-label]="'tournamentOverview.selectTatami' | t: { name: entry.tatami.name }"
+                    (click)="selectHero(i)">{{ entry.tatami.name }}</button>
+                }
+              </div>
+              <button
+                type="button"
+                class="icon-button"
+                (click)="nextHero()"
+                [attr.aria-label]="'tournamentOverview.nextFight' | t"
+                [title]="'tournamentOverview.nextFight' | t">›</button>
             </div>
-            <button
-              type="button"
-              class="icon-button"
-              (click)="nextHero()"
-              [attr.aria-label]="'tournamentOverview.nextFight' | t"
-              [title]="'tournamentOverview.nextFight' | t">›</button>
-          </div>
-        }
+          }
+        </div>
       </header>
 
       <div
@@ -63,10 +52,8 @@
       @if (heroFight(); as hero) {
         <div class="hero-scoreboard" [class.hero-scoreboard--paused]="isPaused(hero.fight)" aria-live="polite">
           <div class="hero-tag">
-            <span class="hero-tag__mat">{{ hero.tatami.name }}</span>
             <span>{{ categoryName(hero.fight.categoryId) }}</span>
           </div>
-          <div class="hero-vertical" aria-hidden="true">{{ 'tournamentOverview.liveMark' | t }}</div>
 
           <div class="hero-board">
             <article class="hero-fighter hero-fighter--accent">
