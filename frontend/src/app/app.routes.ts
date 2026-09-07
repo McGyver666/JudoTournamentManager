@@ -2,10 +2,17 @@ import { Routes } from '@angular/router';
 import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireOperatorGuard } from './core/auth.guards';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'tournaments' },
+  { path: '', pathMatch: 'full', redirectTo: 'tournament-overview' },
   {
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'tournament-overview',
+    canActivate: [requireAuthGuard],
+    loadComponent: () =>
+      import('./features/tournament-overview/tournament-overview.component').then(
+        (m) => m.TournamentOverviewComponent),
   },
   {
     path: 'tournaments',
@@ -96,5 +103,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
   },
-  { path: '**', redirectTo: 'tournaments' },
+  { path: '**', redirectTo: 'tournament-overview' },
 ];

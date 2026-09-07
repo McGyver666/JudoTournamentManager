@@ -59,6 +59,7 @@ Already available:
   - standard 2026 classes (source: `altersklassen_2026.md`)
   - athlete-driven classes by target athletes per class and max weight deviation
 - tatami assignment workflow (auto + manual)
+- live tournament overview at `/tournament-overview` with current-fight hero, all active tatami statuses, whole-tournament stats, queue and club ranking
 - combat overview of completed fights (Operator/Admin) with category/tatami filters and expandable score details
 - Admin-only result correction in combat overview: edit scores + winner inline, with downstream-fight warning and cascade reset
 - public display view with realtime updates (SignalR)
@@ -79,7 +80,7 @@ Already available:
 - authenticated server time endpoint for frontend clock synchronization (`GET /api/time`)
 - server-side match clock evaluator for timing-based fight and osae-komi decisions
 - osae-komi ippon immediately pauses the fight clock on the server
-- unit test project (352 passing tests, Category=UnitTest)
+- unit test project (354 passing tests, Category=UnitTest)
 - TLS/LAN operational stabilization and repeated field validation runs
 
 ## Architecture
@@ -452,6 +453,7 @@ are served at `/i18n/{lang}.json`.
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/resume`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
 - `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; enriched summaries of finished fights)
+- `GET /api/tournaments/{tournamentId}/overview-stats` (authenticated; whole-tournament registered athletes, clubs, categories, fight progress, average duration and ippon count)
 - `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; correct scores and winner with a confirmation flow for affected downstream fights)
 
 - `GET /api/tournaments/{tournamentId}/medal-table`

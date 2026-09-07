@@ -24,7 +24,7 @@ export class LoginComponent {
   protected async submit(): Promise<void> {
     const ok = await this.auth.login(this.userName().trim(), this.password());
     if (ok) {
-      await this.router.navigateByUrl('/tournaments');
+      await this.router.navigateByUrl('/tournament-overview');
     }
   }
 }

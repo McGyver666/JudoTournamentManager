@@ -54,6 +54,7 @@ import {
   Tatami,
   TatamiQueue,
   Tournament,
+  TournamentOverviewStats,
   UpdateAthleteRequest,
   UpdateCategoryRequest,
   UpdateClubRequest,
@@ -82,6 +83,11 @@ export class ApiService {
 
   getTournament(id: string): Observable<Tournament> {
     return this.http.get<Tournament>(`api/tournaments/${id}`);
+  }
+
+  getTournamentOverviewStats(tournamentId: string): Observable<TournamentOverviewStats> {
+    return this.http.get<TournamentOverviewStats>(
+      `api/tournaments/${tournamentId}/overview-stats`);
   }
 
   createTournament(body: CreateTournamentRequest): Observable<Tournament> {

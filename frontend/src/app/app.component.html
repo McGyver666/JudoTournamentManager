@@ -25,6 +25,15 @@
           <span class="nav-label">{{ 'nav.sectionLeitstand' | t }}</span>
           <a
             class="nav-item"
+            routerLink="/tournament-overview"
+            routerLinkActive="active"
+            (click)="closeDrawer()"
+            [title]="'nav.tournamentOverview' | t">
+            <span class="kanji" aria-hidden="true">概</span>
+            <span class="lbl">{{ 'nav.tournamentOverview' | t }}</span>
+          </a>
+          <a
+            class="nav-item"
             routerLink="/tournaments"
             routerLinkActive="active"
             (click)="closeDrawer()"

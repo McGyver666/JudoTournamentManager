@@ -136,6 +136,7 @@ builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<ITatamiQueueService, TatamiQueueService>();
 builder.Services.AddScoped<IRankingService, RankingService>();
 builder.Services.AddScoped<ICompletedFightsService, CompletedFightsService>();
+builder.Services.AddScoped<IOverviewStatsService, TournamentOverviewStatsService>();
 builder.Services.AddHostedService<MatchClockEvaluator>();
 builder.Services.AddScoped<IPasswordHasherService, Pbkdf2PasswordHasherService>();
 builder.Services.AddScoped<IAuthService, SqliteAuthService>();

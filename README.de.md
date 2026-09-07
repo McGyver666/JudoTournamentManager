@@ -59,6 +59,7 @@ Bereits verfuegbar:
   - Standardklassen 2026 (Quelle: `altersklassen_2026.md`)
   - athletengesteuerte Klassen nach Zielzahl von Athleten je Klasse und maximaler Gewichtsdifferenz
 - Ablauf zur Tatami-Zuordnung (automatisch und manuell)
+- live Turnierübersicht unter `/tournament-overview` mit aktuellem Kampf, allen aktiven Matten, Turnierstatistik, Warteschlange und Vereinswertung
 - Kampfuebersicht abgeschlossener Kaempfe (Operator/Admin) mit Filtern nach Gewichtsklasse/Matte und aufklappbaren Wertungsdetails
 - Admin-Ergebniskorrektur in der Kampfuebersicht: Wertungen und Sieger inline bearbeiten, mit Warnung bei betroffenen Folgekämpfen und kaskadendem Reset
 - oeffentliche Anzeigeansicht mit Echtzeitaktualisierungen (SignalR)
@@ -79,7 +80,7 @@ Bereits verfuegbar:
 - authentifizierter Serverzeit-Endpunkt fuer die Frontend-Zeitsynchronisation (`GET /api/time`)
 - serverseitiger Kampfzeit-Auswerter fuer zeitbasierte Kampf- und Osae-komi-Entscheidungen
 - Osae-komi-Ippon haelt die Kampfzeit auf dem Server sofort an
-- Unit-Test-Projekt (352 erfolgreiche Tests, Category=UnitTest)
+- Unit-Test-Projekt (354 erfolgreiche Tests, Category=UnitTest)
 - TLS/LAN-Betriebsstabilisierung und wiederholte Feldvalidierung
 
 ## Architektur
@@ -447,6 +448,7 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/resume`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
 - `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; angereicherte Übersicht abgeschlossener Kämpfe)
+- `GET /api/tournaments/{tournamentId}/overview-stats` (authentifiziert; gemeldete Athleten, Vereine, Klassen, Kampf-Fortschritt, durchschnittliche Kampfdauer und Ippon-Gesamtzahl für das ganze Turnier)
 - `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; Wertungen und Sieger korrigieren mit Bestätigungsflow für betroffene Folgekämpfe)
 
 - `GET /api/tournaments/{tournamentId}/medal-table`
