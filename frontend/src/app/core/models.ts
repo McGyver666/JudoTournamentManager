@@ -479,6 +479,18 @@ export interface TatamiQueue {
   upcoming: Fight[];
 }
 
+/** Whole-tournament aggregate data for the live control-stand overview. */
+export interface TournamentOverviewStats {
+  tournamentId: string;
+  registeredAthletes: number;
+  clubCount: number;
+  categoryCount: number;
+  fightsCompleted: number;
+  fightsTotal: number;
+  averageFightDurationSeconds: number | null;
+  ipponCount: number;
+}
+
 export interface RecordScoreRequest {
   whiteScore: number;
   blueScore: number;

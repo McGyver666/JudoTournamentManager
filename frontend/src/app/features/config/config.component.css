@@ -10,7 +10,7 @@
 
 .config-content > .card {
   margin: 0;
-  padding: 1rem;
+  padding: 0.6rem 1rem;
   border: 0;
   border-top: 1px solid var(--c-border);
   border-radius: 0;

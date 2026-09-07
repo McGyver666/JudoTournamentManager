@@ -1,0 +1,258 @@
+@if (!tournamentId()) {
+    <section class="overview-empty card card-pad">
+      <p>{{ 'common.noTournamentSelected' | t }}</p>
+    </section>
+  } @else {
+    <section class="overview-section overview-section--hero">
+      <header class="section-head card-pad">
+        <div class="hero-header-copy">
+          <h2 class="section-head__title">{{ 'tournamentOverview.currentFight' | t }}</h2>
+          <p class="section-head__text">{{ 'tournamentOverview.liveKicker' | t }}</p>
+        </div>
+        <div class="hero-header-actions">
+          @if (runningFights().length > 1) {
+            <div class="hero-controls" role="group" [attr.aria-label]="'tournamentOverview.heroControls' | t">
+              <button
+                type="button"
+                class="icon-button"
+                (click)="previousHero()"
+                [attr.aria-label]="'tournamentOverview.previousFight' | t"
+                [title]="'tournamentOverview.previousFight' | t">‹</button>
+              <div class="hero-selectors" role="tablist" [attr.aria-label]="'tournamentOverview.tatamiSelector' | t">
+                @for (entry of runningFights(); track entry.fight.id; let i = $index) {
+                  <button
+                    type="button"
+                    class="hero-selector"
+                    [class.hero-selector--active]="heroIndex() === i"
+                    role="tab"
+                    [attr.aria-selected]="heroIndex() === i"
+                    [attr.aria-label]="'tournamentOverview.selectTatami' | t: { name: entry.tatami.name }"
+                    (click)="selectHero(i)">{{ entry.tatami.name }}</button>
+                }
+              </div>
+              <button
+                type="button"
+                class="icon-button"
+                (click)="nextHero()"
+                [attr.aria-label]="'tournamentOverview.nextFight' | t"
+                [title]="'tournamentOverview.nextFight' | t">›</button>
+            </div>
+          }
+        </div>
+      </header>
+
+      <div
+        class="overview-hero"
+      (mouseenter)="setHeroHoverPaused(true)"
+      (mouseleave)="setHeroHoverPaused(false)"
+      (focusin)="setHeroFocusPaused(true)"
+      (focusout)="onHeroFocusOut($event)"
+      [attr.aria-label]="'tournamentOverview.currentFight' | t">
+      @if (heroFight(); as hero) {
+        <div class="hero-scoreboard" [class.hero-scoreboard--paused]="isPaused(hero.fight)" aria-live="polite">
+          <div class="hero-tag">
+            <span>{{ categoryName(hero.fight.categoryId) }}</span>
+          </div>
+
+          <div class="hero-board">
+            <article class="hero-fighter hero-fighter--accent" [class.hero-fighter--blue]="tournament()?.accentSideColor !== 'Red'">
+              <div class="fighter-side-label">{{ fighterSideLabel() }}</div>
+              <h3>{{ athleteName(hero.fight.blueAthleteId) }}</h3>
+              <p>{{ athleteClub(hero.fight.blueAthleteId) }}</p>
+              <div class="fighter-score-row">
+                <div class="fighter-score fighter-score--ippon" [class.fighter-score--active]="hero.fight.blueIpponCount > 0">
+                  <span>{{ 'match.ippon' | t }}</span>
+                  <strong>{{ hero.fight.blueIpponCount }}</strong>
+                </div>
+                <div class="fighter-score">
+                  <span>{{ 'match.wazaari' | t }}</span>
+                  <strong>{{ hero.fight.blueWazaAriCount }}</strong>
+                </div>
+                <div class="fighter-score">
+                  <span>{{ 'match.yuko' | t }}</span>
+                  <strong>{{ hero.fight.blueYukoCount }}</strong>
+                </div>
+              </div>
+              <div class="hero-shido-row">
+                <div class="fighter-score">
+                  <span>{{ 'match.shido' | t }}</span>
+                  <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
+                    @for (slot of shidoSlots(); track slot) {
+                      <span class="shido-bubble" [class.active]="slot < scoreCount(hero.fight, 'blue', 'shido')"></span>
+                    }
+                  </span>
+                </div>
+              </div>
+            </article>
+
+            <div class="hero-center">
+              <div class="hero-disc" aria-hidden="true"></div>
+              <div class="hero-versus" aria-hidden="true">{{ 'tournamentOverview.versusMark' | t }}</div>
+              <div class="hero-fight-timer" [class.hero-fight-timer--paused]="isPaused(hero.fight)" [attr.aria-label]="'match.matchTimer' | t">
+                {{ timerForFight(hero.fight) }}
+              </div>
+              @if (isOsaeKomiActive(hero.fight)) {
+                <div class="hero-osae" [class.hero-osae--accent]="hero.fight.osaeKomiSide === 'Blue'">
+                  <span>{{ 'match.osaeKomi' | t }}</span>
+                  {{ osaeKomiLabel(hero.fight) }}
+                </div>
+              } @else {
+                <div class="hero-osae hero-osae--idle">
+                  <span>{{ 'match.osaeKomi' | t }}</span>
+                  --
+                </div>
+              }
+            </div>
+
+            <article class="hero-fighter hero-fighter--shiro">
+              <div class="fighter-side-label">{{ 'tournamentOverview.shiro' | t }} · {{ sideLabel('white') }}</div>
+              <h3>{{ athleteName(hero.fight.whiteAthleteId) }}</h3>
+              <p>{{ athleteClub(hero.fight.whiteAthleteId) }}</p>
+              <div class="fighter-score-row">
+                <div class="fighter-score fighter-score--ippon" [class.fighter-score--active]="hero.fight.whiteIpponCount > 0">
+                  <span>{{ 'match.ippon' | t }}</span>
+                  <strong>{{ hero.fight.whiteIpponCount }}</strong>
+                </div>
+                <div class="fighter-score">
+                  <span>{{ 'match.wazaari' | t }}</span>
+                  <strong>{{ hero.fight.whiteWazaAriCount }}</strong>
+                </div>
+                <div class="fighter-score">
+                  <span>{{ 'match.yuko' | t }}</span>
+                  <strong>{{ hero.fight.whiteYukoCount }}</strong>
+                </div>
+              </div>
+              <div class="hero-shido-row">
+                <div class="fighter-score">
+                  <span>{{ 'match.shido' | t }}</span>
+                  <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
+                    @for (slot of shidoSlots(); track slot) {
+                      <span class="shido-bubble" [class.active]="slot < scoreCount(hero.fight, 'white', 'shido')"></span>
+                    }
+                  </span>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="hero-progress" aria-hidden="true">
+            <span [style.width.%]="progressPercent(hero.fight)"></span>
+          </div>
+        </div>
+      } @else {
+        <div class="hero-placeholder">
+          <span class="placeholder-mark" aria-hidden="true">空</span>
+          <strong>{{ 'tournamentOverview.noRunningFights' | t }}</strong>
+          <span>{{ 'tournamentOverview.noRunningFightsHint' | t }}</span>
+        </div>
+      }
+      </div>
+    </section>
+
+    <section class="overview-section">
+      <header class="section-head card-pad">
+        <h2 class="section-head__title">{{ 'tournamentOverview.matsTitle' | t }}</h2>
+        <p class="section-head__text">{{ 'tournamentOverview.matsKicker' | t }}</p>
+        <span class="section-count">{{ activeTatamiViews().length }}</span>
+      </header>
+      @if (activeTatamiViews().length > 0) {
+        <div class="tatami-status-grid">
+          @for (view of activeTatamiViews(); track view.tatami.id) {
+            @let fight = currentFight(view);
+            <article class="tatami-status-card" [class.tatami-status-card--live]="fight && isFightRunning(fight)">
+              <header class="tatami-status-header">
+                <h3>{{ view.tatami.name }}</h3>
+                <span class="overview-status" [class]="statusClass(view)">{{ statusKey(view) | t }}</span>
+              </header>
+              @if (fight) {
+                <p class="tatami-category">{{ categoryName(fight.categoryId) }}</p>
+                <div class="tatami-pairing">
+                  <span class="pairing-accent">{{ athleteName(fight.blueAthleteId) }}</span>
+                  <span class="pairing-vs">{{ 'common.vs' | t }}</span>
+                  <span class="pairing-shiro">{{ athleteName(fight.whiteAthleteId) }}</span>
+                </div>
+                <div class="progress-track" role="progressbar" [attr.aria-valuenow]="progressPercent(fight)" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'tournamentOverview.fightProgress' | t">
+                  <span [style.width.%]="progressPercent(fight)"></span>
+                </div>
+              } @else {
+                <p class="tatami-free-hint">{{ 'tournamentOverview.freeMat' | t }}</p>
+              }
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="overview-empty-inline">{{ 'tournamentOverview.noActiveTatamis' | t }}</p>
+      }
+    </section>
+
+    <section class="stats-strip" [attr.aria-label]="'tournamentOverview.statsTitle' | t">
+      @if (stats(); as overviewStats) {
+        <article class="stat-card">
+          <span class="stat-label">{{ 'tournamentOverview.registeredAthletes' | t }}</span>
+          <strong class="stat-value">{{ overviewStats.registeredAthletes }}</strong>
+          <span class="stat-meta">{{ 'tournamentOverview.athleteMeta' | t: { clubs: overviewStats.clubCount, categories: overviewStats.categoryCount } }}</span>
+        </article>
+        <article class="stat-card stat-card--completion">
+          <span class="stat-label">{{ 'tournamentOverview.completedFights' | t }}</span>
+          <strong class="stat-value">{{ overviewStats.fightsCompleted }} / {{ overviewStats.fightsTotal }}</strong>
+          <span class="stat-meta">{{ completionPercent() }} % {{ 'tournamentOverview.ofTournament' | t }}</span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">{{ 'tournamentOverview.averageDuration' | t }}</span>
+          <strong class="stat-value">{{ formatAverageDuration(overviewStats.averageFightDurationSeconds) }}</strong>
+          <span class="stat-meta">{{ overviewStats.ipponCount }} {{ 'tournamentOverview.ippons' | t }}</span>
+        </article>
+      } @else {
+        <p class="overview-empty-inline">{{ 'common.loading' | t }}</p>
+      }
+    </section>
+
+    <section class="overview-lower-grid">
+      <section class="overview-panel">
+        <header class="section-head card-pad">
+          <h2 class="section-head__title">{{ 'tournamentOverview.queueTitle' | t }}</h2>
+          <p class="section-head__text">{{ 'tournamentOverview.queueKicker' | t }}</p>
+        </header>
+        @if (nextFights().length > 0) {
+          <ol class="queue-list">
+            @for (entry of nextFights(); track entry.fight.id; let i = $index) {
+              <li class="queue-item">
+                <span class="queue-number">{{ i + 1 }}</span>
+                <div class="queue-content">
+                  <span class="queue-tatami">{{ entry.tatami.name }} · {{ categoryName(entry.fight.categoryId) }}</span>
+                  <strong>{{ athleteName(entry.fight.blueAthleteId) }}</strong>
+                  <span>{{ 'common.vs' | t }} {{ athleteName(entry.fight.whiteAthleteId) }}</span>
+                </div>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="overview-empty-inline">{{ 'tournamentOverview.emptyQueue' | t }}</p>
+        }
+      </section>
+
+      <section class="overview-panel">
+        <header class="section-head card-pad">
+          <h2 class="section-head__title">{{ 'tournamentOverview.scoringTitle' | t }}</h2>
+          <p class="section-head__text">{{ 'tournamentOverview.scoringKicker' | t }}</p>
+        </header>
+        @if (clubScoring(); as scoring) {
+          @if (scoring.clubs.length > 0) {
+            <ol class="scoring-list">
+              @for (club of scoring.clubs.slice(0, 8); track club.clubId) {
+                <li class="scoring-item">
+                  <span class="scoring-rank">{{ club.rank }}</span>
+                  <span class="scoring-club">{{ club.clubName }}</span>
+                  <strong class="scoring-points">{{ club.scoreDisplay }}</strong>
+                </li>
+              }
+            </ol>
+          } @else {
+            <p class="overview-empty-inline">{{ 'tournamentOverview.emptyScoring' | t }}</p>
+          }
+        } @else {
+          <p class="overview-empty-inline">{{ 'common.loading' | t }}</p>
+        }
+      </section>
+    </section>
+}
