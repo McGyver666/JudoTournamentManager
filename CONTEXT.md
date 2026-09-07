@@ -62,6 +62,11 @@ Use these terms as-is (German primary) in issues, tests, and code names; don't d
 - **Siegquote** (Win ratio) — won fights / contested fights; byes excluded; `0/0 = 0.0`.
 - **Medaillenspiegel** (Medal table) — medals aggregated by club.
 - **Gast-Freigabe** (Guest share) — anonymous, read-only QR access to a tournament's match lists.
+- **Turnierübersicht** (Tournament overview / Leitstand) — the live control-stand dashboard: featured
+  current-fight hero (cycles through mats with running fights), per-Tatami status cards, tournament
+  stats strip, next-fights queue and Vereinswertung. Distinct from **Kampfübersicht**.
+- **Kampfübersicht** (Combat overview) — the table of completed, non-bye fights with admin result
+  correction. Not the live dashboard.
 - **Rollen** (Roles) — Admin, Operator, Display (RBAC). See
   [ADR-0005](docs/adr/0005-local-auth-and-rbac.md).
 
