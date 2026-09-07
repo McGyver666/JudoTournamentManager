@@ -208,6 +208,9 @@ describe('TournamentOverviewComponent', () => {
 
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelectorAll('.tatami-status-card').length).toBe(2);
+    const firstTatamiHeader = element.querySelector('.tatami-status-header');
+    expect(firstTatamiHeader?.querySelector('h3')).not.toBeNull();
+    expect(firstTatamiHeader?.querySelector('.overview-status')).not.toBeNull();
     expect(element.querySelectorAll('.hero-selector').length).toBe(2);
     expect(element.querySelector('.overview-page-head')).toBeNull();
     const heroHeaderActions = element.querySelector('.hero-header-actions');

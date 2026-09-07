@@ -141,31 +141,48 @@
   border-top-color: var(--aka);
 }
 
+.tatami-status-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
 .tatami-status-header h3 {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 1rem;
 }
 
 .overview-status {
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
   padding: 0.27rem 0.45rem;
   font-size: 0.67rem;
   font-weight: 700;
   letter-spacing: 0.06em;
+  white-space: nowrap;
   text-transform: uppercase;
 }
 
 .status--free {
-  background: var(--state-neutral-bg);
-  color: var(--state-neutral);
+  background: rgba(127, 143, 92, 0.1);
+  border-color: rgba(127, 143, 92, 0.28);
+  color: var(--matcha);
 }
 
 .status--running {
-  background: var(--state-success-bg);
-  color: var(--state-success);
+  background: rgba(229, 53, 42, 0.14);
+  border-color: rgba(229, 53, 42, 0.3);
+  color: var(--aka-bright);
 }
 
 .status--osae {
-  background: var(--state-warning-bg);
+  background: rgba(240, 180, 41, 0.1);
+  border-color: rgba(240, 180, 41, 0.28);
   color: var(--state-warning);
 }
 
@@ -425,7 +442,6 @@
 
 .hero-fighter {
   min-width: 0;
-  min-height: 19rem;
   padding: 2.25rem 2.1rem 1.35rem;
   border: 0;
   border-radius: 0;
