@@ -109,8 +109,13 @@ detect_package_manager() {
   fi
 
   # shellcheck disable=SC1091
+  # Preserve any user-supplied VERSION (e.g. from --version) because
+  # /etc/os-release exports a VERSION/VERSION_ID that would overwrite it.
+  saved_VERSION="${VERSION-}"
   . /etc/os-release
   OS_ID="${ID:-}"
+  # Restore our original VERSION to avoid clobbering the release tag.
+  VERSION="${saved_VERSION}"
 
   case "$OS_ID" in
     debian|ubuntu)
