@@ -82,6 +82,28 @@ public sealed class SqliteTournamentStore : ITournamentStore
         string accentSideColor,
         CancellationToken cancellationToken)
     {
+        return await CreateAsync(
+            name,
+            date,
+            venue,
+            organizer,
+            accentSideColor,
+            CompetitionMode.Individual,
+            null,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Tournament> CreateAsync(
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        CompetitionMode competitionMode,
+        TeamMatchdayProfile? teamMatchdayProfile,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(venue);
         ArgumentNullException.ThrowIfNull(organizer);
@@ -94,6 +116,8 @@ public sealed class SqliteTournamentStore : ITournamentStore
             Date = date,
             Venue = venue.Trim(),
             Organizer = organizer.Trim(),
+            CompetitionMode = competitionMode.ToString(),
+            TeamMatchdayProfile = teamMatchdayProfile?.ToString(),
             AccentSideColor = NormalizeAccentSideColor(accentSideColor),
             CreatedAtUtc = utcNow,
             UpdatedAtUtc = utcNow
@@ -149,6 +173,42 @@ public sealed class SqliteTournamentStore : ITournamentStore
         bool twoThirdPlacesInRoundRobin,
         CancellationToken cancellationToken)
     {
+        return await UpdateAsync(
+            tournamentId,
+            name,
+            date,
+            venue,
+            organizer,
+            accentSideColor,
+            osaeKomiIpponSeconds,
+            osaeKomiWazaAriSeconds,
+            osaeKomiYukoSeconds,
+            osaeKomiYukoEnabled,
+            minimumRestBetweenFightsSeconds,
+            twoThirdPlacesInRoundRobin,
+            CompetitionMode.Individual,
+            null,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> UpdateAsync(
+        Guid tournamentId,
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        int osaeKomiIpponSeconds,
+        int osaeKomiWazaAriSeconds,
+        int osaeKomiYukoSeconds,
+        bool osaeKomiYukoEnabled,
+        int minimumRestBetweenFightsSeconds,
+        bool twoThirdPlacesInRoundRobin,
+        CompetitionMode competitionMode,
+        TeamMatchdayProfile? teamMatchdayProfile,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(venue);
         ArgumentNullException.ThrowIfNull(organizer);
@@ -166,6 +226,8 @@ public sealed class SqliteTournamentStore : ITournamentStore
         record.Date = date;
         record.Venue = venue.Trim();
         record.Organizer = organizer.Trim();
+        record.CompetitionMode = competitionMode.ToString();
+        record.TeamMatchdayProfile = teamMatchdayProfile?.ToString();
         record.AccentSideColor = NormalizeAccentSideColor(accentSideColor);
         record.OsaeKomiIpponSeconds = osaeKomiIpponSeconds;
         record.OsaeKomiWazaAriSeconds = osaeKomiWazaAriSeconds;
@@ -191,6 +253,10 @@ public sealed class SqliteTournamentStore : ITournamentStore
             record.CreatedAtUtc,
             record.UpdatedAtUtc)
         {
+            CompetitionMode = Enum.Parse<CompetitionMode>(record.CompetitionMode),
+            TeamMatchdayProfile = record.TeamMatchdayProfile is null
+                ? null
+                : Enum.Parse<TeamMatchdayProfile>(record.TeamMatchdayProfile),
             AccentSideColor = NormalizeAccentSideColor(record.AccentSideColor),
             OsaeKomiIpponSeconds = record.OsaeKomiIpponSeconds,
             OsaeKomiWazaAriSeconds = record.OsaeKomiWazaAriSeconds,
@@ -219,6 +285,27 @@ public sealed class SqliteTournamentStore : ITournamentStore
         }
 
         // Cascade manually in dependency order (child → parent).
+        var encounters = await _dbContext.TeamEncounters
+            .Where(x => x.TournamentId == tournamentId).ToListAsync(cancellationToken);
+        var encounterIds = encounters.Select(x => x.Id).ToArray();
+        var encounterBouts = await _dbContext.EncounterBouts
+            .Where(x => encounterIds.Contains(x.EncounterId)).ToListAsync(cancellationToken);
+        _dbContext.EncounterBouts.RemoveRange(encounterBouts);
+
+        var lineupEntries = await _dbContext.TeamLineupEntries
+            .Where(x => encounterIds.Contains(x.EncounterId)).ToListAsync(cancellationToken);
+        _dbContext.TeamLineupEntries.RemoveRange(lineupEntries);
+
+        _dbContext.TeamEncounters.RemoveRange(encounters);
+
+        var weighIns = await _dbContext.MatchdayWeighIns
+            .Where(x => x.TournamentId == tournamentId).ToListAsync(cancellationToken);
+        _dbContext.MatchdayWeighIns.RemoveRange(weighIns);
+
+        var teams = await _dbContext.TeamMatchdayTeams
+            .Where(x => x.TournamentId == tournamentId).ToListAsync(cancellationToken);
+        _dbContext.TeamMatchdayTeams.RemoveRange(teams);
+
         var fights = await _dbContext.Fights
             .Where(x => x.TournamentId == tournamentId).ToListAsync(cancellationToken);
         _dbContext.Fights.RemoveRange(fights);

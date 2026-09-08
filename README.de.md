@@ -53,6 +53,8 @@ Bereits verfuegbar:
 - lokales Startskript
 - Health-Endpunkt
 - APIs fuer Turniere, Tatamis, Gewichtsklassen, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
+- NWJV-Mannschafts-Kampftag-Modus fuer Senioren Männer/Frauen und U16-Profile mit konfigurierbaren
+  Vereinsmannschaften, Tageswaage, gemeinsamer Gewichtsklassenauslosung, Begegnungen und Kampfvorbereitung
 - Athleten-Dateiimport ueber DM4 und DMF (mit automatischer Formaterkennung)
 - Ablauf zur Gewichtsklassenzuordnung (automatisch und manuell)
 - unterstuetzte Gewichtsklassengenerierung (Vorschau und Anwenden) mit zwei Strategien:
@@ -102,7 +104,7 @@ Bereits verfuegbar:
 - **Health-Endpunkt:** `/health`
 - **Anwendungseinstieg:** `/` (Angular-App; Deep Links fallen auf `index.html` zurueck)
 
-## Zielarchitektur fuer das MVP
+## Zielarchitektur
 - **Backend:** ASP.NET Core Web API
 - **Frontend:** SPA, die lokal durch den Host bereitgestellt wird
 - **Datenbank:** SQLite

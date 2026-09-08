@@ -1,4 +1,5 @@
 using ShiaiManager.Api.Data;
+using ShiaiManager.Api.Models;
 using ShiaiManager.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -34,6 +35,32 @@ public sealed class SqliteTournamentStoreTests
         Assert.Equal("JC Essen", created.Organizer);
         Assert.Equal("Red", created.AccentSideColor);
         Assert.True(File.Exists(databasePath));
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task CreateAsync_TeamMatchday_PersistsCompetitionModeAndRuleProfile()
+    {
+        // Arrange
+        var databasePath = CreateDatabasePath();
+        await using var dbContext = CreateDbContext(databasePath);
+        await dbContext.Database.EnsureCreatedAsync();
+        var store = new SqliteTournamentStore(dbContext, NullLogger<SqliteTournamentStore>.Instance);
+
+        // Act
+        var created = await store.CreateAsync(
+            "Landesliga Kampftag",
+            new DateOnly(2026, 9, 19),
+            "Sporthalle Nord",
+            "JC Nord",
+            "Blue",
+            CompetitionMode.TeamMatchday,
+            TeamMatchdayProfile.U16Boys,
+            CancellationToken.None);
+
+        // Assert
+        Assert.Equal(CompetitionMode.TeamMatchday, created.CompetitionMode);
+        Assert.Equal(TeamMatchdayProfile.U16Boys, created.TeamMatchdayProfile);
     }
 
     [Fact]

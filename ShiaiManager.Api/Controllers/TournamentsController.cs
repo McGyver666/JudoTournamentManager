@@ -71,28 +71,47 @@ public sealed class TournamentsController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var created = await _tournamentStore.CreateAsync(
-            request.Name,
-            request.Date.Value,
-            request.Venue,
-            request.Organizer,
-            request.AccentSideColor,
-            cancellationToken);
+        if (request.CompetitionMode == CompetitionMode.TeamMatchday && request.TeamMatchdayProfile is null)
+        {
+            ModelState.AddModelError(nameof(request.TeamMatchdayProfile), "Das Landesliga-Regelprofil ist erforderlich.");
+            return ValidationProblem(ModelState);
+        }
 
-        _ = await _tournamentStore.UpdateAsync(
-            created.Id,
-            request.Name,
-            request.Date.Value,
-            request.Venue,
-            request.Organizer,
-            request.AccentSideColor,
-            request.OsaeKomiIpponSeconds,
-            request.OsaeKomiWazaAriSeconds,
-            request.OsaeKomiYukoSeconds,
-            request.OsaeKomiYukoEnabled,
-            request.MinimumRestBetweenFightsSeconds,
-            request.TwoThirdPlacesInRoundRobin,
-            cancellationToken);
+        var created = request.CompetitionMode == CompetitionMode.TeamMatchday
+            ? await _tournamentStore.CreateAsync(
+                request.Name,
+                request.Date.Value,
+                request.Venue,
+                request.Organizer,
+                request.AccentSideColor,
+                request.CompetitionMode,
+                request.TeamMatchdayProfile,
+                cancellationToken)
+            : await _tournamentStore.CreateAsync(
+                request.Name,
+                request.Date.Value,
+                request.Venue,
+                request.Organizer,
+                request.AccentSideColor,
+                cancellationToken);
+
+        if (request.CompetitionMode == CompetitionMode.TeamMatchday)
+        {
+            _ = await _tournamentStore.UpdateAsync(
+                created.Id, request.Name, request.Date.Value, request.Venue, request.Organizer,
+                request.AccentSideColor, request.OsaeKomiIpponSeconds, request.OsaeKomiWazaAriSeconds,
+                request.OsaeKomiYukoSeconds, request.OsaeKomiYukoEnabled, request.MinimumRestBetweenFightsSeconds,
+                request.TwoThirdPlacesInRoundRobin, request.CompetitionMode, request.TeamMatchdayProfile,
+                cancellationToken);
+        }
+        else
+        {
+            _ = await _tournamentStore.UpdateAsync(
+                created.Id, request.Name, request.Date.Value, request.Venue, request.Organizer,
+                request.AccentSideColor, request.OsaeKomiIpponSeconds, request.OsaeKomiWazaAriSeconds,
+                request.OsaeKomiYukoSeconds, request.OsaeKomiYukoEnabled, request.MinimumRestBetweenFightsSeconds,
+                request.TwoThirdPlacesInRoundRobin, cancellationToken);
+        }
 
         var hydrated = await _tournamentStore.GetByIdAsync(created.Id, cancellationToken) ?? created;
 
@@ -118,20 +137,24 @@ public sealed class TournamentsController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var updated = await _tournamentStore.UpdateAsync(
-            tournamentId,
-            request.Name,
-            request.Date.Value,
-            request.Venue,
-            request.Organizer,
-            request.AccentSideColor,
-            request.OsaeKomiIpponSeconds,
-            request.OsaeKomiWazaAriSeconds,
-            request.OsaeKomiYukoSeconds,
-            request.OsaeKomiYukoEnabled,
-            request.MinimumRestBetweenFightsSeconds,
-            request.TwoThirdPlacesInRoundRobin,
-            cancellationToken);
+        if (request.CompetitionMode == CompetitionMode.TeamMatchday && request.TeamMatchdayProfile is null)
+        {
+            ModelState.AddModelError(nameof(request.TeamMatchdayProfile), "Das Landesliga-Regelprofil ist erforderlich.");
+            return ValidationProblem(ModelState);
+        }
+
+        var updated = request.CompetitionMode == CompetitionMode.TeamMatchday
+            ? await _tournamentStore.UpdateAsync(
+                tournamentId, request.Name, request.Date.Value, request.Venue, request.Organizer,
+                request.AccentSideColor, request.OsaeKomiIpponSeconds, request.OsaeKomiWazaAriSeconds,
+                request.OsaeKomiYukoSeconds, request.OsaeKomiYukoEnabled, request.MinimumRestBetweenFightsSeconds,
+                request.TwoThirdPlacesInRoundRobin, request.CompetitionMode, request.TeamMatchdayProfile,
+                cancellationToken)
+            : await _tournamentStore.UpdateAsync(
+                tournamentId, request.Name, request.Date.Value, request.Venue, request.Organizer,
+                request.AccentSideColor, request.OsaeKomiIpponSeconds, request.OsaeKomiWazaAriSeconds,
+                request.OsaeKomiYukoSeconds, request.OsaeKomiYukoEnabled, request.MinimumRestBetweenFightsSeconds,
+                request.TwoThirdPlacesInRoundRobin, cancellationToken);
 
         return updated ? NoContent() : NotFound();
     }

@@ -20,6 +20,16 @@ public sealed record Tournament(
     DateTimeOffset UpdatedAtUtc)
 {
     /// <summary>
+    /// Competition workflow used by this tournament.
+    /// </summary>
+    public CompetitionMode CompetitionMode { get; init; } = CompetitionMode.Individual;
+
+    /// <summary>
+    /// NWJV rule profile used when <see cref="CompetitionMode"/> is <see cref="Models.CompetitionMode.TeamMatchday"/>.
+    /// </summary>
+    public TeamMatchdayProfile? TeamMatchdayProfile { get; init; }
+
+    /// <summary>
     /// Side color used for the non-white athlete in the UI.
     /// </summary>
     public string AccentSideColor { get; init; } = "Blue";

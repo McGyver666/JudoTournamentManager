@@ -26,6 +26,10 @@ export type ScoreType = 'Ippon' | 'WazaAri' | 'Yuko' | 'Shido';
 /** Side color used for the non-white athlete in a tournament. */
 export type AccentSideColor = 'Blue' | 'Red';
 
+export type CompetitionMode = 'Individual' | 'TeamMatchday';
+
+export type TeamMatchdayProfile = 'SeniorMen' | 'SeniorWomen' | 'U16Boys' | 'U16Girls';
+
 /** Side designation used by the match API. */
 export type FightSide = 'white' | 'blue';
 
@@ -42,6 +46,8 @@ export interface Tournament {
   date: string;
   venue: string;
   organizer: string;
+  competitionMode: CompetitionMode;
+  teamMatchdayProfile: TeamMatchdayProfile | null;
   accentSideColor: AccentSideColor;
   osaeKomiIpponSeconds: number;
   osaeKomiWazaAriSeconds: number;
@@ -58,6 +64,8 @@ export interface CreateTournamentRequest {
   date: string;
   venue: string;
   organizer: string;
+  competitionMode: CompetitionMode;
+  teamMatchdayProfile: TeamMatchdayProfile | null;
   accentSideColor: AccentSideColor;
   osaeKomiIpponSeconds: number;
   osaeKomiWazaAriSeconds: number;
@@ -68,6 +76,78 @@ export interface CreateTournamentRequest {
 }
 
 export type UpdateTournamentRequest = CreateTournamentRequest;
+
+export interface TeamMatchdayTeam {
+  id: string;
+  tournamentId: string;
+  clubId: string;
+  name: string;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export interface MatchdayWeighIn {
+  id: string;
+  tournamentId: string;
+  athleteId: string;
+  weightKg: number;
+  confirmedAtUtc: string;
+}
+
+export interface TeamEncounter {
+  id: string;
+  tournamentId: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  tatamiId: string | null;
+  displayOrder: number;
+  noShowTeamId: string | null;
+  createdAtUtc: string;
+  homeIndividualWins: number;
+  awayIndividualWins: number;
+  homeUnderScore: number;
+  awayUnderScore: number;
+  homeTeamPoints: number;
+  awayTeamPoints: number;
+  outcome: 'HomeWin' | 'AwayWin' | 'Hikiwake' | null;
+}
+
+export interface TeamMatchday {
+  tournamentId: string;
+  profile: TeamMatchdayProfile;
+  teams: TeamMatchdayTeam[];
+  weighIns: MatchdayWeighIn[];
+  weightClassOrder: number[];
+  encounters: TeamEncounter[];
+}
+
+export interface CreateTeamMatchdayTeamRequest {
+  clubId: string;
+  name: string;
+}
+
+export interface ConfirmMatchdayWeighInRequest {
+  athleteId: string;
+  weightKg: number;
+}
+
+export interface CreateTeamEncounterRequest {
+  homeTeamId: string;
+  awayTeamId: string;
+  tatamiId: string | null;
+}
+
+export interface TeamLineupAssignment {
+  weightClassIndex: number;
+  athleteId: string;
+}
+
+export interface TeamLineupEntry extends TeamLineupAssignment {
+  id: string;
+  encounterId: string;
+  legNumber: number;
+  teamId: string;
+}
 
 export interface Category {
   id: string;

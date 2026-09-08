@@ -21,6 +21,25 @@ public sealed class AppDbContext : DbContext
     public DbSet<TournamentRecord> Tournaments => Set<TournamentRecord>();
 
     /// <summary>
+    /// Team records configured for team-matchday tournaments.
+    /// </summary>
+    public DbSet<TeamMatchdayTeamRecord> TeamMatchdayTeams => Set<TeamMatchdayTeamRecord>();
+
+    /// <summary>
+    /// Confirmed athlete weigh-ins for team-matchday tournaments.
+    /// </summary>
+    public DbSet<MatchdayWeighInRecord> MatchdayWeighIns => Set<MatchdayWeighInRecord>();
+
+    /// <summary>Team encounters configured for team matchdays.</summary>
+    public DbSet<TeamEncounterRecord> TeamEncounters => Set<TeamEncounterRecord>();
+
+    /// <summary>Lineup entries configured for team encounter legs.</summary>
+    public DbSet<TeamLineupEntryRecord> TeamLineupEntries => Set<TeamLineupEntryRecord>();
+
+    /// <summary>Links between team encounter slots and standard fights.</summary>
+    public DbSet<EncounterBoutRecord> EncounterBouts => Set<EncounterBoutRecord>();
+
+    /// <summary>
     /// Tatami (competition area) records stored in the local database.
     /// </summary>
     public DbSet<TatamiRecord> Tatamis => Set<TatamiRecord>();
@@ -97,6 +116,9 @@ public sealed class AppDbContext : DbContext
         tournament.Property(x => x.Name).IsRequired().HasMaxLength(120);
         tournament.Property(x => x.Venue).IsRequired().HasMaxLength(160);
         tournament.Property(x => x.Organizer).IsRequired().HasMaxLength(120);
+        tournament.Property(x => x.CompetitionMode).IsRequired().HasMaxLength(30).HasDefaultValue("Individual");
+        tournament.Property(x => x.TeamMatchdayProfile).HasMaxLength(30);
+        tournament.Property(x => x.TeamMatchdayWeightClassOrderJson).HasMaxLength(200);
         tournament.Property(x => x.AccentSideColor).IsRequired().HasMaxLength(10).HasDefaultValue("Blue");
         tournament.Property(x => x.OsaeKomiIpponSeconds).IsRequired().HasDefaultValue(20);
         tournament.Property(x => x.OsaeKomiWazaAriSeconds).IsRequired().HasDefaultValue(10);
@@ -104,6 +126,85 @@ public sealed class AppDbContext : DbContext
         tournament.Property(x => x.OsaeKomiYukoEnabled).IsRequired().HasDefaultValue(true);
         tournament.Property(x => x.MinimumRestBetweenFightsSeconds).IsRequired().HasDefaultValue(180);
         tournament.Property(x => x.TwoThirdPlacesInRoundRobin).IsRequired().HasDefaultValue(false);
+
+        var team = modelBuilder.Entity<TeamMatchdayTeamRecord>();
+        team.ToTable("TeamMatchdayTeams");
+        team.HasKey(x => x.Id);
+        team.Property(x => x.Name).IsRequired().HasMaxLength(120);
+        team.HasIndex(x => new { x.TournamentId, x.Name }).IsUnique();
+        team.HasOne(x => x.Tournament)
+            .WithMany()
+            .HasForeignKey(x => x.TournamentId)
+            .OnDelete(DeleteBehavior.Restrict);
+        team.HasOne(x => x.Club)
+            .WithMany()
+            .HasForeignKey(x => x.ClubId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        var weighIn = modelBuilder.Entity<MatchdayWeighInRecord>();
+        weighIn.ToTable("MatchdayWeighIns");
+        weighIn.HasKey(x => x.Id);
+        weighIn.HasIndex(x => new { x.TournamentId, x.AthleteId }).IsUnique();
+        weighIn.HasOne(x => x.Tournament)
+            .WithMany()
+            .HasForeignKey(x => x.TournamentId)
+            .OnDelete(DeleteBehavior.Restrict);
+        weighIn.HasOne(x => x.Athlete)
+            .WithMany()
+            .HasForeignKey(x => x.AthleteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        var encounter = modelBuilder.Entity<TeamEncounterRecord>();
+        encounter.ToTable("TeamEncounters");
+        encounter.HasKey(x => x.Id);
+        encounter.HasIndex(x => new { x.TournamentId, x.DisplayOrder }).IsUnique();
+        encounter.HasOne<TournamentRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.TournamentId)
+            .OnDelete(DeleteBehavior.Restrict);
+        encounter.HasOne<TeamMatchdayTeamRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.HomeTeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+        encounter.HasOne<TeamMatchdayTeamRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.AwayTeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+        encounter.HasOne<TatamiRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.TatamiId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        var lineupEntry = modelBuilder.Entity<TeamLineupEntryRecord>();
+        lineupEntry.ToTable("TeamLineupEntries");
+        lineupEntry.HasKey(x => x.Id);
+        lineupEntry.HasIndex(x => new { x.EncounterId, x.LegNumber, x.TeamId, x.WeightClassIndex }).IsUnique();
+        lineupEntry.HasOne<TeamEncounterRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.EncounterId)
+            .OnDelete(DeleteBehavior.Cascade);
+        lineupEntry.HasOne<TeamMatchdayTeamRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.TeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+        lineupEntry.HasOne<AthleteRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.AthleteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        var encounterBout = modelBuilder.Entity<EncounterBoutRecord>();
+        encounterBout.ToTable("EncounterBouts");
+        encounterBout.HasKey(x => x.Id);
+        encounterBout.HasIndex(x => new { x.EncounterId, x.LegNumber, x.WeightClassIndex }).IsUnique();
+        encounterBout.HasIndex(x => x.FightId).IsUnique();
+        encounterBout.HasOne<TeamEncounterRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.EncounterId)
+            .OnDelete(DeleteBehavior.Cascade);
+        encounterBout.HasOne<FightRecord>()
+            .WithMany()
+            .HasForeignKey(x => x.FightId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         var tatami = modelBuilder.Entity<TatamiRecord>();
         tatami.ToTable("Tatamis");

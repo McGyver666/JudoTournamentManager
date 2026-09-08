@@ -1,0 +1,28 @@
+:host { display: block; }
+.team-matchday { max-width: 1180px; margin: 0 auto; padding: 28px; color: var(--text-primary, #19231f); }
+.page-header, .workflow-row, .field-row { display: flex; gap: 16px; align-items: end; justify-content: space-between; }
+.page-header { margin-bottom: 24px; align-items: center; }
+h1, h2, p { margin: 0; }
+h1 { font-size: 28px; }
+h2 { font-size: 18px; }
+.eyebrow { color: var(--color-accent, #087443); font-size: 13px; font-weight: 700; text-transform: uppercase; }
+.setup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tool-panel, .workflow-row { border: 1px solid var(--border-color, #c8d2cb); border-radius: 8px; padding: 18px; background: var(--surface, #fff); }
+.tool-panel { display: grid; gap: 12px; }
+.workflow-row { margin: 16px 0; }
+.field-row { align-items: end; flex-wrap: wrap; }
+.lineup-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 10px; overflow-x: auto; }
+label { display: grid; gap: 6px; flex: 1 1 180px; font-size: 14px; font-weight: 600; }
+input, select, button { min-height: 38px; border-radius: 4px; font: inherit; }
+input, select { border: 1px solid var(--border-color, #aebbb2); padding: 6px 8px; background: var(--surface, #fff); }
+button, .secondary-action { border: 0; background: #087443; color: #fff; padding: 9px 14px; text-decoration: none; cursor: pointer; border-radius: 4px; white-space: nowrap; }
+.secondary-action { background: #28463a; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.danger { background: #a43127; }
+.compact-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 5px; }
+small { color: var(--text-secondary, #54635b); margin-left: 6px; }
+.notice, .info, .error { margin: 10px 0; padding: 10px 12px; border-radius: 4px; }
+.notice, .info { background: #e3f3e9; color: #174e30; }
+.error { background: #fde7e5; color: #942d22; }
+.empty-state { max-width: 580px; padding-top: 72px; display: grid; gap: 18px; justify-items: start; }
+@media (max-width: 720px) { .team-matchday { padding: 18px; } .setup-grid { grid-template-columns: 1fr; } .page-header, .workflow-row { align-items: flex-start; flex-direction: column; } }

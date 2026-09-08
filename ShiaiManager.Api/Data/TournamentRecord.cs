@@ -30,6 +30,15 @@ public sealed class TournamentRecord
     /// </summary>
     public string Organizer { get; set; } = string.Empty;
 
+    /// <summary>Competition workflow stored as an enum member name.</summary>
+    public string CompetitionMode { get; set; } = "Individual";
+
+    /// <summary>NWJV team-matchday profile stored as an enum member name when applicable.</summary>
+    public string? TeamMatchdayProfile { get; set; }
+
+    /// <summary>JSON-encoded drawn weight-class index order for a team matchday.</summary>
+    public string? TeamMatchdayWeightClassOrderJson { get; set; }
+
     /// <summary>
     /// Side color used for the non-white athlete in the UI.
     /// </summary>

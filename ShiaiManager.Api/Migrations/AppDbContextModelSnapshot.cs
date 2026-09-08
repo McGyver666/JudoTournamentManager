@@ -534,6 +534,170 @@ namespace ShiaiManager.Api.Migrations
                     b.ToTable("Registrations", (string)null);
                 });
 
+            modelBuilder.Entity("ShiaiManager.Api.Data.MatchdayWeighInRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AthleteId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("ConfirmedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("WeightKg")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AthleteId");
+
+                    b.HasIndex("TournamentId", "AthleteId")
+                        .IsUnique();
+
+                    b.ToTable("MatchdayWeighIns", (string)null);
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.EncounterBoutRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("FightId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LegNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("WeightClassIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FightId")
+                        .IsUnique();
+
+                    b.HasIndex("EncounterId", "LegNumber", "WeightClassIndex")
+                        .IsUnique();
+
+                    b.ToTable("EncounterBouts", (string)null);
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.TeamEncounterRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AwayTeamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("HomeTeamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("NoShowTeamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("TatamiId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AwayTeamId");
+
+                    b.HasIndex("HomeTeamId");
+
+                    b.HasIndex("TatamiId");
+
+                    b.HasIndex("TournamentId", "DisplayOrder")
+                        .IsUnique();
+
+                    b.ToTable("TeamEncounters", (string)null);
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.TeamLineupEntryRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AthleteId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LegNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("WeightClassIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AthleteId");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("EncounterId", "LegNumber", "TeamId", "WeightClassIndex")
+                        .IsUnique();
+
+                    b.ToTable("TeamLineupEntries", (string)null);
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.TeamMatchdayTeamRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.HasIndex("TournamentId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("TeamMatchdayTeams", (string)null);
+                });
+
             modelBuilder.Entity("ShiaiManager.Api.Data.TatamiRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -580,6 +744,13 @@ namespace ShiaiManager.Api.Migrations
                         .HasColumnType("TEXT")
                         .HasDefaultValue("Blue");
 
+                    b.Property<string>("CompetitionMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Individual");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
@@ -625,6 +796,14 @@ namespace ShiaiManager.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(false);
+
+                    b.Property<string>("TeamMatchdayProfile")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TeamMatchdayWeightClassOrderJson")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("TEXT");
@@ -814,6 +993,106 @@ namespace ShiaiManager.Api.Migrations
                     b.Navigation("Athlete");
 
                     b.Navigation("Category");
+
+                    b.Navigation("Tournament");
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.MatchdayWeighInRecord", b =>
+                {
+                    b.HasOne("ShiaiManager.Api.Data.AthleteRecord", "Athlete")
+                        .WithMany()
+                        .HasForeignKey("AthleteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TournamentRecord", "Tournament")
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Athlete");
+
+                    b.Navigation("Tournament");
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.EncounterBoutRecord", b =>
+                {
+                    b.HasOne("ShiaiManager.Api.Data.FightRecord", null)
+                        .WithMany()
+                        .HasForeignKey("FightId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TeamEncounterRecord", null)
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.TeamEncounterRecord", b =>
+                {
+                    b.HasOne("ShiaiManager.Api.Data.TeamMatchdayTeamRecord", null)
+                        .WithMany()
+                        .HasForeignKey("AwayTeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TeamMatchdayTeamRecord", null)
+                        .WithMany()
+                        .HasForeignKey("HomeTeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TatamiRecord", null)
+                        .WithMany()
+                        .HasForeignKey("TatamiId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ShiaiManager.Api.Data.TournamentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.TeamLineupEntryRecord", b =>
+                {
+                    b.HasOne("ShiaiManager.Api.Data.AthleteRecord", null)
+                        .WithMany()
+                        .HasForeignKey("AthleteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TeamEncounterRecord", null)
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TeamMatchdayTeamRecord", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.TeamMatchdayTeamRecord", b =>
+                {
+                    b.HasOne("ShiaiManager.Api.Data.ClubRecord", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TournamentRecord", "Tournament")
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Club");
 
                     b.Navigation("Tournament");
                 });

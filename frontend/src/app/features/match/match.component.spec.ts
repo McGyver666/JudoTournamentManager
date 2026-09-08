@@ -25,6 +25,8 @@ describe('MatchComponent', () => {
       date: '2026-07-27',
       venue: 'Halle 1',
       organizer: 'Club',
+      competitionMode: 'Individual',
+      teamMatchdayProfile: null,
       accentSideColor: 'Blue',
       osaeKomiIpponSeconds: 20,
       osaeKomiWazaAriSeconds: 10,

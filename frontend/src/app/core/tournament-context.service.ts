@@ -105,6 +105,8 @@ export class TournamentContextService {
       date: x['date'],
       venue: x['venue'],
       organizer: x['organizer'],
+      competitionMode: x['competitionMode'] === 'TeamMatchday' ? 'TeamMatchday' : 'Individual',
+      teamMatchdayProfile: typeof x['teamMatchdayProfile'] === 'string' ? x['teamMatchdayProfile'] as Tournament['teamMatchdayProfile'] : null,
       accentSideColor: x['accentSideColor'] === 'Red' ? 'Red' : 'Blue',
       osaeKomiIpponSeconds: typeof x['osaeKomiIpponSeconds'] === 'number' ? x['osaeKomiIpponSeconds'] : 20,
       osaeKomiWazaAriSeconds: typeof x['osaeKomiWazaAriSeconds'] === 'number' ? x['osaeKomiWazaAriSeconds'] : 10,

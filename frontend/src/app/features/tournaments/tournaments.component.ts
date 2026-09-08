@@ -10,7 +10,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { I18nService } from '../../core/i18n.service';
 import { extractApiError } from '../../core/http-error';
-import { AccentSideColor, CreateTournamentRequest, GuestShareResponse, Tournament } from '../../core/models';
+import { AccentSideColor, CompetitionMode, CreateTournamentRequest, GuestShareResponse, TeamMatchdayProfile, Tournament } from '../../core/models';
 
 /** Auto-off presets offered when enabling or rotating a guest share link. */
 type GuestShareTtl = 'midnight' | '4h' | '8h' | 'none';
@@ -41,6 +41,8 @@ export class TournamentsComponent implements OnInit {
   protected readonly canManage = this.auth.canOperate;
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly accentSideColors: AccentSideColor[] = ['Blue', 'Red'];
+  protected readonly competitionModes: CompetitionMode[] = ['Individual', 'TeamMatchday'];
+  protected readonly teamMatchdayProfiles: TeamMatchdayProfile[] = ['SeniorMen', 'SeniorWomen', 'U16Boys', 'U16Girls'];
 
   // Guest share (QR) management -------------------------------------------
   protected readonly shareTournamentId = signal<string | null>(null);
@@ -100,6 +102,8 @@ export class TournamentsComponent implements OnInit {
       date: t.date,
       venue: t.venue,
       organizer: t.organizer,
+      competitionMode: t.competitionMode,
+      teamMatchdayProfile: t.teamMatchdayProfile,
       accentSideColor: t.accentSideColor,
       osaeKomiIpponSeconds: t.osaeKomiIpponSeconds,
       osaeKomiWazaAriSeconds: t.osaeKomiWazaAriSeconds,
@@ -376,11 +380,19 @@ export class TournamentsComponent implements OnInit {
   }
 
   private emptyForm(): CreateTournamentRequest {
-    return { name: '', date: '', venue: '', organizer: '', accentSideColor: 'Blue', osaeKomiIpponSeconds: 20, osaeKomiWazaAriSeconds: 10, osaeKomiYukoSeconds: 5, osaeKomiYukoEnabled: true, minimumRestBetweenFightsSeconds: 180, twoThirdPlacesInRoundRobin: false };
+    return { name: '', date: '', venue: '', organizer: '', competitionMode: 'Individual', teamMatchdayProfile: null, accentSideColor: 'Blue', osaeKomiIpponSeconds: 20, osaeKomiWazaAriSeconds: 10, osaeKomiYukoSeconds: 5, osaeKomiYukoEnabled: true, minimumRestBetweenFightsSeconds: 180, twoThirdPlacesInRoundRobin: false };
   }
 
   protected colorLabelKey(color: AccentSideColor): string {
     return `tournaments.${color.toLowerCase()}`;
+  }
+
+  protected competitionModeLabelKey(mode: CompetitionMode): string {
+    return `tournaments.competitionMode.${mode}`;
+  }
+
+  protected teamMatchdayProfileLabelKey(profile: TeamMatchdayProfile): string {
+    return `tournaments.teamMatchdayProfile.${profile}`;
   }
 
   private saveBackupFile(t: Tournament, response: HttpResponse<Blob>): void {

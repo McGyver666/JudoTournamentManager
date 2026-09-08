@@ -73,6 +73,10 @@
                 <span class="count">{{ tatamiCount() }}</span>
               }
             </a>
+            <a class="nav-item" routerLink="/team-matchday" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.teamMatchday' | t">
+              <span class="kanji" aria-hidden="true">団</span>
+              <span class="lbl">{{ 'nav.teamMatchday' | t }}</span>
+            </a>
             <a class="nav-item" routerLink="/combat-overview" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.combatOverview' | t">
               <span class="kanji" aria-hidden="true">表</span>
               <span class="lbl">{{ 'nav.combatOverview' | t }}</span>

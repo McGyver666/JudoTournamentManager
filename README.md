@@ -53,6 +53,8 @@ Already available:
 - local startup script
 - health endpoint
 - tournament, tatami, category, club, athlete, registration, draw and fight APIs
+- NWJV team-matchday mode for senior men/women and U16 profiles, with configurable club teams,
+  matchday weigh-ins, shared weight-class draw, team encounters, and standard-fight preparation
 - athlete file import via DM4 and DMF (with automatic format detection)
 - category assignment workflow (auto + manual)
 - assisted category generation workflow (preview + apply) with two strategies:
@@ -103,7 +105,7 @@ Already available:
 - **Health endpoint:** `/health`
 - **App entry point:** `/` (Angular app; deep links fall back to `index.html`)
 
-## Target MVP Architecture
+## Target Architecture
 - **Backend:** ASP.NET Core Web API
 - **Frontend:** SPA served locally by the host machine
 - **Database:** SQLite
