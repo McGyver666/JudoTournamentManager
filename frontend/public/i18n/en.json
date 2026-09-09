@@ -463,6 +463,7 @@
   "match.confirmWhiteWins": "White wins",
   "match.confirmBlueWins": "Blue wins",
   "match.confirmRedWins": "Red wins",
+  "match.confirmHikiwake": "Hiki-wake",
   "match.confirmWinnerDialogTitle": "Load next fight?",
   "match.confirmWinnerDialogHint": "The result will be confirmed and the next fight will then be loaded onto this tatami.",
   "match.noUpcomingFightToLoad": "There is currently no next fight in the queue.",

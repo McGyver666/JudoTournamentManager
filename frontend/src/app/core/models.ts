@@ -579,7 +579,7 @@ export interface OsaeKomiRequest {
 }
 
 export interface ConfirmResultRequest {
-  winnerId: string;
+  winnerId: string | null;
 }
 
 export interface AssignTatamiRequest {

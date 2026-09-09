@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of, Subject } from 'rxjs';
@@ -17,6 +17,7 @@ describe('MatchComponent', () => {
   let categoryFightsUpdates: Subject<{ tournamentId: string; categoryId: string }>;
   let getTatamiQueueSpy: jasmine.Spy;
   let getAthletesSpy: jasmine.Spy;
+  let tournamentSignal: WritableSignal<Tournament>;
 
   function createTournament(): Tournament {
     return {
@@ -100,6 +101,7 @@ describe('MatchComponent', () => {
     categoryFightsUpdates = new Subject<{ tournamentId: string; categoryId: string }>();
 
     const tournament = createTournament();
+    tournamentSignal = signal(tournament);
 
     const apiMock: Partial<ApiService> = {
       getTournament: jasmine.createSpy('getTournament').and.returnValue(of(tournament)),
@@ -143,7 +145,7 @@ describe('MatchComponent', () => {
           provide: TournamentContextService,
           useValue: {
             tournamentId: signal('tournament-1'),
-            tournament: signal(tournament),
+            tournament: tournamentSignal,
             refreshIfActive: () => undefined,
           },
         },
@@ -158,7 +160,15 @@ describe('MatchComponent', () => {
             reconnected$: new Subject<void>().asObservable(),
           },
         },
-        { provide: SideThemeService, useValue: { applyTheme: () => undefined } },
+        {
+          provide: SideThemeService,
+          useValue: {
+            applyTheme: () => undefined,
+            accentSideLabelKey: () => 'match.blueSide',
+            confirmWinnerLabelKey: () => 'match.confirmBlueWins',
+            startOsaeLabelKey: () => 'match.startOsaeBlue',
+          },
+        },
         { provide: TimeService, useValue: { synchronize: () => Promise.resolve(), synchronizeIfStale: () => Promise.resolve(), ingestServerNowUtc: () => undefined, nowMs: () => Date.now() } },
         { provide: I18nService, useValue: { translate: (key: string) => key } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({})), queryParamMap: of(convertToParamMap({ tatamiId: 'tatami-1' })) } },
@@ -179,6 +189,31 @@ describe('MatchComponent', () => {
     expect(getTatamiQueueSpy).toHaveBeenCalledTimes(1);
     expect(getAthletesSpy).toHaveBeenCalledTimes(1);
 
+    fixture.destroy();
+  });
+
+  it('shows and wires the Hiki-wake button for team-matchday fights', () => {
+    tournamentSignal.update((tournament) => ({ ...tournament, competitionMode: 'TeamMatchday' }));
+    getTatamiQueueSpy.and.returnValue(of({
+      current: createFight({ status: 'InProgress' }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    } as TatamiQueue));
+
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+
+    const buttons = fixture.nativeElement.querySelectorAll('.confirm-row button');
+    const drawButton = fixture.nativeElement.querySelector('.btn--draw') as HTMLButtonElement | null;
+    expect(buttons.length).toBe(3);
+    expect(drawButton).not.toBeNull();
+    expect(drawButton?.textContent).toContain('match.confirmHikiwake');
+
+    drawButton?.click();
+    fixture.detectChanges();
+
+    expect((fixture.componentInstance as any).winnerConfirmation().winnerId).toBeNull();
     fixture.destroy();
   });
 

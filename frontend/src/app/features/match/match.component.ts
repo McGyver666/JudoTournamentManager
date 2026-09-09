@@ -36,7 +36,7 @@ const OPERATOR_NAME_KEY = 'judo.operatorName';
 
 interface WinnerConfirmationState {
   fight: Fight;
-  winnerId: string;
+  winnerId: string | null;
   nextFight: Fight | null;
 }
 
@@ -678,6 +678,15 @@ export class MatchComponent implements OnInit, OnDestroy {
     this.winnerConfirmation.set({
       fight,
       winnerId,
+      nextFight: this.queue()?.next ?? null,
+    });
+  }
+
+  protected confirmDraw(fight: Fight): void {
+    if (!this.canOperate() || this.confirmingWinner()) return;
+    this.winnerConfirmation.set({
+      fight,
+      winnerId: null,
       nextFight: this.queue()?.next ?? null,
     });
   }

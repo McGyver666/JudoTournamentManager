@@ -481,6 +481,10 @@
   gap: 0.5rem;
 }
 
+.confirm-row--team-matchday {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .upcoming-list {
   display: flex;
   flex-direction: column;

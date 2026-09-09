@@ -125,11 +125,12 @@ public interface IMatchService
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Confirms the winner of an in-progress fight, completes it, propagates the result and writes an audit entry.
+    /// Confirms the winner of an in-progress fight, or records a Hiki-wake for a team-matchday fight,
+    /// completes it, propagates the result and writes an audit entry.
     /// </summary>
     Task<MatchActionResult> ConfirmResultAsync(
         Guid fightId,
-        Guid winnerId,
+        Guid? winnerId,
         string user,
         CancellationToken cancellationToken);
 

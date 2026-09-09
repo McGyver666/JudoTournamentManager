@@ -7,7 +7,6 @@ namespace ShiaiManager.Api.Contracts;
 /// </summary>
 public sealed record ConfirmResultRequest
 {
-    /// <summary>Identifier of the winning athlete; must be one of the fight's participants.</summary>
-    [Required(ErrorMessage = "Der Sieger ist erforderlich.")]
-    public Guid WinnerId { get; init; }
+    /// <summary>Identifier of the winning athlete; null records a Hiki-wake for team-matchday fights.</summary>
+    public Guid? WinnerId { get; init; }
 }
