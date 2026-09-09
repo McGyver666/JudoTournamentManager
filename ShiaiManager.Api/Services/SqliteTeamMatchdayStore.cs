@@ -40,12 +40,6 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
             .OrderBy(x => x.Name)
             .Select(x => new TeamMatchdayTeam(x.Id, x.TournamentId, x.ClubId, x.Name, x.CreatedAtUtc, x.UpdatedAtUtc))
             .ToArrayAsync(cancellationToken);
-        var weighIns = await _dbContext.MatchdayWeighIns
-            .AsNoTracking()
-            .Where(x => x.TournamentId == tournamentId)
-            .OrderBy(x => x.AthleteId)
-            .Select(x => new MatchdayWeighIn(x.Id, x.TournamentId, x.AthleteId, x.WeightKg, x.ConfirmedAtUtc))
-            .ToArrayAsync(cancellationToken);
         var encounterRecords = await _dbContext.TeamEncounters
             .AsNoTracking()
             .Where(x => x.TournamentId == tournamentId)
@@ -69,7 +63,7 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
             .ToArray();
 
         var weightClassOrder = DeserializeWeightClassOrder(tournament.TeamMatchdayWeightClassOrderJson);
-        return new TeamMatchday(tournamentId, profile, teams, weighIns, weightClassOrder, encounters);
+        return new TeamMatchday(tournamentId, profile, teams, weightClassOrder, encounters);
     }
 
     /// <inheritdoc />
@@ -104,42 +98,6 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
     }
 
     /// <inheritdoc />
-    public async Task<MatchdayWeighIn?> ConfirmWeighInAsync(
-        Guid tournamentId,
-        Guid athleteId,
-        decimal weightKg,
-        CancellationToken cancellationToken)
-    {
-        if (weightKg is < 1m or > 300m
-            || await GetTeamMatchdayTournamentAsync(tournamentId, cancellationToken) is null
-            || !await _dbContext.Athletes.AnyAsync(x => x.Id == athleteId && x.TournamentId == tournamentId, cancellationToken))
-        {
-            return null;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var record = await _dbContext.MatchdayWeighIns
-            .FirstOrDefaultAsync(x => x.TournamentId == tournamentId && x.AthleteId == athleteId, cancellationToken);
-
-        if (record is null)
-        {
-            record = new MatchdayWeighInRecord
-            {
-                Id = Guid.NewGuid(),
-                TournamentId = tournamentId,
-                AthleteId = athleteId
-            };
-            _dbContext.MatchdayWeighIns.Add(record);
-        }
-
-        record.WeightKg = weightKg;
-        record.ConfirmedAtUtc = now;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return new MatchdayWeighIn(record.Id, record.TournamentId, record.AthleteId, record.WeightKg, record.ConfirmedAtUtc);
-    }
-
-    /// <inheritdoc />
     public async Task<IReadOnlyList<int>?> DrawWeightClassOrderAsync(Guid tournamentId, CancellationToken cancellationToken)
     {
         var tournament = await GetTeamMatchdayTournamentAsync(tournamentId, cancellationToken);
@@ -164,10 +122,32 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
             (order[index], order[swapIndex]) = (order[swapIndex], order[index]);
         }
 
-        tournament.TeamMatchdayWeightClassOrderJson = JsonSerializer.Serialize(order);
-        tournament.UpdatedAtUtc = DateTimeOffset.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        return order;
+        return await SaveWeightClassOrderAsync(tournament, order, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<int>?> SetWeightClassOrderAsync(
+        Guid tournamentId,
+        IReadOnlyList<int> order,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(order);
+
+        var tournament = await GetTeamMatchdayTournamentAsync(tournamentId, cancellationToken);
+        if (tournament is null || !TryGetProfile(tournament, out var profile))
+        {
+            return null;
+        }
+
+        var expectedCount = _rules.GetProfile(profile).WeightClassUpperLimitsKg.Count;
+        if (order.Count != expectedCount
+            || order.Any(index => index < 0 || index >= expectedCount)
+            || order.Distinct().Count() != expectedCount)
+        {
+            return null;
+        }
+
+        return await SaveWeightClassOrderAsync(tournament, order, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -212,6 +192,42 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
         return new TeamEncounter(
             record.Id, record.TournamentId, record.HomeTeamId, record.AwayTeamId, record.TatamiId,
             record.DisplayOrder, record.NoShowTeamId, record.CreatedAtUtc, 0, 0, 0, 0, 0, 0, null);
+    }
+
+    /// <inheritdoc />
+    public async Task<TeamMatchdayOperationResult> DeleteEncounterAsync(
+        Guid tournamentId,
+        Guid encounterId,
+        CancellationToken cancellationToken)
+    {
+        var encounter = await GetEncounterAsync(tournamentId, encounterId, cancellationToken);
+        if (await GetTeamMatchdayTournamentAsync(tournamentId, cancellationToken) is null || encounter is null)
+        {
+            return Failure("NotFound", "Der Kampftag oder die Begegnung wurde nicht gefunden.");
+        }
+
+        var bouts = await _dbContext.EncounterBouts
+            .Where(x => x.EncounterId == encounterId)
+            .ToArrayAsync(cancellationToken);
+        var fightIds = bouts.Select(x => x.FightId).ToArray();
+        var fights = await _dbContext.Fights
+            .Where(x => fightIds.Contains(x.Id))
+            .OrderBy(x => x.FightNumber)
+            .ToArrayAsync(cancellationToken);
+        if (fights.Any(x => x.Status != FightStatus.Pending.ToString()))
+        {
+            return Failure("EncounterStarted", "Die Begegnung kann nach Kampfbeginn nicht mehr gelöscht werden.");
+        }
+
+        var lineups = await _dbContext.TeamLineupEntries
+            .Where(x => x.EncounterId == encounterId)
+            .ToArrayAsync(cancellationToken);
+        _dbContext.TeamLineupEntries.RemoveRange(lineups);
+        _dbContext.EncounterBouts.RemoveRange(bouts);
+        _dbContext.Fights.RemoveRange(fights);
+        _dbContext.TeamEncounters.Remove(encounter);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return TeamMatchdayOperationResult.Success;
     }
 
     /// <inheritdoc />
@@ -261,7 +277,8 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
 
         if (assignments.Count != ruleProfile.WeightClassUpperLimitsKg.Count
             || assignments.Select(x => x.WeightClassIndex).Distinct().Count() != assignments.Count
-            || assignments.Select(x => x.AthleteId).Distinct().Count() != assignments.Count
+            || assignments.Where(x => x.AthleteId.HasValue).Select(x => x.AthleteId).Distinct().Count()
+                != assignments.Count(x => x.AthleteId.HasValue)
             || assignments.Any(x => x.WeightClassIndex < 0 || x.WeightClassIndex >= ruleProfile.WeightClassUpperLimitsKg.Count))
         {
             return Failure("InvalidLineup", "Die Aufstellung muss jede Gewichtsklasse genau einmal und jeden Athleten nur einmal enthalten.");
@@ -274,18 +291,25 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
             return Failure("InvalidTeam", "Die Mannschaft wurde nicht gefunden.");
         }
 
+        var athleteIds = assignments
+            .Where(x => x.AthleteId.HasValue)
+            .Select(x => x.AthleteId!.Value)
+            .ToArray();
         var athletes = await _dbContext.Athletes
-            .Where(x => x.TournamentId == tournamentId && x.ClubId == team.ClubId && assignments.Select(a => a.AthleteId).Contains(x.Id))
-            .Select(x => x.Id)
-            .ToArrayAsync(cancellationToken);
-        var weighIns = await _dbContext.MatchdayWeighIns
-            .Where(x => x.TournamentId == tournamentId && assignments.Select(a => a.AthleteId).Contains(x.AthleteId))
-            .ToDictionaryAsync(x => x.AthleteId, x => x.WeightKg, cancellationToken);
-        if (athletes.Length != assignments.Count
-            || assignments.Any(x => !weighIns.TryGetValue(x.AthleteId, out var weightKg)
-                || !_rules.CanAssignToWeightClass(ruleProfile, weightKg, x.WeightClassIndex)))
+            .Where(x => x.TournamentId == tournamentId
+                && x.ClubId == team.ClubId
+                && athleteIds.Contains(x.Id)
+                && x.WeightKg.HasValue
+                && _dbContext.Registrations.Any(registration =>
+                    registration.TournamentId == tournamentId && registration.AthleteId == x.Id))
+            .Select(x => new { x.Id, x.WeightKg })
+            .ToDictionaryAsync(x => x.Id, x => x.WeightKg!.Value, cancellationToken);
+        if (athleteIds.Distinct().Count() != athleteIds.Length
+            || athletes.Count != athleteIds.Length
+            || assignments.Any(x => x.AthleteId.HasValue
+                && (!_rules.CanAssignToWeightClass(ruleProfile, athletes[x.AthleteId!.Value], x.WeightClassIndex))))
         {
-            return Failure("IneligibleLineup", "Alle Athleten benötigen eine gültige Tageswaage für ihre Gewichtsklasse.");
+            return Failure("IneligibleLineup", "Alle gestellten Athleten müssen im Turnier registriert sein und zur Gewichtsklasse passen.");
         }
 
         var existing = await _dbContext.TeamLineupEntries
@@ -344,6 +368,11 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
         {
             var homeAthleteId = lineup.Single(x => x.TeamId == encounter.HomeTeamId && x.WeightClassIndex == weightClassIndex).AthleteId;
             var awayAthleteId = lineup.Single(x => x.TeamId == encounter.AwayTeamId && x.WeightClassIndex == weightClassIndex).AthleteId;
+            if (!homeAthleteId.HasValue || !awayAthleteId.HasValue)
+            {
+                continue;
+            }
+
             var categoryId = categories[weightClassIndex];
             var fight = new FightRecord
             {
@@ -431,6 +460,17 @@ public sealed class SqliteTeamMatchdayStore : ITeamMatchdayStore
         }
 
         return JsonSerializer.Deserialize<int[]>(serializedOrder) ?? [];
+    }
+
+    private async Task<IReadOnlyList<int>> SaveWeightClassOrderAsync(
+        TournamentRecord tournament,
+        IReadOnlyList<int> order,
+        CancellationToken cancellationToken)
+    {
+        tournament.TeamMatchdayWeightClassOrderJson = JsonSerializer.Serialize(order);
+        tournament.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return order;
     }
 
     private async Task<TeamEncounterRecord?> GetEncounterAsync(Guid tournamentId, Guid encounterId, CancellationToken cancellationToken)

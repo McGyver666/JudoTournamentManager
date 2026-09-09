@@ -55,17 +55,19 @@
               <span class="kanji" aria-hidden="true">量</span>
               <span class="lbl">{{ 'nav.registrations' | t }}</span>
             </a>
-            <a class="nav-item" routerLink="/category-assignment" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.categoryAssignment' | t">
-              <span class="kanji" aria-hidden="true">階</span>
-              <span class="lbl">{{ 'nav.categoryAssignment' | t }}</span>
-              @if (categoryCount(); as n) {
-                <span class="count">{{ n }}</span>
-              }
-            </a>
-            <a class="nav-item" routerLink="/draw" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.draw' | t">
-              <span class="kanji" aria-hidden="true">組</span>
-              <span class="lbl">{{ 'nav.draw' | t }}</span>
-            </a>
+            @if (context.tournament()?.competitionMode !== 'TeamMatchday') {
+              <a class="nav-item" routerLink="/category-assignment" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.categoryAssignment' | t">
+                <span class="kanji" aria-hidden="true">階</span>
+                <span class="lbl">{{ 'nav.categoryAssignment' | t }}</span>
+                @if (categoryCount(); as n) {
+                  <span class="count">{{ n }}</span>
+                }
+              </a>
+              <a class="nav-item" routerLink="/draw" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.draw' | t">
+                <span class="kanji" aria-hidden="true">組</span>
+                <span class="lbl">{{ 'nav.draw' | t }}</span>
+              </a>
+            }
             <a class="nav-item" routerLink="/tatami-assignment" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.tatamiAssignment' | t">
               <span class="kanji" aria-hidden="true">畳</span>
               <span class="lbl">{{ 'nav.tatamiAssignment' | t }}</span>
@@ -73,10 +75,12 @@
                 <span class="count">{{ tatamiCount() }}</span>
               }
             </a>
-            <a class="nav-item" routerLink="/team-matchday" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.teamMatchday' | t">
-              <span class="kanji" aria-hidden="true">団</span>
-              <span class="lbl">{{ 'nav.teamMatchday' | t }}</span>
-            </a>
+            @if (context.tournament()?.competitionMode === 'TeamMatchday') {
+              <a class="nav-item" routerLink="/team-matchday" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.teamMatchday' | t">
+                <span class="kanji" aria-hidden="true">団</span>
+                <span class="lbl">{{ 'nav.teamMatchday' | t }}</span>
+              </a>
+            }
             <a class="nav-item" routerLink="/combat-overview" routerLinkActive="active" (click)="closeDrawer()" [title]="'nav.combatOverview' | t">
               <span class="kanji" aria-hidden="true">表</span>
               <span class="lbl">{{ 'nav.combatOverview' | t }}</span>

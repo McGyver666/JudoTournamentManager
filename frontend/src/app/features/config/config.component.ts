@@ -28,9 +28,10 @@ import {
   GeneratedCategoryProposal,
   RegistrationDetail,
   Tatami,
+  TeamMatchday,
 } from '../../core/models';
 
-type Tab = 'tatamis' | 'categories' | 'clubs' | 'athletes' | 'presets';
+type Tab = 'tatamis' | 'categories' | 'clubs' | 'athletes' | 'presets' | 'teams';
 type GeneratorStep = 'base' | 'strategy' | 'preview';
 
 interface GenerationAgeGroupRange {
@@ -85,6 +86,10 @@ export class ConfigComponent implements OnInit {
   protected readonly athletes = signal<Athlete[]>([]);
   protected readonly registrations = signal<RegistrationDetail[]>([]);
   protected readonly presets = signal<CategoryPreset[]>([]);
+  protected readonly teamMatchday = signal<TeamMatchday | null>(null);
+  protected readonly teamMatchdayInfo = signal<string | null>(null);
+  protected teamForm = { clubId: '', name: '' };
+  protected readonly teamWeightClassOrder = signal<number[]>([]);
   protected presetsDirty = false;
 
   protected readonly clubName = computed(() => {
@@ -187,6 +192,7 @@ export class ConfigComponent implements OnInit {
   protected setTab(tab: Tab): void {
     this.tab.set(tab);
     this.error.set(null);
+    this.teamMatchdayInfo.set(null);
 
     if (tab !== 'athletes') {
       this.athleteImportInfo.set(null);
@@ -216,6 +222,17 @@ export class ConfigComponent implements OnInit {
     this.api.getAthletes(id).subscribe({ next: (x) => this.athletes.set(x), error: this.onLoadError });
     this.api.getRegistrations(id).subscribe({ next: (x) => this.registrations.set(x), error: this.onLoadError });
     this.api.getCategoryPresets(id).subscribe({ next: (x) => this.presets.set(x), error: this.onLoadError });
+    if (this.context.tournament()?.competitionMode === 'TeamMatchday') {
+      this.api.getTeamMatchday(id).subscribe({
+        next: (x) => {
+          this.teamMatchday.set(x);
+          this.teamWeightClassOrder.set(x.weightClassOrder.length > 0
+            ? [...x.weightClassOrder]
+            : this.teamWeightClassLabels().map((_, index) => index));
+        },
+        error: this.onLoadError,
+      });
+    }
   }
 
   private readonly onLoadError = (err: unknown): void =>
@@ -514,6 +531,107 @@ export class ConfigComponent implements OnInit {
     }
 
     return this.i18n.translate('gender.mixed');
+  }
+
+  // --- Team matchday -----------------------------------------------------
+  protected teamWeightClassLabels(): string[] {
+    switch (this.teamMatchday()?.profile ?? this.context.tournament()?.teamMatchdayProfile) {
+      case 'SeniorMen': return ['-66 kg', '-73 kg', '-81 kg', '-90 kg', '+90 kg'];
+      case 'SeniorWomen': return ['-52 kg', '-57 kg', '-63 kg', '-70 kg', '+70 kg'];
+      case 'U16Boys': return ['-46 kg', '-52 kg', '-58 kg', '-66 kg', '+66 kg'];
+      case 'U16Girls': return ['-42 kg', '-47 kg', '-53 kg', '-60 kg', '+60 kg'];
+      default: return [];
+    }
+  }
+
+  protected newTeam(): void {
+    if (!this.canOperate()) {
+      return;
+    }
+    this.teamForm = { clubId: this.clubs()[0]?.id ?? '', name: '' };
+  }
+
+  protected saveTeam(): void {
+    if (!this.canOperate() || !this.tournamentId || !this.teamForm.clubId || !this.teamForm.name.trim()) {
+      return;
+    }
+
+    this.error.set(null);
+    this.api.createTeamMatchdayTeam(this.tournamentId, {
+      clubId: this.teamForm.clubId,
+      name: this.teamForm.name.trim(),
+    }).subscribe({
+      next: () => {
+        this.teamForm = { clubId: this.clubs()[0]?.id ?? '', name: '' };
+        this.loadTeamMatchday();
+      },
+      error: this.onSaveError,
+    });
+  }
+
+  protected drawTeamWeightClassOrder(): void {
+    if (!this.canOperate() || !this.tournamentId) {
+      return;
+    }
+
+    this.error.set(null);
+    this.api.drawTeamMatchdayWeightClassOrder(this.tournamentId).subscribe({
+      next: (order) => {
+        this.teamWeightClassOrder.set(order);
+        this.teamMatchdayInfo.set(this.i18n.translate('teamMatchday.orderDrawn'));
+        this.loadTeamMatchday();
+      },
+      error: this.onSaveError,
+    });
+  }
+
+  protected setTeamWeightClassAt(position: number, value: string | number): void {
+    const index = Number(value);
+    this.teamWeightClassOrder.update((order) => {
+      const updated = [...order];
+      updated[position] = index;
+      return updated;
+    });
+  }
+
+  protected saveTeamWeightClassOrder(): void {
+    if (!this.canOperate() || !this.tournamentId) {
+      return;
+    }
+
+    const labels = this.teamWeightClassLabels();
+    const order = this.teamWeightClassOrder();
+    if (order.length !== labels.length || new Set(order).size !== labels.length || order.some((index) => index < 0 || index >= labels.length)) {
+      this.error.set(this.i18n.translate('teamMatchday.invalidOrder'));
+      return;
+    }
+
+    this.error.set(null);
+    this.api.setTeamMatchdayWeightClassOrder(this.tournamentId, { order }).subscribe({
+      next: (savedOrder) => {
+        this.teamWeightClassOrder.set(savedOrder);
+        this.teamMatchdayInfo.set(this.i18n.translate('teamMatchday.orderSaved'));
+        this.loadTeamMatchday();
+      },
+      error: this.onSaveError,
+    });
+  }
+
+  private loadTeamMatchday(): void {
+    const id = this.tournamentId;
+    if (!id || this.context.tournament()?.competitionMode !== 'TeamMatchday') {
+      return;
+    }
+
+    this.api.getTeamMatchday(id).subscribe({
+      next: (x) => {
+        this.teamMatchday.set(x);
+        this.teamWeightClassOrder.set(x.weightClassOrder.length > 0
+          ? [...x.weightClassOrder]
+          : this.teamWeightClassLabels().map((_, index) => index));
+      },
+      error: this.onLoadError,
+    });
   }
 
   // --- Clubs -------------------------------------------------------------

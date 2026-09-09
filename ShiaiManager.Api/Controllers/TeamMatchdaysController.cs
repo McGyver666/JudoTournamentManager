@@ -73,41 +73,6 @@ public sealed class TeamMatchdaysController : ControllerBase
     }
 
     /// <summary>
-    /// Confirms an athlete's actual weight for the matchday.
-    /// </summary>
-    [Authorize(Roles = "Admin,Operator")]
-    [HttpPost("weigh-ins")]
-    [ProducesResponseType(typeof(MatchdayWeighIn), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<MatchdayWeighIn>> ConfirmWeighInAsync(
-        Guid tournamentId,
-        [FromBody] ConfirmMatchdayWeighInRequest request,
-        CancellationToken cancellationToken)
-    {
-        var weighIn = await _teamMatchdayStore.ConfirmWeighInAsync(
-            tournamentId,
-            request.AthleteId,
-            request.WeightKg,
-            cancellationToken);
-        if (weighIn is null)
-        {
-            return NotFound();
-        }
-
-        await _auditLogService.LogAsync(
-            tournamentId,
-            CurrentUser(),
-            "MatchdayWeighInConfirmed",
-            "MatchdayWeighIn",
-            weighIn.Id,
-            $"AthleteId={weighIn.AthleteId}",
-            cancellationToken);
-
-        return Ok(weighIn);
-    }
-
-    /// <summary>
     /// Draws the shared weight-class order before encounter bouts are prepared.
     /// </summary>
     [Authorize(Roles = "Admin")]
@@ -133,6 +98,40 @@ public sealed class TeamMatchdaysController : ControllerBase
             tournamentId,
             CurrentUser(),
             "TeamMatchdayWeightClassOrderDrawn",
+            "TeamMatchday",
+            tournamentId,
+            $"Count={order.Count}",
+            cancellationToken);
+        return Ok(order);
+    }
+
+    /// <summary>
+    /// Stores a manually selected weight-class order before encounter bouts start.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPut("weight-class-order")]
+    [ProducesResponseType(typeof(IReadOnlyList<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<int>>> SetWeightClassOrderAsync(
+        Guid tournamentId,
+        [FromBody] SetTeamMatchdayWeightClassOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        var order = await _teamMatchdayStore.SetWeightClassOrderAsync(tournamentId, request.Order, cancellationToken);
+        if (order is null)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Die Gewichtsklassenreihenfolge kann nicht gespeichert werden.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        await _auditLogService.LogAsync(
+            tournamentId,
+            CurrentUser(),
+            "TeamMatchdayWeightClassOrderSet",
             "TeamMatchday",
             tournamentId,
             $"Count={order.Count}",
@@ -173,6 +172,35 @@ public sealed class TeamMatchdaysController : ControllerBase
             null,
             cancellationToken);
         return Created($"/api/tournaments/{tournamentId}/team-matchday/encounters/{encounter.Id}", encounter);
+    }
+
+    /// <summary>
+    /// Deletes an encounter before its first fight has started.
+    /// </summary>
+    [Authorize(Roles = "Admin,Operator")]
+    [HttpDelete("encounters/{encounterId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteEncounterAsync(
+        Guid tournamentId,
+        Guid encounterId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _teamMatchdayStore.DeleteEncounterAsync(tournamentId, encounterId, cancellationToken);
+        if (!result.Succeeded)
+        {
+            return Conflict(new ProblemDetails { Title = result.Message, Detail = result.Code, Status = StatusCodes.Status409Conflict });
+        }
+
+        await _auditLogService.LogAsync(
+            tournamentId,
+            CurrentUser(),
+            "TeamEncounterDeleted",
+            "TeamEncounter",
+            encounterId,
+            null,
+            cancellationToken);
+        return NoContent();
     }
 
     /// <summary>

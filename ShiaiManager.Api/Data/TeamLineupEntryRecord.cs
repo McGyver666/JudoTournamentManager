@@ -1,7 +1,7 @@
 namespace ShiaiManager.Api.Data;
 
 /// <summary>
-/// Persistence model for one athlete assigned to a team encounter leg and weight class.
+/// Persistence model for one team encounter leg and weight class.
 /// </summary>
 public sealed class TeamLineupEntryRecord
 {
@@ -10,5 +10,5 @@ public sealed class TeamLineupEntryRecord
     public int LegNumber { get; set; }
     public Guid TeamId { get; set; }
     public int WeightClassIndex { get; set; }
-    public Guid AthleteId { get; set; }
+    public Guid? AthleteId { get; set; }
 }

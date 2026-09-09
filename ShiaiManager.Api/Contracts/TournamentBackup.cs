@@ -51,9 +51,6 @@ public sealed class TournamentBackup
     /// <summary>All team-matchday teams belonging to this tournament.</summary>
     public IReadOnlyList<TeamMatchdayTeamRecord> TeamMatchdayTeams { get; set; } = [];
 
-    /// <summary>All confirmed team-matchday weigh-ins belonging to this tournament.</summary>
-    public IReadOnlyList<MatchdayWeighInRecord> MatchdayWeighIns { get; set; } = [];
-
     /// <summary>All team encounters belonging to this tournament.</summary>
     public IReadOnlyList<TeamEncounterRecord> TeamEncounters { get; set; } = [];
 

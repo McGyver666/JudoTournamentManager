@@ -1,67 +1,29 @@
-<section class="team-matchday" *ngIf="isTeamMatchday(); else unsupported">
-  <header class="page-header">
-    <div>
-      <p class="eyebrow">{{ 'teamMatchday.eyebrow' | t }}</p>
-      <h1>{{ 'teamMatchday.title' | t }}</h1>
-    </div>
-    <a routerLink="/tatami-assignment" class="secondary-action">{{ 'teamMatchday.openTatami' | t }}</a>
-  </header>
-
+<section class="team-matchday main-page" *ngIf="isTeamMatchday(); else unsupported">
   <p class="notice" *ngIf="loading()">{{ 'common.loading' | t }}</p>
   <p class="error" *ngIf="error()">{{ error() }}</p>
   <p class="info" *ngIf="info()">{{ info() }}</p>
 
   <ng-container *ngIf="matchday() as state">
-    <section class="setup-grid">
-      <form class="tool-panel" (ngSubmit)="addTeam()">
-        <h2>{{ 'teamMatchday.teams' | t }}</h2>
-        <label>
-          <span>{{ 'teamMatchday.club' | t }}</span>
-          <select [ngModel]="selectedClubId()" (ngModelChange)="selectedClubId.set($event)" name="club" required>
-            <option value="">{{ 'teamMatchday.selectClub' | t }}</option>
-            <option *ngFor="let club of clubs()" [value]="club.id">{{ club.name }}</option>
-          </select>
-        </label>
-        <label>
-          <span>{{ 'teamMatchday.teamName' | t }}</span>
-          <input [ngModel]="teamName()" (ngModelChange)="teamName.set($event)" name="teamName" maxlength="120" required>
-        </label>
-        <button type="submit" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.addTeam' | t }}</button>
-        <ul class="compact-list">
-          <li *ngFor="let team of state.teams">{{ team.name }} <small>{{ clubName(team.clubId) }}</small></li>
-        </ul>
-      </form>
-
-      <form class="tool-panel" (ngSubmit)="confirmWeighIn()">
-        <h2>{{ 'teamMatchday.weighIns' | t }}</h2>
-        <label>
-          <span>{{ 'teamMatchday.athlete' | t }}</span>
-          <select [ngModel]="selectedAthleteId()" (ngModelChange)="selectedAthleteId.set($event)" name="athlete" required>
-            <option value="">{{ 'teamMatchday.selectAthlete' | t }}</option>
-            <option *ngFor="let athlete of athletes()" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option>
-          </select>
-        </label>
-        <label>
-          <span>{{ 'teamMatchday.weightKg' | t }}</span>
-          <input type="number" min="1" max="300" step="0.1" [ngModel]="weightKg()" (ngModelChange)="weightKg.set($event)" name="weightKg" required>
-        </label>
-        <button type="submit" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.confirmWeighIn' | t }}</button>
-        <ul class="compact-list">
-          <li *ngFor="let weighIn of state.weighIns">{{ athleteName(weighIn.athleteId) }} <small>{{ weighIn.weightKg }} kg</small></li>
-        </ul>
-      </form>
+    <section class="card section-panel">
+      <header class="section-head card-pad">
+        <h2 class="section-head__title">{{ 'sectionHeads.teamMatchdayOrder.title' | t }}</h2>
+        <p class="section-head__text">{{ 'sectionHeads.teamMatchdayOrder.text' | t }}</p>
+      </header>
     </section>
-
-    <section class="workflow-row">
-      <div>
-        <h2>{{ 'teamMatchday.weightClassOrder' | t }}</h2>
-        <p>{{ state.weightClassOrder.length ? state.weightClassOrder.join(' - ') : ('teamMatchday.orderMissing' | t) }}</p>
+    <section class="card card-pad weigh-panel">
+      <div class="workflow-row">
+        <p>{{ weightClassOrderLabels().length ? weightClassOrderLabels().join(' - ') : ('teamMatchday.orderMissing' | t) }}</p>
+        <span class="muted">{{ 'teamMatchday.orderConfiguredInConfig' | t }}</span>
       </div>
-      <button type="button" (click)="drawWeightClassOrder()" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.drawOrder' | t }}</button>
     </section>
 
-    <form class="tool-panel encounter-panel" (ngSubmit)="addEncounter()">
-      <h2>{{ 'teamMatchday.encounters' | t }}</h2>
+    <section class="card section-panel">
+      <header class="section-head card-pad">
+        <h2 class="section-head__title">{{ 'sectionHeads.teamMatchdayEncounters.title' | t }}</h2>
+        <p class="section-head__text">{{ 'sectionHeads.teamMatchdayEncounters.text' | t }}</p>
+      </header>
+    </section>
+    <form class="card card-pad weigh-panel encounter-panel" (ngSubmit)="addEncounter()">
       <div class="field-row">
         <label><span>{{ 'teamMatchday.homeTeam' | t }}</span><select [ngModel]="homeTeamId()" (ngModelChange)="homeTeamId.set($event)" name="home" required><option value="">{{ 'teamMatchday.selectTeam' | t }}</option><option *ngFor="let team of state.teams" [value]="team.id">{{ team.name }}</option></select></label>
         <label><span>{{ 'teamMatchday.awayTeam' | t }}</span><select [ngModel]="awayTeamId()" (ngModelChange)="awayTeamId.set($event)" name="away" required><option value="">{{ 'teamMatchday.selectTeam' | t }}</option><option *ngFor="let team of state.teams" [value]="team.id">{{ team.name }}</option></select></label>
@@ -69,30 +31,55 @@
         <button type="submit" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.addEncounter' | t }}</button>
       </div>
       <ol class="compact-list">
-        <li *ngFor="let encounter of state.encounters">{{ teamNameFor(encounter.homeTeamId) }} - {{ teamNameFor(encounter.awayTeamId) }} <small>{{ encounter.homeIndividualWins }}:{{ encounter.awayIndividualWins }} | {{ encounter.homeUnderScore }}:{{ encounter.awayUnderScore }} | {{ encounter.outcome ?? ('teamMatchday.inProgress' | t) }}</small></li>
+        <li *ngFor="let encounter of state.encounters" class="encounter-row">
+          <span>{{ teamNameFor(encounter.homeTeamId) }} - {{ teamNameFor(encounter.awayTeamId) }} <small>{{ encounter.homeIndividualWins }}:{{ encounter.awayIndividualWins }} | {{ encounter.homeUnderScore }}:{{ encounter.awayUnderScore }} | {{ encounter.outcome ?? ('teamMatchday.inProgress' | t) }}</small></span>
+          <button type="button" class="danger compact-action" (click)="deleteEncounter(encounter)" [disabled]="!canOperate() || saving()">{{ 'common.delete' | t }}</button>
+        </li>
       </ol>
     </form>
 
-    <section class="tool-panel lineup-panel">
-      <h2>{{ 'teamMatchday.lineups' | t }}</h2>
+    <section class="card section-panel">
+      <header class="section-head card-pad">
+        <h2 class="section-head__title">{{ 'sectionHeads.teamMatchdayLineups.title' | t }}</h2>
+        <p class="section-head__text">{{ 'sectionHeads.teamMatchdayLineups.text' | t }}</p>
+      </header>
+    </section>
+    <section class="card card-pad weigh-panel lineup-panel">
       <div class="field-row">
-        <label><span>{{ 'teamMatchday.encounter' | t }}</span><select [ngModel]="lineupEncounterId()" (ngModelChange)="lineupEncounterId.set($event)" name="lineupEncounter"><option value="">{{ 'teamMatchday.selectEncounter' | t }}</option><option *ngFor="let encounter of state.encounters" [value]="encounter.id">{{ teamNameFor(encounter.homeTeamId) }} - {{ teamNameFor(encounter.awayTeamId) }}</option></select></label>
-        <label><span>{{ 'teamMatchday.leg' | t }}</span><select [ngModel]="lineupLegNumber()" (ngModelChange)="lineupLegNumber.set(+$event)" name="lineupLeg"><option [value]="1">{{ 'teamMatchday.firstLeg' | t }}</option><option [value]="2">{{ 'teamMatchday.returnLeg' | t }}</option></select></label>
-        <label><span>{{ 'teamMatchday.team' | t }}</span><select [ngModel]="lineupTeamId()" (ngModelChange)="lineupTeamId.set($event); lineupAthleteIds.set([])" name="lineupTeam"><option value="">{{ 'teamMatchday.selectTeam' | t }}</option><option *ngFor="let team of state.teams" [value]="team.id">{{ team.name }}</option></select></label>
+        <label><span>{{ 'teamMatchday.encounter' | t }}</span><select [ngModel]="lineupEncounterId()" (ngModelChange)="selectLineupEncounter($event)" name="lineupEncounter"><option value="">{{ 'teamMatchday.selectEncounter' | t }}</option><option *ngFor="let encounter of state.encounters" [value]="encounter.id">{{ teamNameFor(encounter.homeTeamId) }} - {{ teamNameFor(encounter.awayTeamId) }}</option></select></label>
+        <label><span>{{ 'teamMatchday.leg' | t }}</span><select [ngModel]="lineupLegNumber()" (ngModelChange)="selectLineupLeg($event)" name="lineupLeg"><option [value]="1">{{ 'teamMatchday.firstLeg' | t }}</option><option [value]="2">{{ 'teamMatchday.returnLeg' | t }}</option></select></label>
       </div>
-      <div class="lineup-grid" *ngIf="lineupTeamId()">
-        <label *ngFor="let weightClass of weightClassLabels(); let index = index"><span>{{ weightClass }}</span><select [ngModel]="lineupAthleteId(index)" (ngModelChange)="updateLineupAthlete(index, $event)" [name]="'lineup-' + index"><option value="">{{ 'teamMatchday.selectAthlete' | t }}</option><option *ngFor="let athlete of athletesForLineupTeam()" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option></select></label>
+      <div class="lineup-teams" *ngIf="selectedLineupEncounter() as encounter">
+        <div class="lineup-team">
+          <h3>{{ teamNameFor(encounter.homeTeamId) }}</h3>
+          <div class="lineup-grid">
+            <label *ngFor="let weightClass of weightClassLabels(); let index = index"><span>{{ weightClass }}</span><select [ngModel]="lineupAthleteId(encounter.homeTeamId, index)" (ngModelChange)="updateLineupAthlete(encounter.homeTeamId, index, $event)" [name]="'home-lineup-' + index"><option value="">{{ 'teamMatchday.noAthlete' | t }}</option><option *ngFor="let athlete of athletesForLineupTeam(encounter.homeTeamId)" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option></select></label>
+          </div>
+        </div>
+        <div class="lineup-team">
+          <h3>{{ teamNameFor(encounter.awayTeamId) }}</h3>
+          <div class="lineup-grid">
+            <label *ngFor="let weightClass of weightClassLabels(); let index = index"><span>{{ weightClass }}</span><select [ngModel]="lineupAthleteId(encounter.awayTeamId, index)" (ngModelChange)="updateLineupAthlete(encounter.awayTeamId, index, $event)" [name]="'away-lineup-' + index"><option value="">{{ 'teamMatchday.noAthlete' | t }}</option><option *ngFor="let athlete of athletesForLineupTeam(encounter.awayTeamId)" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option></select></label>
+          </div>
+        </div>
       </div>
-      <div class="field-row"><button type="button" (click)="saveLineup()" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.saveLineup' | t }}</button><button type="button" (click)="prepareLineupLeg()" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.prepareLeg' | t }}</button></div>
+      <div class="field-row"><button type="button" (click)="saveLineups()" [disabled]="!canOperate() || saving() || !selectedLineupEncounter()">{{ 'teamMatchday.saveLineup' | t }}</button><button type="button" (click)="prepareLineupLeg()" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.prepareLeg' | t }}</button></div>
       <div class="field-row"><label><span>{{ 'teamMatchday.noShowTeam' | t }}</span><select [ngModel]="noShowTeamId()" (ngModelChange)="noShowTeamId.set($event)" name="noShowTeam"><option value="">{{ 'teamMatchday.selectTeam' | t }}</option><option *ngFor="let team of state.teams" [value]="team.id">{{ team.name }}</option></select></label><button type="button" class="danger" (click)="recordNoShow()" [disabled]="!canOperate() || saving()">{{ 'teamMatchday.recordNoShow' | t }}</button></div>
     </section>
   </ng-container>
 </section>
 
 <ng-template #unsupported>
-  <section class="team-matchday empty-state">
-    <h1>{{ 'teamMatchday.title' | t }}</h1>
-    <p>{{ 'teamMatchday.modeRequired' | t }}</p>
-    <a routerLink="/tournaments" class="secondary-action">{{ 'teamMatchday.openTournaments' | t }}</a>
+  <section class="team-matchday main-page">
+    <section class="card section-panel">
+      <header class="section-head card-pad">
+        <h2 class="section-head__title">{{ 'sectionHeads.teamMatchday.title' | t }}</h2>
+        <p class="section-head__text">{{ 'sectionHeads.teamMatchday.text' | t }}</p>
+      </header>
+    </section>
+    <section class="card card-pad weigh-panel empty-state">
+      <p>{{ 'teamMatchday.modeRequired' | t }}</p>
+      <a routerLink="/tournaments" class="secondary-action">{{ 'teamMatchday.openTournaments' | t }}</a>
+    </section>
   </section>
 </ng-template>

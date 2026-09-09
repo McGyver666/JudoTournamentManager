@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShiaiManager.Api.Data;
 
@@ -10,9 +11,11 @@ using ShiaiManager.Api.Data;
 namespace ShiaiManager.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909073718_AllowEmptyTeamLineupSlots")]
+    partial class AllowEmptyTeamLineupSlots
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -509,6 +512,34 @@ namespace ShiaiManager.Api.Migrations
                     b.ToTable("GuestShares", (string)null);
                 });
 
+            modelBuilder.Entity("ShiaiManager.Api.Data.MatchdayWeighInRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AthleteId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("ConfirmedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("WeightKg")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AthleteId");
+
+                    b.HasIndex("TournamentId", "AthleteId")
+                        .IsUnique();
+
+                    b.ToTable("MatchdayWeighIns", (string)null);
+                });
+
             modelBuilder.Entity("ShiaiManager.Api.Data.RegistrationRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -954,6 +985,25 @@ namespace ShiaiManager.Api.Migrations
                         .HasForeignKey("TournamentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Tournament");
+                });
+
+            modelBuilder.Entity("ShiaiManager.Api.Data.MatchdayWeighInRecord", b =>
+                {
+                    b.HasOne("ShiaiManager.Api.Data.AthleteRecord", "Athlete")
+                        .WithMany()
+                        .HasForeignKey("AthleteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShiaiManager.Api.Data.TournamentRecord", "Tournament")
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Athlete");
 
                     b.Navigation("Tournament");
                 });

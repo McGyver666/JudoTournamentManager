@@ -29,7 +29,7 @@ public sealed class TeamMatchdaysApiTests : IClassFixture<TournamentFlowSmokeTes
     }
 
     [Fact]
-    public async Task TeamMatchdayConfiguration_AuthorizedAdminCanAddTeamAndConfirmWeighIn()
+    public async Task TeamMatchdayConfiguration_AuthorizedAdminCanAddTeamAndSetWeightClassOrder()
     {
         // Arrange
         using var client = _factory.CreateClient();
@@ -61,19 +61,19 @@ public sealed class TeamMatchdaysApiTests : IClassFixture<TournamentFlowSmokeTes
         var teamResponse = await client.PostAsJsonAsync(
             $"/api/tournaments/{tournament.Id}/team-matchday/teams",
             new { clubId = club.Id, name = "JC Nord I" });
-        var weighInResponse = await client.PostAsJsonAsync(
-            $"/api/tournaments/{tournament.Id}/team-matchday/weigh-ins",
-            new { athleteId = athlete.Id, weightKg = 72.4m });
+        var orderResponse = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/team-matchday/weight-class-order",
+            new { order = new[] { 4, 2, 0, 3, 1 } });
         var configurationResponse = await client.GetAsync($"/api/tournaments/{tournament.Id}/team-matchday");
 
         // Assert
         Assert.Equal(HttpStatusCode.Created, teamResponse.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, weighInResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, orderResponse.StatusCode);
         Assert.Equal(HttpStatusCode.OK, configurationResponse.StatusCode);
         var configuration = await configurationResponse.Content.ReadFromJsonAsync<TeamMatchday>(JsonOptions);
         Assert.NotNull(configuration);
         Assert.Single(configuration!.Teams);
-        Assert.Single(configuration.WeighIns);
+        Assert.Equal(new[] { 4, 2, 0, 3, 1 }, configuration.WeightClassOrder);
     }
 
     private static async Task<T> CreateAsync<T>(HttpClient client, string path, object request)

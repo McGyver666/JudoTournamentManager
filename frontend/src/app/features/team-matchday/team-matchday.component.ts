@@ -2,12 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { concat, forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
 import { extractApiError } from '../../core/http-error';
 import { I18nService } from '../../core/i18n.service';
-import { Athlete, Club, Tatami, TeamLineupAssignment, TeamMatchday } from '../../core/models';
+import { Athlete, RegistrationDetail, Tatami, TeamEncounter, TeamLineupAssignment, TeamMatchday } from '../../core/models';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 
@@ -25,8 +25,8 @@ export class TeamMatchdayComponent implements OnInit {
   protected readonly context = inject(TournamentContextService);
 
   protected readonly matchday = signal<TeamMatchday | null>(null);
-  protected readonly clubs = signal<Club[]>([]);
   protected readonly athletes = signal<Athlete[]>([]);
+  protected readonly registrations = signal<RegistrationDetail[]>([]);
   protected readonly tatamis = signal<Tatami[]>([]);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -34,17 +34,13 @@ export class TeamMatchdayComponent implements OnInit {
   protected readonly info = signal<string | null>(null);
   protected readonly canOperate = this.auth.canOperate;
   protected readonly isTeamMatchday = computed(() => this.context.tournament()?.competitionMode === 'TeamMatchday');
-  protected readonly selectedClubId = signal('');
-  protected readonly teamName = signal('');
-  protected readonly selectedAthleteId = signal('');
-  protected readonly weightKg = signal<number | null>(null);
   protected readonly homeTeamId = signal('');
   protected readonly awayTeamId = signal('');
   protected readonly encounterTatamiId = signal('');
   protected readonly lineupEncounterId = signal('');
   protected readonly lineupLegNumber = signal(1);
-  protected readonly lineupTeamId = signal('');
-  protected readonly lineupAthleteIds = signal<string[]>([]);
+  protected readonly homeLineupAthleteIds = signal<string[]>([]);
+  protected readonly awayLineupAthleteIds = signal<string[]>([]);
   protected readonly noShowTeamId = signal('');
   protected readonly weightClassLabels = computed(() => {
     switch (this.matchday()?.profile) {
@@ -54,6 +50,10 @@ export class TeamMatchdayComponent implements OnInit {
       case 'U16Girls': return ['-42 kg', '-47 kg', '-53 kg', '-60 kg', '+60 kg'];
       default: return [];
     }
+  });
+  protected readonly weightClassOrderLabels = computed(() => {
+    const labels = this.weightClassLabels();
+    return (this.matchday()?.weightClassOrder ?? []).map((index) => labels[index] ?? '');
   });
 
   ngOnInit(): void {
@@ -70,79 +70,25 @@ export class TeamMatchdayComponent implements OnInit {
     this.clearMessages();
     forkJoin({
       matchday: this.api.getTeamMatchday(tournamentId),
-      clubs: this.api.getClubs(tournamentId),
       athletes: this.api.getAthletes(tournamentId),
+      registrations: this.api.getRegistrations(tournamentId),
       tatamis: this.api.getTatamis(tournamentId),
     }).subscribe({
-      next: ({ matchday, clubs, athletes, tatamis }) => {
+      next: ({ matchday, athletes, registrations, tatamis }) => {
         this.matchday.set(matchday);
-        this.clubs.set(clubs);
         this.athletes.set(athletes);
+        this.registrations.set(registrations);
         this.tatamis.set(tatamis.filter((tatami) => tatami.isActive));
+        if (this.lineupEncounterId() && !matchday.encounters.some((encounter) => encounter.id === this.lineupEncounterId())) {
+          this.lineupEncounterId.set('');
+          this.clearLineups();
+        }
         this.loading.set(false);
       },
       error: (error: unknown) => {
         this.error.set(extractApiError(error, this.i18n.translate('errors.load')));
         this.loading.set(false);
       },
-    });
-  }
-
-  protected addTeam(): void {
-    const tournamentId = this.context.tournamentId();
-    const clubId = this.selectedClubId();
-    const name = this.teamName().trim();
-    if (!tournamentId || !clubId || !name || this.saving()) {
-      return;
-    }
-
-    this.saving.set(true);
-    this.clearMessages();
-    this.api.createTeamMatchdayTeam(tournamentId, { clubId, name }).subscribe({
-      next: () => {
-        this.teamName.set('');
-        this.saving.set(false);
-        this.load();
-      },
-      error: (error: unknown) => this.finishWithError(error),
-    });
-  }
-
-  protected confirmWeighIn(): void {
-    const tournamentId = this.context.tournamentId();
-    const athleteId = this.selectedAthleteId();
-    const weightKg = this.weightKg();
-    if (!tournamentId || !athleteId || weightKg === null || this.saving()) {
-      return;
-    }
-
-    this.saving.set(true);
-    this.clearMessages();
-    this.api.confirmMatchdayWeighIn(tournamentId, { athleteId, weightKg }).subscribe({
-      next: () => {
-        this.weightKg.set(null);
-        this.saving.set(false);
-        this.load();
-      },
-      error: (error: unknown) => this.finishWithError(error),
-    });
-  }
-
-  protected drawWeightClassOrder(): void {
-    const tournamentId = this.context.tournamentId();
-    if (!tournamentId || this.saving()) {
-      return;
-    }
-
-    this.saving.set(true);
-    this.clearMessages();
-    this.api.drawTeamMatchdayWeightClassOrder(tournamentId).subscribe({
-      next: () => {
-        this.info.set(this.i18n.translate('teamMatchday.orderDrawn'));
-        this.saving.set(false);
-        this.load();
-      },
-      error: (error: unknown) => this.finishWithError(error),
     });
   }
 
@@ -169,62 +115,156 @@ export class TeamMatchdayComponent implements OnInit {
     });
   }
 
-  protected clubName(clubId: string): string {
-    return this.clubs().find((club) => club.id === clubId)?.name ?? this.i18n.translate('teamMatchday.unknownClub');
+  protected deleteEncounter(encounter: TeamEncounter): void {
+    const tournamentId = this.context.tournamentId();
+    if (!tournamentId || this.saving() || !confirm(this.i18n.translate('teamMatchday.confirmDeleteEncounter'))) {
+      return;
+    }
+
+    this.saving.set(true);
+    this.clearMessages();
+    this.api.deleteTeamEncounter(tournamentId, encounter.id).subscribe({
+      next: () => {
+        this.info.set(this.i18n.translate('teamMatchday.encounterDeleted'));
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error: unknown) => this.finishWithError(error),
+    });
   }
 
   protected teamNameFor(teamId: string): string {
     return this.matchday()?.teams.find((team) => team.id === teamId)?.name ?? this.i18n.translate('teamMatchday.unknownTeam');
   }
 
-  protected athleteName(athleteId: string): string {
-    const athlete = this.athletes().find((candidate) => candidate.id === athleteId);
-    return athlete ? `${athlete.firstName} ${athlete.lastName}` : this.i18n.translate('teamMatchday.unknownAthlete');
+  protected athletesForLineupTeam(teamId: string): Athlete[] {
+    const team = this.matchday()?.teams.find((candidate) => candidate.id === teamId);
+    const registeredAthleteIds = new Set(this.registrations().map((registration) => registration.athleteId));
+    return team
+      ? this.athletes().filter((athlete) => athlete.clubId === team.clubId && athlete.weightKg !== null && registeredAthleteIds.has(athlete.id))
+      : [];
   }
 
-  protected athletesForLineupTeam(): Athlete[] {
-    const team = this.matchday()?.teams.find((candidate) => candidate.id === this.lineupTeamId());
-    return team ? this.athletes().filter((athlete) => athlete.clubId === team.clubId) : [];
+  protected selectedLineupEncounter(): TeamEncounter | null {
+    return this.matchday()?.encounters.find((encounter) => encounter.id === this.lineupEncounterId()) ?? null;
   }
 
-  protected updateLineupAthlete(weightClassIndex: number, athleteId: string): void {
-    this.lineupAthleteIds.update((athleteIds) => {
+  protected selectLineupEncounter(encounterId: string): void {
+    this.lineupEncounterId.set(encounterId);
+    this.loadLineup();
+  }
+
+  protected selectLineupLeg(legNumber: string): void {
+    this.lineupLegNumber.set(Number(legNumber));
+    this.loadLineup();
+  }
+
+  protected updateLineupAthlete(teamId: string, weightClassIndex: number, athleteId: string): void {
+    const lineup = teamId === this.selectedLineupEncounter()?.homeTeamId
+      ? this.homeLineupAthleteIds
+      : this.awayLineupAthleteIds;
+    lineup.update((athleteIds) => {
       const updated = [...athleteIds];
       updated[weightClassIndex] = athleteId;
       return updated;
     });
   }
 
-  protected lineupAthleteId(weightClassIndex: number): string {
-    return this.lineupAthleteIds()[weightClassIndex] || '';
+  protected lineupAthleteId(teamId: string, weightClassIndex: number): string {
+    const lineup = teamId === this.selectedLineupEncounter()?.homeTeamId
+      ? this.homeLineupAthleteIds()
+      : this.awayLineupAthleteIds();
+    return lineup[weightClassIndex] || '';
   }
 
-  protected saveLineup(): void {
+  protected saveLineups(): void {
     const tournamentId = this.context.tournamentId();
     const encounterId = this.lineupEncounterId();
-    const teamId = this.lineupTeamId();
-    if (!tournamentId || !encounterId || !teamId || this.saving()) {
+    const encounter = this.selectedLineupEncounter();
+    if (!tournamentId || !encounterId || !encounter || this.saving()) {
       return;
     }
 
-    const assignments: TeamLineupAssignment[] = this.weightClassLabels().map((_, weightClassIndex) => ({
-      weightClassIndex,
-      athleteId: this.lineupAthleteIds()[weightClassIndex] ?? '',
-    }));
-    if (assignments.some((assignment) => !assignment.athleteId)) {
-      this.error.set(this.i18n.translate('teamMatchday.completeLineup'));
-      return;
-    }
+    const assignmentsFor = (athleteIds: string[]): TeamLineupAssignment[] =>
+      this.weightClassLabels().map((_, weightClassIndex) => ({
+        weightClassIndex,
+        athleteId: athleteIds[weightClassIndex] || null,
+      }));
 
     this.saving.set(true);
     this.clearMessages();
-    this.api.replaceTeamEncounterLineup(tournamentId, encounterId, this.lineupLegNumber(), teamId, assignments).subscribe({
+    concat(
+      this.api.replaceTeamEncounterLineup(
+        tournamentId,
+        encounterId,
+        this.lineupLegNumber(),
+        encounter.homeTeamId,
+        assignmentsFor(this.homeLineupAthleteIds()),
+      ),
+      this.api.replaceTeamEncounterLineup(
+        tournamentId,
+        encounterId,
+        this.lineupLegNumber(),
+        encounter.awayTeamId,
+        assignmentsFor(this.awayLineupAthleteIds()),
+      ),
+    ).subscribe({
       next: () => {
         this.info.set(this.i18n.translate('teamMatchday.lineupSaved'));
         this.saving.set(false);
       },
       error: (error: unknown) => this.finishWithError(error),
     });
+  }
+
+  private loadLineup(): void {
+    const tournamentId = this.context.tournamentId();
+    const encounterId = this.lineupEncounterId();
+    if (!tournamentId || !encounterId) {
+      this.clearLineups();
+      return;
+    }
+
+    const encounter = this.selectedLineupEncounter();
+    if (!encounter) {
+      this.clearLineups();
+      return;
+    }
+
+    const legNumber = this.lineupLegNumber();
+    this.clearLineups();
+    this.api.getTeamEncounterLineup(tournamentId, encounterId, legNumber).subscribe({
+      next: (entries) => {
+        if (this.lineupEncounterId() !== encounterId || this.lineupLegNumber() !== legNumber) {
+          return;
+        }
+        const homeLineup = this.emptyLineup();
+        const awayLineup = this.emptyLineup();
+        for (const entry of entries) {
+          if (entry.teamId === encounter.homeTeamId) {
+            homeLineup[entry.weightClassIndex] = entry.athleteId ?? '';
+          } else if (entry.teamId === encounter.awayTeamId) {
+            awayLineup[entry.weightClassIndex] = entry.athleteId ?? '';
+          }
+        }
+        this.homeLineupAthleteIds.set(homeLineup);
+        this.awayLineupAthleteIds.set(awayLineup);
+      },
+      error: (error: unknown) => {
+        if (this.lineupEncounterId() === encounterId && this.lineupLegNumber() === legNumber) {
+          this.error.set(extractApiError(error, this.i18n.translate('errors.load')));
+        }
+      },
+    });
+  }
+
+  private emptyLineup(): string[] {
+    return this.weightClassLabels().map(() => '');
+  }
+
+  private clearLineups(): void {
+    this.homeLineupAthleteIds.set(this.emptyLineup());
+    this.awayLineupAthleteIds.set(this.emptyLineup());
   }
 
   protected prepareLineupLeg(): void {

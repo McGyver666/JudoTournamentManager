@@ -25,11 +25,6 @@ public sealed class AppDbContext : DbContext
     /// </summary>
     public DbSet<TeamMatchdayTeamRecord> TeamMatchdayTeams => Set<TeamMatchdayTeamRecord>();
 
-    /// <summary>
-    /// Confirmed athlete weigh-ins for team-matchday tournaments.
-    /// </summary>
-    public DbSet<MatchdayWeighInRecord> MatchdayWeighIns => Set<MatchdayWeighInRecord>();
-
     /// <summary>Team encounters configured for team matchdays.</summary>
     public DbSet<TeamEncounterRecord> TeamEncounters => Set<TeamEncounterRecord>();
 
@@ -141,19 +136,6 @@ public sealed class AppDbContext : DbContext
             .HasForeignKey(x => x.ClubId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        var weighIn = modelBuilder.Entity<MatchdayWeighInRecord>();
-        weighIn.ToTable("MatchdayWeighIns");
-        weighIn.HasKey(x => x.Id);
-        weighIn.HasIndex(x => new { x.TournamentId, x.AthleteId }).IsUnique();
-        weighIn.HasOne(x => x.Tournament)
-            .WithMany()
-            .HasForeignKey(x => x.TournamentId)
-            .OnDelete(DeleteBehavior.Restrict);
-        weighIn.HasOne(x => x.Athlete)
-            .WithMany()
-            .HasForeignKey(x => x.AthleteId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         var encounter = modelBuilder.Entity<TeamEncounterRecord>();
         encounter.ToTable("TeamEncounters");
         encounter.HasKey(x => x.Id);
@@ -190,7 +172,8 @@ public sealed class AppDbContext : DbContext
         lineupEntry.HasOne<AthleteRecord>()
             .WithMany()
             .HasForeignKey(x => x.AthleteId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
 
         var encounterBout = modelBuilder.Entity<EncounterBoutRecord>();
         encounterBout.ToTable("EncounterBouts");

@@ -298,10 +298,6 @@ public sealed class SqliteTournamentStore : ITournamentStore
 
         _dbContext.TeamEncounters.RemoveRange(encounters);
 
-        var weighIns = await _dbContext.MatchdayWeighIns
-            .Where(x => x.TournamentId == tournamentId).ToListAsync(cancellationToken);
-        _dbContext.MatchdayWeighIns.RemoveRange(weighIns);
-
         var teams = await _dbContext.TeamMatchdayTeams
             .Where(x => x.TournamentId == tournamentId).ToListAsync(cancellationToken);
         _dbContext.TeamMatchdayTeams.RemoveRange(teams);

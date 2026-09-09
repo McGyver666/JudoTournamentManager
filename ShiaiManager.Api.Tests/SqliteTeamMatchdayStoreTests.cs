@@ -12,7 +12,7 @@ namespace ShiaiManager.Api.Tests;
 public sealed class SqliteTeamMatchdayStoreTests
 {
     [Fact]
-    public async Task AddTeamAndConfirmWeighIn_ForTeamMatchday_PersistsConfiguration()
+    public async Task AddTeam_ForTeamMatchday_PersistsConfiguration()
     {
         // Arrange
         await using var dbContext = CreateDbContext();
@@ -25,17 +25,14 @@ public sealed class SqliteTeamMatchdayStoreTests
 
         // Act
         var team = await store.AddTeamAsync(tournamentId, clubId, "JC Nord I", CancellationToken.None);
-        var weighIn = await store.ConfirmWeighInAsync(tournamentId, athleteId, 65.4m, CancellationToken.None);
         var matchday = await store.GetAsync(tournamentId, CancellationToken.None);
 
         // Assert
         Assert.NotNull(team);
         Assert.Equal("JC Nord I", team!.Name);
-        Assert.NotNull(weighIn);
-        Assert.Equal(65.4m, weighIn!.WeightKg);
         Assert.NotNull(matchday);
         Assert.Single(matchday!.Teams);
-        Assert.Single(matchday.WeighIns);
+        Assert.Empty(matchday.WeightClassOrder);
     }
 
     [Fact]
@@ -75,6 +72,91 @@ public sealed class SqliteTeamMatchdayStoreTests
         Assert.Single(matchday!.Encounters);
         Assert.Equal(home.Id, matchday.Encounters[0].HomeTeamId);
         Assert.Equal(away.Id, matchday.Encounters[0].AwayTeamId);
+    }
+
+    [Fact]
+    public async Task SetWeightClassOrder_ForConfiguredTeamMatchday_PersistsManualOrder()
+    {
+        await using var dbContext = CreateDbContext();
+        await dbContext.Database.EnsureCreatedAsync();
+        var tournamentId = Guid.NewGuid();
+        await SeedTeamMatchdayAsync(dbContext, tournamentId, Guid.NewGuid(), Guid.NewGuid());
+        var store = new SqliteTeamMatchdayStore(dbContext, new TeamMatchdayRules());
+
+        var order = await store.SetWeightClassOrderAsync(tournamentId, [4, 2, 0, 3, 1], CancellationToken.None);
+        var matchday = await store.GetAsync(tournamentId, CancellationToken.None);
+
+        Assert.Equal([4, 2, 0, 3, 1], order);
+        Assert.NotNull(matchday);
+        Assert.Equal([4, 2, 0, 3, 1], matchday!.WeightClassOrder);
+    }
+
+    [Fact]
+    public async Task ReplaceLineup_AllowsEmptyWeightClassSlots()
+    {
+        await using var dbContext = CreateDbContext();
+        await dbContext.Database.EnsureCreatedAsync();
+        var tournamentId = Guid.NewGuid();
+        var clubAId = Guid.NewGuid();
+        var clubBId = Guid.NewGuid();
+        await SeedTeamMatchdayAsync(dbContext, tournamentId, clubAId, Guid.NewGuid());
+        dbContext.Clubs.Add(new ClubRecord
+        {
+            Id = clubBId,
+            TournamentId = tournamentId,
+            Name = "JC Sud",
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+        var store = new SqliteTeamMatchdayStore(dbContext, new TeamMatchdayRules());
+        var home = await store.AddTeamAsync(tournamentId, clubAId, "JC Nord I", CancellationToken.None);
+        var away = await store.AddTeamAsync(tournamentId, clubBId, "JC Sud I", CancellationToken.None);
+        var encounter = await store.CreateEncounterAsync(tournamentId, home!.Id, away!.Id, null, CancellationToken.None);
+
+        var result = await store.ReplaceLineupAsync(
+            tournamentId,
+            encounter!.Id,
+            1,
+            home.Id,
+            Enumerable.Range(0, 5).Select(index => new TeamLineupAssignment(index, null)).ToArray(),
+            CancellationToken.None);
+        var lineup = await store.GetLineupAsync(encounter.Id, 1, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(5, lineup.Count);
+        Assert.All(lineup, entry => Assert.Null(entry.AthleteId));
+    }
+
+    [Fact]
+    public async Task DeleteEncounter_BeforeBoutsStart_RemovesEncounter()
+    {
+        await using var dbContext = CreateDbContext();
+        await dbContext.Database.EnsureCreatedAsync();
+        var tournamentId = Guid.NewGuid();
+        var clubAId = Guid.NewGuid();
+        var clubBId = Guid.NewGuid();
+        await SeedTeamMatchdayAsync(dbContext, tournamentId, clubAId, Guid.NewGuid());
+        dbContext.Clubs.Add(new ClubRecord
+        {
+            Id = clubBId,
+            TournamentId = tournamentId,
+            Name = "JC Sud",
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            UpdatedAtUtc = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+        var store = new SqliteTeamMatchdayStore(dbContext, new TeamMatchdayRules());
+        var home = await store.AddTeamAsync(tournamentId, clubAId, "JC Nord I", CancellationToken.None);
+        var away = await store.AddTeamAsync(tournamentId, clubBId, "JC Sud I", CancellationToken.None);
+        var encounter = await store.CreateEncounterAsync(tournamentId, home!.Id, away!.Id, null, CancellationToken.None);
+
+        var result = await store.DeleteEncounterAsync(tournamentId, encounter!.Id, CancellationToken.None);
+        var matchday = await store.GetAsync(tournamentId, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(matchday);
+        Assert.Empty(matchday!.Encounters);
     }
 
     private static AppDbContext CreateDbContext()

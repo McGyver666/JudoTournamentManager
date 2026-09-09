@@ -64,11 +64,6 @@ public sealed class BackupService : IBackupService
             .Where(x => x.TournamentId == tournamentId)
             .ToListAsync(cancellationToken);
 
-        var weighIns = await _dbContext.MatchdayWeighIns
-            .AsNoTracking()
-            .Where(x => x.TournamentId == tournamentId)
-            .ToListAsync(cancellationToken);
-
         var encounters = await _dbContext.TeamEncounters
             .AsNoTracking()
             .Where(x => x.TournamentId == tournamentId)
@@ -106,7 +101,6 @@ public sealed class BackupService : IBackupService
             Athletes = athletes,
             Registrations = registrations,
             TeamMatchdayTeams = teams,
-            MatchdayWeighIns = weighIns,
             TeamEncounters = encounters,
             TeamLineupEntries = lineupEntries,
             Fights = fights,
@@ -180,12 +174,6 @@ public sealed class BackupService : IBackupService
         if (backup.TeamMatchdayTeams.Count > 0)
         {
             _dbContext.TeamMatchdayTeams.AddRange(backup.TeamMatchdayTeams);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        if (backup.MatchdayWeighIns.Count > 0)
-        {
-            _dbContext.MatchdayWeighIns.AddRange(backup.MatchdayWeighIns);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 

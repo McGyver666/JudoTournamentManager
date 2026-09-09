@@ -86,14 +86,6 @@ export interface TeamMatchdayTeam {
   updatedAtUtc: string;
 }
 
-export interface MatchdayWeighIn {
-  id: string;
-  tournamentId: string;
-  athleteId: string;
-  weightKg: number;
-  confirmedAtUtc: string;
-}
-
 export interface TeamEncounter {
   id: string;
   tournamentId: string;
@@ -116,7 +108,6 @@ export interface TeamMatchday {
   tournamentId: string;
   profile: TeamMatchdayProfile;
   teams: TeamMatchdayTeam[];
-  weighIns: MatchdayWeighIn[];
   weightClassOrder: number[];
   encounters: TeamEncounter[];
 }
@@ -126,9 +117,8 @@ export interface CreateTeamMatchdayTeamRequest {
   name: string;
 }
 
-export interface ConfirmMatchdayWeighInRequest {
-  athleteId: string;
-  weightKg: number;
+export interface SetTeamMatchdayWeightClassOrderRequest {
+  order: number[];
 }
 
 export interface CreateTeamEncounterRequest {
@@ -139,7 +129,7 @@ export interface CreateTeamEncounterRequest {
 
 export interface TeamLineupAssignment {
   weightClassIndex: number;
-  athleteId: string;
+  athleteId: string | null;
 }
 
 export interface TeamLineupEntry extends TeamLineupAssignment {

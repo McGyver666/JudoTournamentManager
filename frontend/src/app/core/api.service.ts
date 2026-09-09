@@ -21,9 +21,9 @@ import {
   ConfirmResultRequest,
   CategoryGenerationApplyResponse,
   CategoryGenerationPreviewResponse,
-  ConfirmMatchdayWeighInRequest,
   CreateTeamEncounterRequest,
   CreateTeamMatchdayTeamRequest,
+  SetTeamMatchdayWeightClassOrderRequest,
   CreateUserRequest,
   CreateAthleteRequest,
   CreateCategoryRequest,
@@ -133,15 +133,15 @@ export class ApiService {
     return this.http.post<TeamMatchdayTeam>(`api/tournaments/${tournamentId}/team-matchday/teams`, body);
   }
 
-  confirmMatchdayWeighIn(
-    tournamentId: string,
-    body: ConfirmMatchdayWeighInRequest,
-  ): Observable<void> {
-    return this.http.post<void>(`api/tournaments/${tournamentId}/team-matchday/weigh-ins`, body);
-  }
-
   drawTeamMatchdayWeightClassOrder(tournamentId: string): Observable<number[]> {
     return this.http.post<number[]>(`api/tournaments/${tournamentId}/team-matchday/weight-class-order/draw`, {});
+  }
+
+  setTeamMatchdayWeightClassOrder(
+    tournamentId: string,
+    body: SetTeamMatchdayWeightClassOrderRequest,
+  ): Observable<number[]> {
+    return this.http.put<number[]>(`api/tournaments/${tournamentId}/team-matchday/weight-class-order`, body);
   }
 
   createTeamEncounter(
@@ -149,6 +149,10 @@ export class ApiService {
     body: CreateTeamEncounterRequest,
   ): Observable<TeamEncounter> {
     return this.http.post<TeamEncounter>(`api/tournaments/${tournamentId}/team-matchday/encounters`, body);
+  }
+
+  deleteTeamEncounter(tournamentId: string, encounterId: string): Observable<void> {
+    return this.http.delete<void>(`api/tournaments/${tournamentId}/team-matchday/encounters/${encounterId}`);
   }
 
   getTeamEncounterLineup(tournamentId: string, encounterId: string, legNumber: number): Observable<TeamLineupEntry[]> {

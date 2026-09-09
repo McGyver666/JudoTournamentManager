@@ -23,19 +23,17 @@ public interface ITeamMatchdayStore
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Confirms an athlete's actual weight for the matchday.
-    /// Returns <c>null</c> when the tournament is not a team matchday or the athlete is invalid.
-    /// </summary>
-    Task<MatchdayWeighIn?> ConfirmWeighInAsync(
-        Guid tournamentId,
-        Guid athleteId,
-        decimal weightKg,
-        CancellationToken cancellationToken);
-
-    /// <summary>
     /// Draws and stores the shared weight-class order before encounter bouts start.
     /// </summary>
     Task<IReadOnlyList<int>?> DrawWeightClassOrderAsync(Guid tournamentId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Validates and stores a manually selected weight-class order before encounter bouts start.
+    /// </summary>
+    Task<IReadOnlyList<int>?> SetWeightClassOrderAsync(
+        Guid tournamentId,
+        IReadOnlyList<int> order,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates a pairing between two configured teams.
@@ -45,6 +43,14 @@ public interface ITeamMatchdayStore
         Guid homeTeamId,
         Guid awayTeamId,
         Guid? tatamiId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes an encounter while its associated fights have not started.
+    /// </summary>
+    Task<TeamMatchdayOperationResult> DeleteEncounterAsync(
+        Guid tournamentId,
+        Guid encounterId,
         CancellationToken cancellationToken);
 
     /// <summary>

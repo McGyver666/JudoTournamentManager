@@ -19,20 +19,6 @@ public sealed record CreateTeamMatchdayTeamRequest
 }
 
 /// <summary>
-/// Request payload for confirming an athlete's actual matchday weight.
-/// </summary>
-public sealed record ConfirmMatchdayWeighInRequest
-{
-    /// <summary>Athlete whose actual weight is being confirmed.</summary>
-    [Required(ErrorMessage = "Der Athlet ist erforderlich.")]
-    public Guid AthleteId { get; init; }
-
-    /// <summary>Actual body weight in kilograms.</summary>
-    [Range(1, 300, ErrorMessage = "Das Gewicht muss zwischen 1 und 300 kg liegen.")]
-    public decimal WeightKg { get; init; }
-}
-
-/// <summary>
 /// Request payload for configuring a pairing of two matchday teams.
 /// </summary>
 public sealed record CreateTeamEncounterRequest
@@ -44,6 +30,15 @@ public sealed record CreateTeamEncounterRequest
     public Guid AwayTeamId { get; init; }
 
     public Guid? TatamiId { get; init; }
+}
+
+/// <summary>
+/// Request payload for defining the order of the profile weight classes.
+/// </summary>
+public sealed record SetTeamMatchdayWeightClassOrderRequest
+{
+    [Required(ErrorMessage = "Die Gewichtsklassenreihenfolge ist erforderlich.")]
+    public IReadOnlyList<int> Order { get; init; } = [];
 }
 
 /// <summary>
