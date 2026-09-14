@@ -46,6 +46,16 @@ public interface IAuthService
     /// Resets a local user's password.
     /// </summary>
     Task<ResetPasswordResult> ResetPasswordAsync(string actorUserName, Guid userId, string newPassword, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Changes the authenticated user's password while preserving the current session.
+    /// </summary>
+    Task<ChangePasswordResult> ChangePasswordAsync(
+        Guid userId,
+        string currentToken,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -88,3 +98,8 @@ public sealed record UpdateUserStateResult(bool Updated, string? ErrorCode, stri
 /// Result of resetting a user password.
 /// </summary>
 public sealed record ResetPasswordResult(bool Updated, string? ErrorCode, string? ErrorMessage, IReadOnlyList<string>? ValidationErrors);
+
+/// <summary>
+/// Result of changing the authenticated user's password.
+/// </summary>
+public sealed record ChangePasswordResult(bool Changed, string? ErrorCode, string? ErrorMessage, IReadOnlyList<string>? ValidationErrors);

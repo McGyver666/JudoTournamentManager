@@ -88,6 +88,73 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
     }
 
     [Fact]
+    public async Task ChangePassword_WithoutToken_Returns401()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/change-password", new ChangePasswordRequest
+        {
+            CurrentPassword = "Current!Pass123",
+            NewPassword = "New!Pass123456"
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithOperatorRole_PreservesCurrentSessionAndRevokesOtherSessions()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "password-operator", "Operator");
+
+        var currentToken = await LoginAndGetTokenAsync(client, "password-operator", "Operator!1234");
+        var otherToken = await LoginAndGetTokenAsync(client, "password-operator", "Operator!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", currentToken);
+
+        var response = await client.PostAsJsonAsync("/api/auth/change-password", new ChangePasswordRequest
+        {
+            CurrentPassword = "Operator!1234",
+            NewPassword = "Changed!Pass123"
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var currentSessionResponse = await client.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.OK, currentSessionResponse.StatusCode);
+
+        using var otherClient = _factory.CreateClient();
+        otherClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+        var otherSessionResponse = await otherClient.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.Unauthorized, otherSessionResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var oldPasswordResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            UserName = "password-operator",
+            Password = "Operator!1234"
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, oldPasswordResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithDisplayRole_Returns204()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "password-display", "Display");
+
+        var token = await LoginAndGetTokenAsync(client, "password-display", "Display!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsJsonAsync("/api/auth/change-password", new ChangePasswordRequest
+        {
+            CurrentPassword = "Display!1234",
+            NewPassword = "Changed!Pass456"
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetServerTime_WithoutToken_Returns401()
     {
         using var client = _factory.CreateClient();

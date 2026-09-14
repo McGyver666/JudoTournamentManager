@@ -14,6 +14,7 @@ import {
   Category,
   CategoryPreset,
   CategoryPresetItemRequest,
+  ChangePasswordRequest,
   Club,
   CompletedFightSummary,
   EditFightResultRequest,
@@ -611,5 +612,9 @@ export class ApiService {
 
   resetUserPassword(userId: string, body: ResetUserPasswordRequest): Observable<void> {
     return this.http.post<void>(`api/auth/users/${userId}/reset-password`, body);
+  }
+
+  changePassword(body: ChangePasswordRequest): Observable<void> {
+    return this.http.post<void>('api/auth/change-password', body);
   }
 }

@@ -411,6 +411,85 @@ public sealed class SqliteAuthService : IAuthService
         return new ResetPasswordResult(true, null, null, null);
     }
 
+    /// <inheritdoc />
+    public async Task<ChangePasswordResult> ChangePasswordAsync(
+        Guid userId,
+        string currentToken,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(currentToken))
+        {
+            return new ChangePasswordResult(false, "InvalidSession", "Die Sitzung ist nicht mehr gültig.", null);
+        }
+
+        var user = await _dbContext.UserAccounts.SingleOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is null || !user.IsActive)
+        {
+            return new ChangePasswordResult(false, "InvalidSession", "Die Sitzung ist nicht mehr gültig.", null);
+        }
+
+        var currentTokenHash = HashToken(currentToken);
+        var now = DateTimeOffset.UtcNow;
+        var sessions = await _dbContext.AuthSessions
+            .Where(x => x.UserAccountId == userId && x.RevokedAtUtc == null)
+            .ToListAsync(cancellationToken);
+        var currentSession = sessions.SingleOrDefault(
+            x => x.ExpiresAtUtc > now && x.TokenHash.SequenceEqual(currentTokenHash));
+
+        if (currentSession is null)
+        {
+            return new ChangePasswordResult(false, "InvalidSession", "Die Sitzung ist nicht mehr gültig.", null);
+        }
+
+        var currentPasswordValid = !string.IsNullOrWhiteSpace(currentPassword)
+            && _passwordHasher.Verify(
+                currentPassword,
+                user.PasswordHash,
+                user.PasswordSalt,
+                user.PasswordIterations);
+        if (!currentPasswordValid)
+        {
+            return new ChangePasswordResult(false, "InvalidCurrentPassword", "Aktuelles Passwort ist ungültig.", null);
+        }
+
+        var validationErrors = ValidateCredentials(user.UserName, newPassword);
+        if (validationErrors.Count > 0)
+        {
+            return new ChangePasswordResult(false, null, null, validationErrors);
+        }
+
+        var hashResult = _passwordHasher.HashPassword(newPassword);
+        user.PasswordHash = hashResult.Hash;
+        user.PasswordSalt = hashResult.Salt;
+        user.PasswordIterations = hashResult.Iterations;
+        user.FailedLoginCount = 0;
+        user.LockedUntilUtc = null;
+        user.UpdatedUtc = now;
+
+        foreach (var session in sessions)
+        {
+            if (!session.TokenHash.SequenceEqual(currentTokenHash))
+            {
+                session.RevokedAtUtc = now;
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            null,
+            user.UserName,
+            "PasswordChanged",
+            "Auth",
+            user.Id,
+            $"User={user.UserName}",
+            cancellationToken);
+
+        return new ChangePasswordResult(true, null, null, null);
+    }
+
     private static string GenerateToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(32);

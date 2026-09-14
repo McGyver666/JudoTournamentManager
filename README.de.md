@@ -472,6 +472,7 @@ Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `POST /api/auth/change-password` (angemeldeter Benutzer, nur eigenes Passwort)
 - `GET /api/time`
 - `GET /api/auth/users`
 - `POST /api/auth/users`
