@@ -561,7 +561,7 @@ public sealed class MatchService : IMatchService
     /// <inheritdoc />
     public async Task<MatchActionResult> ConfirmResultAsync(
         Guid fightId,
-        Guid winnerId,
+        Guid? winnerId,
         string user,
         CancellationToken cancellationToken)
     {
@@ -569,8 +569,18 @@ public sealed class MatchService : IMatchService
         if (fight is null) return MatchActionResult.FightNotFound;
 
         if (fight.Status != InProgress && fight.Status != Paused) return MatchActionResult.InvalidState;
-        if (winnerId != fight.WhiteAthleteId && winnerId != fight.BlueAthleteId)
+        if (winnerId is null)
+        {
+            var isTeamMatchday = await _dbContext.Tournaments
+                .AsNoTracking()
+                .AnyAsync(tournament => tournament.Id == fight.TournamentId
+                    && tournament.CompetitionMode == CompetitionMode.TeamMatchday.ToString(), cancellationToken);
+            if (!isTeamMatchday) return MatchActionResult.WinnerNotParticipant;
+        }
+        else if (winnerId != fight.WhiteAthleteId && winnerId != fight.BlueAthleteId)
+        {
             return MatchActionResult.WinnerNotParticipant;
+        }
 
         var now = DateTimeOffset.UtcNow;
         fight.WinnerId = winnerId;
@@ -590,7 +600,7 @@ public sealed class MatchService : IMatchService
 
         await _auditLog.LogAsync(
             fight.TournamentId, user, "ResultConfirmed", "Fight", fight.Id,
-            $"WinnerId={winnerId}; Score={fight.WhiteScore}:{fight.BlueScore}", cancellationToken);
+            $"WinnerId={winnerId?.ToString() ?? "Hikiwake"}; Score={fight.WhiteScore}:{fight.BlueScore}", cancellationToken);
 
         _ = _hub.Clients.Group(fight.TournamentId.ToString())
             .SendAsync("CategoryFightsUpdated",

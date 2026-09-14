@@ -164,8 +164,11 @@
               </section>
 
               @if (fight.status === 'InProgress' || fight.status === 'Paused') {
-                <div class="confirm-row">
+                <div class="confirm-row" [class.confirm-row--team-matchday]="context.tournament()?.competitionMode === 'TeamMatchday'">
                   <button class="btn btn--confirm btn--white" [disabled]="!canOperate()" (click)="confirmWinner(fight, fight.whiteAthleteId!)">{{ 'match.confirmWhiteWins' | t }}</button>
+                  @if (context.tournament()?.competitionMode === 'TeamMatchday') {
+                    <button class="btn btn--confirm btn--draw" [disabled]="!canOperate()" (click)="confirmDraw(fight)">{{ 'match.confirmHikiwake' | t }}</button>
+                  }
                   <button class="btn btn--confirm btn--blue" [disabled]="!canOperate()" (click)="confirmWinner(fight, fight.blueAthleteId!)">{{ confirmWinnerLabelKey() | t }}</button>
                 </div>
               }

@@ -39,6 +39,19 @@ public interface ITournamentStore
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Creates a tournament with an explicit competition mode and optional team-matchday profile.
+    /// </summary>
+    Task<Tournament> CreateAsync(
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        CompetitionMode competitionMode,
+        TeamMatchdayProfile? teamMatchdayProfile,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Updates an existing tournament.
     /// </summary>
     Task<bool> UpdateAsync(
@@ -77,6 +90,26 @@ public interface ITournamentStore
         bool osaeKomiYukoEnabled,
         int minimumRestBetweenFightsSeconds,
         bool twoThirdPlacesInRoundRobin,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates a tournament including its competition mode and optional team-matchday profile.
+    /// </summary>
+    Task<bool> UpdateAsync(
+        Guid tournamentId,
+        string name,
+        DateOnly date,
+        string venue,
+        string organizer,
+        string accentSideColor,
+        int osaeKomiIpponSeconds,
+        int osaeKomiWazaAriSeconds,
+        int osaeKomiYukoSeconds,
+        bool osaeKomiYukoEnabled,
+        int minimumRestBetweenFightsSeconds,
+        bool twoThirdPlacesInRoundRobin,
+        CompetitionMode competitionMode,
+        TeamMatchdayProfile? teamMatchdayProfile,
         CancellationToken cancellationToken);
 
     /// <summary>

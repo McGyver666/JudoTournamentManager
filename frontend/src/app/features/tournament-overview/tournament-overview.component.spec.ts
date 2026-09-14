@@ -20,6 +20,8 @@ describe('TournamentOverviewComponent', () => {
       date: '2026-09-07',
       venue: 'Sporthalle',
       organizer: 'Verein',
+      competitionMode: 'Individual',
+      teamMatchdayProfile: null,
       accentSideColor: 'Blue',
       osaeKomiIpponSeconds: 20,
       osaeKomiWazaAriSeconds: 10,

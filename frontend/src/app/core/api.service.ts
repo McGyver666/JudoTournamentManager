@@ -21,6 +21,9 @@ import {
   ConfirmResultRequest,
   CategoryGenerationApplyResponse,
   CategoryGenerationPreviewResponse,
+  CreateTeamEncounterRequest,
+  CreateTeamMatchdayTeamRequest,
+  SetTeamMatchdayWeightClassOrderRequest,
   CreateUserRequest,
   CreateAthleteRequest,
   CreateCategoryRequest,
@@ -53,6 +56,11 @@ import {
   SwapAthletesRequest,
   Tatami,
   TatamiQueue,
+  TeamEncounter,
+  TeamLineupAssignment,
+  TeamLineupEntry,
+  TeamMatchday,
+  TeamMatchdayTeam,
   Tournament,
   TournamentOverviewStats,
   UpdateAthleteRequest,
@@ -111,6 +119,62 @@ export class ApiService {
 
   restoreTournamentBackup(payload: unknown): Observable<unknown> {
     return this.http.post('api/tournaments/restore', payload);
+  }
+
+  // Team matchdays ---------------------------------------------------------
+  getTeamMatchday(tournamentId: string): Observable<TeamMatchday> {
+    return this.http.get<TeamMatchday>(`api/tournaments/${tournamentId}/team-matchday`);
+  }
+
+  createTeamMatchdayTeam(
+    tournamentId: string,
+    body: CreateTeamMatchdayTeamRequest,
+  ): Observable<TeamMatchdayTeam> {
+    return this.http.post<TeamMatchdayTeam>(`api/tournaments/${tournamentId}/team-matchday/teams`, body);
+  }
+
+  drawTeamMatchdayWeightClassOrder(tournamentId: string): Observable<number[]> {
+    return this.http.post<number[]>(`api/tournaments/${tournamentId}/team-matchday/weight-class-order/draw`, {});
+  }
+
+  setTeamMatchdayWeightClassOrder(
+    tournamentId: string,
+    body: SetTeamMatchdayWeightClassOrderRequest,
+  ): Observable<number[]> {
+    return this.http.put<number[]>(`api/tournaments/${tournamentId}/team-matchday/weight-class-order`, body);
+  }
+
+  createTeamEncounter(
+    tournamentId: string,
+    body: CreateTeamEncounterRequest,
+  ): Observable<TeamEncounter> {
+    return this.http.post<TeamEncounter>(`api/tournaments/${tournamentId}/team-matchday/encounters`, body);
+  }
+
+  deleteTeamEncounter(tournamentId: string, encounterId: string): Observable<void> {
+    return this.http.delete<void>(`api/tournaments/${tournamentId}/team-matchday/encounters/${encounterId}`);
+  }
+
+  getTeamEncounterLineup(tournamentId: string, encounterId: string, legNumber: number): Observable<TeamLineupEntry[]> {
+    return this.http.get<TeamLineupEntry[]>(`api/tournaments/${tournamentId}/team-matchday/encounters/${encounterId}/lineups/${legNumber}`);
+  }
+
+  replaceTeamEncounterLineup(
+    tournamentId: string,
+    encounterId: string,
+    legNumber: number,
+    teamId: string,
+    assignments: TeamLineupAssignment[],
+  ): Observable<void> {
+    return this.http.put<void>(`api/tournaments/${tournamentId}/team-matchday/encounters/${encounterId}/lineups`, { legNumber, teamId, assignments });
+  }
+
+  prepareTeamEncounterLeg(tournamentId: string, encounterId: string, legNumber: number): Observable<unknown> {
+    return this.http.post(`api/tournaments/${tournamentId}/team-matchday/encounters/${encounterId}/prepare`, { legNumber });
+  }
+
+  recordTeamEncounterNoShow(tournamentId: string, encounterId: string, noShowTeamId: string): Observable<void> {
+    return this.http.post<void>(`api/tournaments/${tournamentId}/team-matchday/encounters/${encounterId}/no-show`, { noShowTeamId });
   }
 
   // Clubs ------------------------------------------------------------------

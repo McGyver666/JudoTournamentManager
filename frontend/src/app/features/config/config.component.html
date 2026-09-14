@@ -14,12 +14,18 @@
     <button class="tab-btn" [class.active]="tab() === 'clubs'" (click)="setTab('clubs')">{{ 'config.clubs' | t }}</button>
     <button class="tab-btn" [class.active]="tab() === 'athletes'" (click)="setTab('athletes')">{{ 'config.athletes' | t }}</button>
     <button class="tab-btn" [class.active]="tab() === 'categories'" (click)="setTab('categories')">{{ 'config.categories' | t }}</button>
+    @if (context.tournament()?.competitionMode === 'TeamMatchday') {
+      <button class="tab-btn" [class.active]="tab() === 'teams'" (click)="setTab('teams')">{{ 'config.teams' | t }}</button>
+    }
   </div>
 
   <section class="card card-pad config-content">
 
   @if (error()) {
     <p class="error">{{ error() }}</p>
+  }
+  @if (teamMatchdayInfo()) {
+    <p class="info">{{ teamMatchdayInfo() }}</p>
   }
 
   <!-- Tatamis -->
@@ -354,6 +360,79 @@
       </table>
       </div>
     }
+  }
+
+  <!-- Team matchday -->
+  @if (tab() === 'teams' && context.tournament()?.competitionMode === 'TeamMatchday') {
+    <div class="toolbar">
+      <h2>{{ 'teamMatchday.teams' | t }}</h2>
+      <button (click)="newTeam()" [disabled]="!canOperate()">{{ 'teamMatchday.clearTeamForm' | t }}</button>
+    </div>
+    <div class="card team-config-card">
+      <div class="row">
+        <div>
+          <label>{{ 'teamMatchday.club' | t }}</label>
+          <select [(ngModel)]="teamForm.clubId" name="teamClub">
+            <option value="">{{ 'teamMatchday.selectClub' | t }}</option>
+            @for (club of clubs(); track club.id) {
+              <option [value]="club.id">{{ club.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label>{{ 'teamMatchday.teamName' | t }}</label>
+          <input [(ngModel)]="teamForm.name" name="teamName" maxlength="120" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="primary" (click)="saveTeam()" [disabled]="!canOperate()">{{ 'teamMatchday.addTeam' | t }}</button>
+      </div>
+      @if (teamMatchday()?.teams?.length === 0) {
+        <div class="empty">{{ 'teamMatchday.noTeams' | t }}</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ 'teamMatchday.teamName' | t }}</th>
+                <th>{{ 'teamMatchday.club' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (team of teamMatchday()?.teams ?? []; track team.id) {
+                <tr>
+                  <td>{{ team.name }}</td>
+                  <td>{{ clubName()(team.clubId) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <div class="card team-config-card">
+      <div class="toolbar">
+        <h2>{{ 'teamMatchday.weightClassOrder' | t }}</h2>
+        <div class="toolbar-actions">
+          <button (click)="drawTeamWeightClassOrder()" [disabled]="!canOperate()">{{ 'teamMatchday.drawOrder' | t }}</button>
+          <button class="primary" (click)="saveTeamWeightClassOrder()" [disabled]="!canOperate()">{{ 'teamMatchday.saveOrder' | t }}</button>
+        </div>
+      </div>
+      <p class="muted">{{ 'teamMatchday.manualOrderHint' | t }}</p>
+      <div class="team-order-list">
+        @for (label of teamWeightClassLabels(); track label; let position = $index) {
+          <label>
+            <span>{{ position + 1 }}. {{ 'teamMatchday.weightClass' | t }}</span>
+            <select [ngModel]="teamWeightClassOrder()[position]" (ngModelChange)="setTeamWeightClassAt(position, $event)" [name]="'teamOrder_' + position">
+              @for (option of teamWeightClassLabels(); track option; let index = $index) {
+                <option [value]="index">{{ option }}</option>
+              }
+            </select>
+          </label>
+        }
+      </div>
+    </div>
   }
 
   <!-- Clubs -->

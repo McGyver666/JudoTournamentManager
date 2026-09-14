@@ -59,6 +59,12 @@ export const routes: Routes = [
         (m) => m.TatamiAssignmentComponent),
   },
   {
+    path: 'team-matchday',
+    canActivate: [requireOperatorGuard],
+    loadComponent: () =>
+      import('./features/team-matchday/team-matchday.component').then((m) => m.TeamMatchdayComponent),
+  },
+  {
     path: 'combat-overview',
     canActivate: [requireOperatorGuard],
     loadComponent: () =>

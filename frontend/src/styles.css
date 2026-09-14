@@ -687,6 +687,7 @@ tr:last-child td {
 .btn--full { width: 100%; }
 .btn--white { background: var(--surface-muted); color: var(--text-strong); border-color: var(--text-medium); }
 .btn--blue { background: var(--side-accent-soft); color: var(--side-accent); border-color: var(--side-accent); }
+.btn--draw { background: var(--state-neutral-bg); color: var(--text-strong); border-color: var(--txt-faint); }
 .btn--confirm { padding: 0.65rem 0.8rem; }
 .btn--tiny { padding: 0.34rem 0.55rem; border-radius: var(--radius); font-size: 0.72rem; }
 .btn--tiny.btn--positive { padding-left: 2rem; padding-right: 2rem; }

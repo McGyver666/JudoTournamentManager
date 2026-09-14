@@ -766,6 +766,59 @@ public sealed class MatchServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task Confirm_IndividualFightWithoutWinner_ReturnsWinnerNotParticipant()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var fight = (await ReadFightsAsync(db, cid)).Single();
+
+        await using var ctx2 = CreateDbContext(db);
+        var svc = CreateService(ctx2);
+        await svc.StartAsync(fight.Id, "Tisch1", CancellationToken.None);
+        var result = await svc.ConfirmResultAsync(fight.Id, null, "Tisch1", CancellationToken.None);
+
+        Assert.Equal(MatchActionResult.WinnerNotParticipant, result);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Confirm_TeamMatchdayDraw_CompletesWithoutWinner()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (var tid, cid, _) = await SeedBracketAsync(ctx, 2);
+            var tournament = await ctx.Tournaments.SingleAsync(x => x.Id == tid);
+            tournament.CompetitionMode = CompetitionMode.TeamMatchday.ToString();
+            await ctx.SaveChangesAsync();
+        }
+
+        var fight = (await ReadFightsAsync(db, cid)).Single();
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var svc = CreateService(ctx);
+            await svc.StartAsync(fight.Id, "Tisch1", CancellationToken.None);
+            var result = await svc.ConfirmResultAsync(fight.Id, null, "Tisch1", CancellationToken.None);
+
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        var updated = (await ReadFightsAsync(db, cid)).Single();
+        Assert.Equal(FightStatus.Completed.ToString(), updated.Status);
+        Assert.Null(updated.WinnerId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task Confirm_PropagatesWinnerToNextRound()
     {
         var db = CreateDatabasePath();

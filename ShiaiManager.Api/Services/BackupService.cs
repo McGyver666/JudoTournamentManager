@@ -59,9 +59,30 @@ public sealed class BackupService : IBackupService
             .Where(x => x.TournamentId == tournamentId)
             .ToListAsync(cancellationToken);
 
+        var teams = await _dbContext.TeamMatchdayTeams
+            .AsNoTracking()
+            .Where(x => x.TournamentId == tournamentId)
+            .ToListAsync(cancellationToken);
+
+        var encounters = await _dbContext.TeamEncounters
+            .AsNoTracking()
+            .Where(x => x.TournamentId == tournamentId)
+            .ToListAsync(cancellationToken);
+
+        var encounterIds = encounters.Select(x => x.Id).ToArray();
+        var lineupEntries = await _dbContext.TeamLineupEntries
+            .AsNoTracking()
+            .Where(x => encounterIds.Contains(x.EncounterId))
+            .ToListAsync(cancellationToken);
+
         var fights = await _dbContext.Fights
             .AsNoTracking()
             .Where(x => x.TournamentId == tournamentId)
+            .ToListAsync(cancellationToken);
+
+        var encounterBouts = await _dbContext.EncounterBouts
+            .AsNoTracking()
+            .Where(x => encounterIds.Contains(x.EncounterId))
             .ToListAsync(cancellationToken);
 
         var auditLogs = await _dbContext.AuditLogs
@@ -79,7 +100,11 @@ public sealed class BackupService : IBackupService
             Clubs = clubs,
             Athletes = athletes,
             Registrations = registrations,
+            TeamMatchdayTeams = teams,
+            TeamEncounters = encounters,
+            TeamLineupEntries = lineupEntries,
             Fights = fights,
+            EncounterBouts = encounterBouts,
             AuditLogs = auditLogs
         };
     }
@@ -146,9 +171,33 @@ public sealed class BackupService : IBackupService
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
+        if (backup.TeamMatchdayTeams.Count > 0)
+        {
+            _dbContext.TeamMatchdayTeams.AddRange(backup.TeamMatchdayTeams);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        if (backup.TeamEncounters.Count > 0)
+        {
+            _dbContext.TeamEncounters.AddRange(backup.TeamEncounters);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        if (backup.TeamLineupEntries.Count > 0)
+        {
+            _dbContext.TeamLineupEntries.AddRange(backup.TeamLineupEntries);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         if (backup.Fights.Count > 0)
         {
             _dbContext.Fights.AddRange(backup.Fights);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        if (backup.EncounterBouts.Count > 0)
+        {
+            _dbContext.EncounterBouts.AddRange(backup.EncounterBouts);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 

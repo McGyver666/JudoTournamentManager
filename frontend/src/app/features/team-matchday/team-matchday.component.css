@@ -1,0 +1,29 @@
+:host { display: block; }
+.team-matchday { max-width: 1180px; margin: 0 auto; padding: 1rem 0; color: var(--c-text); }
+.workflow-row, .field-row { display: flex; gap: 16px; align-items: end; justify-content: space-between; }
+h2, h3, p { margin: 0; }
+.weigh-panel { display: grid; gap: 12px; }
+.field-row { align-items: end; flex-wrap: wrap; }
+.lineup-teams { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.lineup-team { display: grid; gap: 10px; min-width: 0; }
+.lineup-options { justify-content: flex-start; }
+.checkbox-field { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; }
+.checkbox-field input { width: 18px; height: 18px; min-height: auto; margin: 0; }
+h3 { margin: 0; font-size: 1rem; }
+.lineup-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 10px; overflow-x: auto; }
+label { display: grid; gap: 6px; flex: 1 1 180px; font-size: 14px; font-weight: 600; }
+input, select, button { min-height: 38px; border-radius: var(--radius); font: inherit; }
+input, select { border: 1px solid var(--c-border); padding: 6px 8px; background: var(--surface); color: var(--c-text); }
+button, .secondary-action { border: 1px solid var(--c-primary); background: var(--c-primary); color: var(--text-on-accent); padding: 9px 14px; text-decoration: none; cursor: pointer; border-radius: var(--radius); white-space: nowrap; }
+.secondary-action { background: transparent; color: var(--c-primary); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.danger { background: var(--c-danger); border-color: var(--c-danger); }
+.compact-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 5px; }
+small, .muted { color: var(--c-muted); margin-left: 6px; }
+.encounter-row { display: flex; gap: .75rem; align-items: center; justify-content: space-between; }
+.compact-action { min-height: 30px; padding: .35rem .6rem; font-size: .85rem; }
+.notice, .info, .error { margin: 10px 0; padding: 10px 12px; border-radius: 4px; }
+.notice, .info { background: var(--state-success-bg); color: var(--c-success); }
+.error { background: var(--state-danger-bg); color: var(--c-danger); }
+.empty-state { max-width: 580px; display: grid; gap: 18px; justify-items: start; }
+@media (max-width: 720px) { .team-matchday { padding: 1rem 0; } .page-header, .workflow-row { align-items: flex-start; flex-direction: column; } .encounter-row { align-items: flex-start; flex-direction: column; } }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ShiaiManager.Api.Models;
 
 namespace ShiaiManager.Api.Contracts;
 
@@ -7,6 +8,12 @@ namespace ShiaiManager.Api.Contracts;
 /// </summary>
 public sealed record CreateTournamentRequest
 {
+    /// <summary>Competition workflow represented by the new tournament.</summary>
+    public CompetitionMode CompetitionMode { get; init; } = CompetitionMode.Individual;
+
+    /// <summary>NWJV rule profile required for a team-matchday tournament.</summary>
+    public TeamMatchdayProfile? TeamMatchdayProfile { get; init; }
+
     /// <summary>
     /// Tournament display name.
     /// </summary>

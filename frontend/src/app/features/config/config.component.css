@@ -118,6 +118,17 @@
   border-color: color-mix(in srgb, var(--c-primary) 25%, var(--c-border));
 }
 
+.team-config-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.team-order-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: .75rem;
+}
+
 .generator-card h3 {
   margin-top: 0;
   margin-bottom: 0;

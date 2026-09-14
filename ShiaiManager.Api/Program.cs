@@ -119,6 +119,8 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 builder.Services.AddScoped<ITournamentStore, SqliteTournamentStore>();
+builder.Services.AddSingleton<ITeamMatchdayRules, TeamMatchdayRules>();
+builder.Services.AddScoped<ITeamMatchdayStore, SqliteTeamMatchdayStore>();
 builder.Services.AddScoped<ITatamisStore, SqliteTatamisStore>();
 builder.Services.AddScoped<ICategoriesStore, SqliteCategoriesStore>();
 builder.Services.AddScoped<ICategoryPresetsStore, SqliteCategoryPresetsStore>();
@@ -306,6 +308,7 @@ static async Task<IReadOnlyList<string>> ResolveBaselineMigrationsAsync(
     AppDbContext dbContext,
     IReadOnlyList<string> availableMigrations)
 {
+    const string teamMatchdayMigrationId = "20260908140000_AddTeamMatchdayConfiguration";
     var hasUserAccounts = await TableExistsAsync(dbContext, "UserAccounts");
     var hasGoldenScore = await ColumnExistsAsync(dbContext, "Categories", "GoldenScoreEnabled");
     var hasLicenseConfirmed = await ColumnExistsAsync(dbContext, "Registrations", "LicenseConfirmed");
@@ -313,14 +316,17 @@ static async Task<IReadOnlyList<string>> ResolveBaselineMigrationsAsync(
 
     if (hasUserAccounts && hasGoldenScore && hasLicenseConfirmed && hasCategoryPresets)
     {
-        return availableMigrations;
+        return availableMigrations
+            .Where(migrationId => string.CompareOrdinal(migrationId, teamMatchdayMigrationId) < 0)
+            .ToArray();
     }
 
     if (hasUserAccounts && hasGoldenScore && hasLicenseConfirmed)
     {
         // Baseline all migrations except those that create tables not yet present in the legacy schema.
         return availableMigrations
-            .Where(m => !m.Contains("AddCategoryPresets"))
+            .Where(migrationId => !migrationId.Contains("AddCategoryPresets")
+                && string.CompareOrdinal(migrationId, teamMatchdayMigrationId) < 0)
             .ToArray();
     }
 

@@ -55,6 +55,25 @@
         <input [(ngModel)]="form.organizer" name="organizer" />
       </div>
       <div>
+        <label>{{ 'tournaments.competitionMode.label' | t }}</label>
+        <select [(ngModel)]="form.competitionMode" name="competitionMode">
+          @for (mode of competitionModes; track mode) {
+            <option [ngValue]="mode">{{ competitionModeLabelKey(mode) | t }}</option>
+          }
+        </select>
+      </div>
+      @if (form.competitionMode === 'TeamMatchday') {
+        <div>
+          <label>{{ 'tournaments.teamMatchdayProfile.label' | t }}</label>
+          <select [(ngModel)]="form.teamMatchdayProfile" name="teamMatchdayProfile">
+            <option [ngValue]="null">{{ 'tournaments.teamMatchdayProfile.select' | t }}</option>
+            @for (profile of teamMatchdayProfiles; track profile) {
+              <option [ngValue]="profile">{{ teamMatchdayProfileLabelKey(profile) | t }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div>
         <label>{{ 'tournaments.accentSideColor' | t }}</label>
         <select [(ngModel)]="form.accentSideColor" name="accentSideColor">
           @for (color of accentSideColors; track color) {
