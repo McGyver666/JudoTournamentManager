@@ -39,6 +39,7 @@ export class TeamMatchdayComponent implements OnInit {
   protected readonly encounterTatamiId = signal('');
   protected readonly lineupEncounterId = signal('');
   protected readonly lineupLegNumber = signal(1);
+  protected readonly filterLineupAthletes = signal(false);
   protected readonly homeLineupAthleteIds = signal<string[]>([]);
   protected readonly awayLineupAthleteIds = signal<string[]>([]);
   protected readonly noShowTeamId = signal('');
@@ -48,6 +49,15 @@ export class TeamMatchdayComponent implements OnInit {
       case 'SeniorWomen': return ['-52 kg', '-57 kg', '-63 kg', '-70 kg', '+70 kg'];
       case 'U16Boys': return ['-46 kg', '-52 kg', '-58 kg', '-66 kg', '+66 kg'];
       case 'U16Girls': return ['-42 kg', '-47 kg', '-53 kg', '-60 kg', '+60 kg'];
+      default: return [];
+    }
+  });
+  protected readonly weightClassUpperLimitsKg = computed<ReadonlyArray<number | null>>(() => {
+    switch (this.matchday()?.profile) {
+      case 'SeniorMen': return [66, 73, 81, 90, null];
+      case 'SeniorWomen': return [52, 57, 63, 70, null];
+      case 'U16Boys': return [46, 52, 58, 66, null];
+      case 'U16Girls': return [42, 47, 53, 60, null];
       default: return [];
     }
   });
@@ -137,12 +147,28 @@ export class TeamMatchdayComponent implements OnInit {
     return this.matchday()?.teams.find((team) => team.id === teamId)?.name ?? this.i18n.translate('teamMatchday.unknownTeam');
   }
 
-  protected athletesForLineupTeam(teamId: string): Athlete[] {
+  protected athletesForLineupTeam(teamId: string, weightClassIndex: number): Athlete[] {
     const team = this.matchday()?.teams.find((candidate) => candidate.id === teamId);
     const registeredAthleteIds = new Set(this.registrations().map((registration) => registration.athleteId));
-    return team
+    const candidates = team
       ? this.athletes().filter((athlete) => athlete.clubId === team.clubId && athlete.weightKg !== null && registeredAthleteIds.has(athlete.id))
       : [];
+    if (!this.filterLineupAthletes()) {
+      return candidates;
+    }
+
+    const lineup = teamId === this.selectedLineupEncounter()?.homeTeamId
+      ? this.homeLineupAthleteIds()
+      : this.awayLineupAthleteIds();
+    const selectedAthleteId = lineup[weightClassIndex] || '';
+    const selectedInOtherWeightClass = new Set(
+      lineup.filter((athleteId, index) => index !== weightClassIndex && athleteId),
+    );
+    const upperLimitKg = this.weightClassUpperLimitsKg()[weightClassIndex];
+
+    return candidates.filter((athlete) => athlete.id === selectedAthleteId
+      || (!selectedInOtherWeightClass.has(athlete.id)
+        && (upperLimitKg === null || upperLimitKg === undefined || athlete.weightKg! <= upperLimitKg)));
   }
 
   protected selectedLineupEncounter(): TeamEncounter | null {

@@ -6,6 +6,9 @@ h2, h3, p { margin: 0; }
 .field-row { align-items: end; flex-wrap: wrap; }
 .lineup-teams { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .lineup-team { display: grid; gap: 10px; min-width: 0; }
+.lineup-options { justify-content: flex-start; }
+.checkbox-field { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; }
+.checkbox-field input { width: 18px; height: 18px; min-height: auto; margin: 0; }
 h3 { margin: 0; font-size: 1rem; }
 .lineup-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 10px; overflow-x: auto; }
 label { display: grid; gap: 6px; flex: 1 1 180px; font-size: 14px; font-weight: 600; }

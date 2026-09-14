@@ -511,6 +511,7 @@
   "teamMatchday.leg": "Durchgang",
   "teamMatchday.firstLeg": "Hinrunde",
   "teamMatchday.returnLeg": "Rückrunde",
+  "teamMatchday.filterLineupAthletes": "Nur passende Athleten anzeigen",
   "teamMatchday.team": "Mannschaft",
   "teamMatchday.saveLineup": "Aufstellungen speichern",
   "teamMatchday.lineupSaved": "Die Aufstellung wurde gespeichert.",

@@ -50,16 +50,19 @@
         <label><span>{{ 'teamMatchday.leg' | t }}</span><select [ngModel]="lineupLegNumber()" (ngModelChange)="selectLineupLeg($event)" name="lineupLeg"><option [value]="1">{{ 'teamMatchday.firstLeg' | t }}</option><option [value]="2">{{ 'teamMatchday.returnLeg' | t }}</option></select></label>
       </div>
       <div class="lineup-teams" *ngIf="selectedLineupEncounter() as encounter">
+        <div class="field-row lineup-options">
+          <label class="checkbox-field"><input class="checkbox-input" type="checkbox" [ngModel]="filterLineupAthletes()" (ngModelChange)="filterLineupAthletes.set($event)" name="filterLineupAthletes" /><span>{{ 'teamMatchday.filterLineupAthletes' | t }}</span></label>
+        </div>
         <div class="lineup-team">
           <h3>{{ teamNameFor(encounter.homeTeamId) }}</h3>
           <div class="lineup-grid">
-            <label *ngFor="let weightClass of weightClassLabels(); let index = index"><span>{{ weightClass }}</span><select [ngModel]="lineupAthleteId(encounter.homeTeamId, index)" (ngModelChange)="updateLineupAthlete(encounter.homeTeamId, index, $event)" [name]="'home-lineup-' + index"><option value="">{{ 'teamMatchday.noAthlete' | t }}</option><option *ngFor="let athlete of athletesForLineupTeam(encounter.homeTeamId)" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option></select></label>
+            <label *ngFor="let weightClass of weightClassLabels(); let index = index"><span>{{ weightClass }}</span><select [ngModel]="lineupAthleteId(encounter.homeTeamId, index)" (ngModelChange)="updateLineupAthlete(encounter.homeTeamId, index, $event)" [name]="'home-lineup-' + index"><option value="">{{ 'teamMatchday.noAthlete' | t }}</option><option *ngFor="let athlete of athletesForLineupTeam(encounter.homeTeamId, index)" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option></select></label>
           </div>
         </div>
         <div class="lineup-team">
           <h3>{{ teamNameFor(encounter.awayTeamId) }}</h3>
           <div class="lineup-grid">
-            <label *ngFor="let weightClass of weightClassLabels(); let index = index"><span>{{ weightClass }}</span><select [ngModel]="lineupAthleteId(encounter.awayTeamId, index)" (ngModelChange)="updateLineupAthlete(encounter.awayTeamId, index, $event)" [name]="'away-lineup-' + index"><option value="">{{ 'teamMatchday.noAthlete' | t }}</option><option *ngFor="let athlete of athletesForLineupTeam(encounter.awayTeamId)" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option></select></label>
+            <label *ngFor="let weightClass of weightClassLabels(); let index = index"><span>{{ weightClass }}</span><select [ngModel]="lineupAthleteId(encounter.awayTeamId, index)" (ngModelChange)="updateLineupAthlete(encounter.awayTeamId, index, $event)" [name]="'away-lineup-' + index"><option value="">{{ 'teamMatchday.noAthlete' | t }}</option><option *ngFor="let athlete of athletesForLineupTeam(encounter.awayTeamId, index)" [value]="athlete.id">{{ athlete.lastName }}, {{ athlete.firstName }}</option></select></label>
           </div>
         </div>
       </div>

@@ -509,6 +509,7 @@
   "teamMatchday.leg": "Leg",
   "teamMatchday.firstLeg": "First leg",
   "teamMatchday.returnLeg": "Return leg",
+  "teamMatchday.filterLineupAthletes": "Show only eligible athletes",
   "teamMatchday.team": "Team",
   "teamMatchday.saveLineup": "Save lineups",
   "teamMatchday.lineupSaved": "The lineup was saved.",
