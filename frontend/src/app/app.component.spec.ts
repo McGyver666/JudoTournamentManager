@@ -29,6 +29,7 @@ describe('AppComponent shell navigation', () => {
     canOperate: WritableSignal<boolean>;
     user: WritableSignal<{ userId: string; userName: string; role: string } | null>;
   };
+  let changePasswordSpy: jasmine.Spy;
 
   function createTatami(overrides: Partial<Tatami> = {}): Tatami {
     return {
@@ -44,6 +45,7 @@ describe('AppComponent shell navigation', () => {
   }
 
   function configure(tatamis: Tatami[] = [], opts: { tournaments?: number; categories?: number } = {}): void {
+    changePasswordSpy = jasmine.createSpy('changePassword').and.returnValue(of(undefined));
     auth = {
       isAuthenticated: signal(true),
       isAdmin: signal(false),
@@ -88,6 +90,7 @@ describe('AppComponent shell navigation', () => {
             getTatamis: () => of(tatamis),
             getTournaments: () => of(new Array(opts.tournaments ?? 0).fill({})),
             getCategories: () => of(new Array(opts.categories ?? 0).fill({})),
+            changePassword: changePasswordSpy,
           },
         },
       ],
@@ -117,7 +120,6 @@ describe('AppComponent shell navigation', () => {
     // Display section is not operator-gated and stays available.
     expect(el.querySelector('button[title="nav.display"]')).not.toBeNull();
   });
-
   it('shows operator entries but not admin entries for an operator', () => {
     configure();
     auth.canOperate.set(true);
@@ -280,6 +282,52 @@ describe('AppComponent shell navigation', () => {
     expect(el.querySelector('.user-menu-panel')).not.toBeNull();
     expect(el.querySelector('.user-menu-panel select')).not.toBeNull();
     expect(el.querySelectorAll('.theme-option').length).toBe(2);
-    expect(el.querySelector('.user-menu-action')?.textContent?.trim()).toBe('auth.logout');
+    expect(Array.from(el.querySelectorAll('.user-menu-action')).map((button) => button.textContent?.trim()))
+      .toEqual(['passwordChange.action', 'auth.logout']);
+  });
+
+  it('opens the self-service password dialog from the user menu', () => {
+    configure();
+    const fixture = render();
+    const el = fixture.nativeElement as HTMLElement;
+
+    (el.querySelector('.user-menu-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const changeButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.user-menu-action'))
+      .find((button) => button.textContent?.trim() === 'passwordChange.action');
+
+    expect(changeButton).not.toBeUndefined();
+    changeButton!.click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.password-dialog')).not.toBeNull();
+    expect(el.querySelectorAll('.password-dialog input[type="password"]').length).toBe(3);
+  });
+
+  it('blocks a password change when the confirmation does not match', () => {
+    configure();
+    const fixture = render();
+    const el = fixture.nativeElement as HTMLElement;
+
+    (el.querySelector('.user-menu-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.user-menu-action'))
+      .find((button) => button.textContent?.trim() === 'passwordChange.action')!
+      .click();
+    fixture.detectChanges();
+
+    const inputs = el.querySelectorAll<HTMLInputElement>('.password-dialog input[type="password"]');
+    inputs[0].value = 'Current!Pass123';
+    inputs[0].dispatchEvent(new Event('input'));
+    inputs[1].value = 'New!Pass123456';
+    inputs[1].dispatchEvent(new Event('input'));
+    inputs[2].value = 'Different!Pass123';
+    inputs[2].dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (el.querySelector('.password-dialog button[type="submit"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(changePasswordSpy).not.toHaveBeenCalled();
+    expect(el.querySelector('.password-dialog-error')).not.toBeNull();
   });
 });

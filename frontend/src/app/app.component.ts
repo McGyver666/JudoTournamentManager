@@ -1,5 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { TranslatePipe } from './core/translate.pipe';
@@ -8,8 +10,9 @@ import { AppTheme, ThemeService } from './core/theme.service';
 import { TournamentContextService } from './core/tournament-context.service';
 import { AuthStateService } from './core/auth-state.service';
 import { ApiService } from './core/api.service';
+import { extractApiError } from './core/http-error';
 import { APP_VERSION } from './core/app-info';
-import { Tatami } from './core/models';
+import { ChangePasswordRequest, Tatami } from './core/models';
 import { TimeService } from './core/time.service';
 import { TournamentHubService } from './core/tournament-hub.service';
 
@@ -21,7 +24,7 @@ import { TournamentHubService } from './core/tournament-hub.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, DatePipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, DatePipe, FormsModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -57,6 +60,16 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly matchMenuOpen = signal(false);
   /** Whether the authenticated user's settings popover is visible. */
   protected readonly userMenuOpen = signal(false);
+  /** Whether the self-service password dialog is visible. */
+  protected readonly passwordDialogOpen = signal(false);
+  protected readonly passwordChangeSaving = signal(false);
+  protected readonly passwordChangeError = signal<string | null>(null);
+  protected readonly passwordChangeInfo = signal<string | null>(null);
+  protected readonly passwordChangeForm = signal({
+    currentPassword: '',
+    newPassword: '',
+    confirmation: '',
+  });
   /** Desktop rail: collapses the sidebar to a kanji-only glyph rail. */
   protected readonly sidebarCollapsed = signal(false);
   protected readonly sidebarTooltip = signal<{ text: string; left: number; top: number } | null>(null);
@@ -195,6 +208,81 @@ export class AppComponent implements OnInit, OnDestroy {
     this.userMenuOpen.set(false);
   }
 
+  protected handleEscape(): void {
+    if (this.passwordDialogOpen()) {
+      this.closePasswordDialog();
+      return;
+    }
+
+    this.closeUserMenu();
+  }
+
+  protected openPasswordDialog(): void {
+    this.passwordChangeForm.set({ currentPassword: '', newPassword: '', confirmation: '' });
+    this.passwordChangeError.set(null);
+    this.passwordChangeInfo.set(null);
+    this.passwordDialogOpen.set(true);
+  }
+
+  protected closePasswordDialog(): void {
+    if (this.passwordChangeSaving()) {
+      return;
+    }
+
+    this.passwordDialogOpen.set(false);
+    this.passwordChangeForm.set({ currentPassword: '', newPassword: '', confirmation: '' });
+    this.passwordChangeError.set(null);
+  }
+
+  protected updateCurrentPassword(value: string): void {
+    this.passwordChangeForm.update((form) => ({ ...form, currentPassword: value }));
+  }
+
+  protected updateNewPassword(value: string): void {
+    this.passwordChangeForm.update((form) => ({ ...form, newPassword: value }));
+  }
+
+  protected updatePasswordConfirmation(value: string): void {
+    this.passwordChangeForm.update((form) => ({ ...form, confirmation: value }));
+  }
+
+  protected changePassword(): void {
+    const form = this.passwordChangeForm();
+    this.passwordChangeError.set(null);
+
+    if (form.currentPassword.length === 0) {
+      this.passwordChangeError.set(this.i18n.translate('passwordChange.currentRequired'));
+      return;
+    }
+
+    if (form.newPassword.length < 12 || !this.hasRequiredPasswordCharacterTypes(form.newPassword)) {
+      this.passwordChangeError.set(this.i18n.translate('passwordChange.passwordInvalid'));
+      return;
+    }
+
+    if (form.newPassword !== form.confirmation) {
+      this.passwordChangeError.set(this.i18n.translate('passwordChange.confirmationMismatch'));
+      return;
+    }
+
+    const request: ChangePasswordRequest = {
+      currentPassword: form.currentPassword,
+      newPassword: form.newPassword,
+    };
+    this.passwordChangeSaving.set(true);
+    this.api.changePassword(request).subscribe({
+      next: () => {
+        this.passwordChangeSaving.set(false);
+        this.passwordChangeInfo.set(this.i18n.translate('passwordChange.success'));
+        this.closePasswordDialog();
+      },
+      error: (error: unknown) => {
+        this.passwordChangeSaving.set(false);
+        this.passwordChangeError.set(this.passwordChangeErrorMessage(error));
+      },
+    });
+  }
+
   protected toggleSidebar(): void {
     this.sidebarCollapsed.update((collapsed) => !collapsed);
     this.sidebarTooltip.set(null);
@@ -318,6 +406,32 @@ export class AppComponent implements OnInit, OnDestroy {
     this.closeUserMenu();
     await this.auth.logout();
     await this.router.navigateByUrl('/login', { replaceUrl: true });
+  }
+
+  private hasRequiredPasswordCharacterTypes(password: string): boolean {
+    const characterTypes = [
+      /\p{Lu}/u,
+      /\p{Ll}/u,
+      /\p{N}/u,
+      /[^\p{L}\p{N}]/u,
+    ];
+    return characterTypes.filter((pattern) => pattern.test(password)).length >= 3;
+  }
+
+  private passwordChangeErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse && error.status === 400) {
+      const body = error.error as { errors?: Record<string, string[]> } | null;
+      const fieldNames = Object.keys(body?.errors ?? {}).map((name) => name.toLowerCase());
+      if (fieldNames.includes('currentpassword')) {
+        return this.i18n.translate('passwordChange.invalidCurrentPassword');
+      }
+
+      if (fieldNames.includes('newpassword')) {
+        return this.i18n.translate('passwordChange.passwordInvalid');
+      }
+    }
+
+    return extractApiError(error, this.i18n.translate('errors.save'));
   }
 
   private tooltipTarget(event: Event): HTMLElement | null {
