@@ -178,6 +178,39 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
     }
 
     [Fact]
+    public async Task DisplayRole_CannotOperateLiveFight()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "display-live", "Display");
+
+        var token = await LoginAndGetTokenAsync(client, "display-live", "Display!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{Guid.NewGuid()}/fights/{Guid.NewGuid()}/start", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Admin", "admin-regression", "Admin!123456")]
+    [InlineData("Operator", "operator-regression", "Operator!1234")]
+    public async Task AdminAndOperator_CanReachCompletedResultCorrection(string role, string userName, string password)
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, userName, role);
+
+        var token = await LoginAndGetTokenAsync(client, userName, password);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{Guid.NewGuid()}/completed-fights/{Guid.NewGuid()}/edit-result",
+            new EditFightResultRequest());
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetTournaments_WithoutToken_Returns401()
     {
         using var client = _factory.CreateClient();
@@ -446,7 +479,7 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
         {
             UserName = userName,
             Role = role,
-            Password = role + "!1234"
+            Password = role == "Admin" ? "Admin!123456" : role + "!1234"
         });
 
         Assert.Equal(HttpStatusCode.Created, createUserResponse.StatusCode);

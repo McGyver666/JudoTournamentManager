@@ -51,11 +51,11 @@ public sealed class CompletedFightsController : ControllerBase
     }
 
     /// <summary>
-    /// Edits the scores and winner of a completed, non-group-stage fight. Requires Admin role.
+    /// Edits the scores and winner of a completed, non-group-stage fight. Requires Admin or Operator role.
     /// When downstream fights already started would be affected and Confirmed is false,
     /// returns 409 with the list of affected fights (ConfirmationRequired).
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Operator")]
     [HttpPost("completed-fights/{fightId:guid}/edit-result")]
     [ProducesResponseType(typeof(EditFightResultResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
