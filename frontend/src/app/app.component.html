@@ -4,7 +4,7 @@
   [class.app-shell--collapsed]="sidebarCollapsed()"
   [class.app-shell--drawer-open]="drawerOpen()"
   (document:click)="closeUserMenu()"
-  (document:keydown.escape)="closeUserMenu()">
+  (document:keydown.escape)="handleEscape()">
   @if (showShell()) {
     <aside
       class="shell-sidebar"
@@ -309,11 +309,89 @@
                 </div>
               </div>
 
+              @if (passwordChangeInfo(); as info) {
+                <p class="user-menu-feedback" role="status">{{ info }}</p>
+              }
+
+              <button type="button" class="user-menu-action" (click)="openPasswordDialog()">
+                {{ 'passwordChange.action' | t }}
+              </button>
+
               <button type="button" class="user-menu-action" (click)="logout()">
                 {{ 'auth.logout' | t }}
               </button>
             </div>
           }
+        </div>
+      }
+
+      @if (passwordDialogOpen()) {
+        <div class="password-dialog-backdrop" (click)="closePasswordDialog()">
+          <section
+            class="password-dialog"
+            role="dialog"
+            aria-modal="true"
+            [attr.aria-labelledby]="'password-change-title'"
+            (click)="$event.stopPropagation()">
+            <div class="password-dialog-header">
+              <h2 id="password-change-title">{{ 'passwordChange.title' | t }}</h2>
+              <button
+                type="button"
+                class="user-menu-toggle password-dialog-close"
+                [attr.aria-label]="'passwordChange.close' | t"
+                [title]="'passwordChange.close' | t"
+                [disabled]="passwordChangeSaving()"
+                (click)="closePasswordDialog()">×</button>
+            </div>
+
+            <form class="password-dialog-form" (ngSubmit)="changePassword()">
+              <label class="user-menu-field password-dialog-field">
+                <span>{{ 'passwordChange.currentPassword' | t }}</span>
+                <input
+                  type="password"
+                  name="currentPassword"
+                  autocomplete="current-password"
+                  [ngModel]="passwordChangeForm().currentPassword"
+                  (ngModelChange)="updateCurrentPassword($event)"
+                  required />
+              </label>
+
+              <label class="user-menu-field password-dialog-field">
+                <span>{{ 'passwordChange.newPassword' | t }}</span>
+                <input
+                  type="password"
+                  name="newPassword"
+                  autocomplete="new-password"
+                  [ngModel]="passwordChangeForm().newPassword"
+                  (ngModelChange)="updateNewPassword($event)"
+                  required />
+              </label>
+
+              <label class="user-menu-field password-dialog-field">
+                <span>{{ 'passwordChange.confirmPassword' | t }}</span>
+                <input
+                  type="password"
+                  name="confirmation"
+                  autocomplete="new-password"
+                  [ngModel]="passwordChangeForm().confirmation"
+                  (ngModelChange)="updatePasswordConfirmation($event)"
+                  required />
+              </label>
+
+              @if (passwordChangeError(); as error) {
+                <p class="password-dialog-error" role="alert">{{ error }}</p>
+              }
+
+              <div class="password-dialog-actions">
+                <button type="button" class="password-dialog-cancel" [disabled]="passwordChangeSaving()" (click)="closePasswordDialog()">
+                  {{ 'passwordChange.cancel' | t }}
+                </button>
+                <button type="submit" class="primary" [disabled]="passwordChangeSaving()">
+                  {{ 'passwordChange.submit' | t }}
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
       }
     </header>

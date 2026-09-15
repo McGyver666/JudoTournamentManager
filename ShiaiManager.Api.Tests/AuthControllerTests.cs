@@ -131,19 +131,95 @@ public sealed class AuthControllerTests
         Assert.IsType<ObjectResult>(result);
     }
 
-    private static ControllerContext BuildControllerContext(string userName, string role)
+    [Fact]
+    public async Task ChangePasswordAsync_WhenSuccessful_Returns204ForCurrentUser()
     {
-        var claims = new[]
+        var userId = Guid.NewGuid();
+        var auth = new Mock<IAuthService>();
+        auth.Setup(x => x.ChangePasswordAsync(
+                userId,
+                "current-token",
+                "Current!Pass123",
+                "New!Pass123456",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChangePasswordResult(true, null, null, null));
+
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = BuildControllerContext("operator1", "Operator", userId, "Bearer current-token")
+        };
+
+        var result = await controller.ChangePasswordAsync(
+            new ChangePasswordRequest
+            {
+                CurrentPassword = "Current!Pass123",
+                NewPassword = "New!Pass123456"
+            },
+            CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WhenCurrentPasswordIsInvalid_Returns400()
+    {
+        var userId = Guid.NewGuid();
+        var auth = new Mock<IAuthService>();
+        auth.Setup(x => x.ChangePasswordAsync(
+                userId,
+                "current-token",
+                "wrong",
+                "New!Pass123456",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChangePasswordResult(false, "InvalidCurrentPassword", "Aktuelles Passwort ist ungültig.", null));
+
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = BuildControllerContext("operator1", "Operator", userId, "Bearer current-token")
+        };
+
+        var result = await controller.ChangePasswordAsync(
+            new ChangePasswordRequest
+            {
+                CurrentPassword = "wrong",
+                NewPassword = "New!Pass123456"
+            },
+            CancellationToken.None);
+
+        var badRequest = Assert.IsType<ObjectResult>(result);
+    var details = Assert.IsType<ValidationProblemDetails>(badRequest.Value);
+        Assert.Contains(nameof(ChangePasswordRequest.CurrentPassword), details.Errors.Keys);
+    }
+
+    private static ControllerContext BuildControllerContext(
+        string userName,
+        string role,
+        Guid? userId = null,
+        string? authorization = null)
+    {
+        var claims = new List<System.Security.Claims.Claim>
         {
             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, userName),
             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role)
         };
+        if (userId.HasValue)
+        {
+            claims.Add(new System.Security.Claims.Claim(
+                System.Security.Claims.ClaimTypes.NameIdentifier,
+                userId.Value.ToString()));
+        }
+
         var identity = new System.Security.Claims.ClaimsIdentity(claims, "test");
         var principal = new System.Security.Claims.ClaimsPrincipal(identity);
+        var httpContext = new DefaultHttpContext { User = principal };
+        if (!string.IsNullOrWhiteSpace(authorization))
+        {
+            httpContext.Request.Headers.Authorization = authorization;
+        }
 
         return new ControllerContext
         {
-            HttpContext = new DefaultHttpContext { User = principal }
+            HttpContext = httpContext
         };
     }
 }

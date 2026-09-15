@@ -1000,3 +1000,97 @@ app-display .standings-table th {color:var(--c-muted);font-size:.72rem;text-tran
   font-weight: 600;
   white-space: nowrap;
 }
+
+.user-menu-feedback {
+  margin: .75rem 0 0;
+  padding: .65rem .75rem;
+  border: 1px solid color-mix(in srgb, var(--tatami) 45%, var(--c-border));
+  background: color-mix(in srgb, var(--tatami) 10%, var(--surface-muted));
+  color: var(--txt);
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+.password-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--overlay-bg);
+}
+
+.password-dialog {
+  width: min(28rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+}
+
+.password-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.password-dialog-header h2 {
+  margin: 0;
+  color: var(--paper);
+  font-size: 1.15rem;
+}
+
+.password-dialog-close { font-size: 1.2rem; }
+
+.password-dialog-form {
+  display: grid;
+  gap: .9rem;
+}
+
+.password-dialog-field {
+  display: grid;
+  gap: .35rem;
+  border-top: 0;
+  padding: 0;
+}
+
+.password-dialog-field input {
+  width: 100%;
+  margin-top: .45rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.password-dialog-error {
+  margin: 0;
+  padding: .65rem .75rem;
+  border: 1px solid color-mix(in srgb, var(--aka) 55%, var(--c-border));
+  background: color-mix(in srgb, var(--aka) 10%, var(--surface-muted));
+  color: var(--aka-bright);
+  font-size: .8rem;
+  line-height: 1.4;
+}
+
+.password-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+  padding-top: .35rem;
+}
+
+.password-dialog-cancel {
+  border-color: var(--c-border);
+  background: transparent;
+  color: var(--txt-dim);
+}
+
+.password-dialog-cancel:hover {
+  background: var(--surface-muted);
+  color: var(--txt);
+}
