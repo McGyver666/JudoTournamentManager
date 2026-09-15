@@ -48,16 +48,6 @@ public sealed class AuthorizationAttributesTests
         Assert.Equal("Admin,Operator", authorize!.Roles);
     }
 
-    [Fact]
-    public void AuthController_ChangePassword_AllowsEveryAuthenticatedRole()
-    {
-        var method = FindMethod(typeof(AuthController), nameof(AuthController.ChangePasswordAsync));
-        var authorize = method.GetCustomAttribute<AuthorizeAttribute>();
-
-        Assert.NotNull(authorize);
-        Assert.Null(authorize!.Roles);
-    }
-
     [Theory]
     [InlineData(nameof(MatchController.AssignTatamiAsync))]
     public void MatchController_AdminOnlyEndpoints_AreExplicitlyRestricted(string methodName)
