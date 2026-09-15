@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { AuthStateService } from './auth-state.service';
-import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireLiveOperationGuard, requireOperatorGuard } from './auth.guards';
+import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireLiveOperationGuard, requireOperatorGuard, requireTournamentContextGuard } from './auth.guards';
 
 describe('auth guards', () => {
   function configure(authState: { isAuthenticated: () => boolean; isAdmin: () => boolean; canOperate: () => boolean; canOperateLive: () => boolean; canDisplay: () => boolean }) {
@@ -94,5 +94,20 @@ describe('auth guards', () => {
     const result = TestBed.runInInjectionContext(() => requireLiveOperationGuard({} as never, {} as never));
 
     expect(result).toBeTrue();
+  });
+
+  it('requireTournamentContextGuard redirects an authenticated user without a tournament', () => {
+    const { tournamentsTree } = configure({
+      isAuthenticated: () => true,
+      isAdmin: () => false,
+      canOperate: () => false,
+      canOperateLive: () => true,
+      canDisplay: () => true,
+    });
+    TestBed.overrideProvider('TournamentContextService' as never, { useValue: { tournamentId: () => null } });
+
+    const result = TestBed.runInInjectionContext(() => requireTournamentContextGuard({} as never, {} as never));
+
+    expect(result).toBe(tournamentsTree as never);
   });
 });
