@@ -27,6 +27,7 @@ describe('AppComponent shell navigation', () => {
     isAuthenticated: WritableSignal<boolean>;
     isAdmin: WritableSignal<boolean>;
     canOperate: WritableSignal<boolean>;
+    canOperateLive: WritableSignal<boolean>;
     user: WritableSignal<{ userId: string; userName: string; role: string } | null>;
   };
   let changePasswordSpy: jasmine.Spy;
@@ -50,6 +51,7 @@ describe('AppComponent shell navigation', () => {
       isAuthenticated: signal(true),
       isAdmin: signal(false),
       canOperate: signal(false),
+      canOperateLive: signal(false),
       user: signal({ userId: 'u1', userName: 'M. Kaminski', role: 'Operator' }),
     };
 
@@ -123,6 +125,7 @@ describe('AppComponent shell navigation', () => {
   it('shows operator entries but not admin entries for an operator', () => {
     configure();
     auth.canOperate.set(true);
+    auth.canOperateLive.set(true);
     auth.isAdmin.set(false);
     const el = render().nativeElement as HTMLElement;
 
@@ -136,6 +139,7 @@ describe('AppComponent shell navigation', () => {
   it('shows the admin user-management entry for an admin', () => {
     configure();
     auth.canOperate.set(true);
+    auth.canOperateLive.set(true);
     auth.isAdmin.set(true);
     const el = render().nativeElement as HTMLElement;
 
@@ -158,6 +162,7 @@ describe('AppComponent shell navigation', () => {
       createTatami({ id: 't3', name: 'Matte 3', isActive: true, displayOrder: 3 }),
     ]);
     auth.canOperate.set(true);
+    auth.canOperateLive.set(true);
     const fixture = render();
     (fixture.componentInstance as unknown as { matchMenuOpen: WritableSignal<boolean> }).matchMenuOpen.set(true);
     fixture.detectChanges();

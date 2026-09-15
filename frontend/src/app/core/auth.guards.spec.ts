@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { AuthStateService } from './auth-state.service';
-import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireOperatorGuard } from './auth.guards';
+import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireLiveOperationGuard, requireOperatorGuard } from './auth.guards';
 
 describe('auth guards', () => {
-  function configure(authState: { isAuthenticated: () => boolean; isAdmin: () => boolean; canOperate: () => boolean; canDisplay: () => boolean }) {
+  function configure(authState: { isAuthenticated: () => boolean; isAdmin: () => boolean; canOperate: () => boolean; canOperateLive: () => boolean; canDisplay: () => boolean }) {
     const loginTree = { path: '/login' };
     const tournamentsTree = { path: '/tournaments' };
 
@@ -31,6 +31,7 @@ describe('auth guards', () => {
       isAuthenticated: () => false,
       isAdmin: () => false,
       canOperate: () => false,
+      canOperateLive: () => false,
       canDisplay: () => false,
     });
 
@@ -44,6 +45,7 @@ describe('auth guards', () => {
       isAuthenticated: () => true,
       isAdmin: () => false,
       canOperate: () => false,
+      canOperateLive: () => false,
       canDisplay: () => false,
     });
 
@@ -57,6 +59,7 @@ describe('auth guards', () => {
       isAuthenticated: () => true,
       isAdmin: () => false,
       canOperate: () => true,
+      canOperateLive: () => true,
       canDisplay: () => true,
     });
 
@@ -70,10 +73,25 @@ describe('auth guards', () => {
       isAuthenticated: () => true,
       isAdmin: () => false,
       canOperate: () => false,
+      canOperateLive: () => true,
       canDisplay: () => true,
     });
 
     const result = TestBed.runInInjectionContext(() => requireDisplayGuard({} as never, {} as never));
+
+    expect(result).toBeTrue();
+  });
+
+  it('requireLiveOperationGuard allows competition role', () => {
+    configure({
+      isAuthenticated: () => true,
+      isAdmin: () => false,
+      canOperate: () => false,
+      canOperateLive: () => true,
+      canDisplay: () => true,
+    });
+
+    const result = TestBed.runInInjectionContext(() => requireLiveOperationGuard({} as never, {} as never));
 
     expect(result).toBeTrue();
   });

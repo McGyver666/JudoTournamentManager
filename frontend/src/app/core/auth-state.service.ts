@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { ApiService } from './api.service';
 import { extractApiError } from './http-error';
-import { AuthenticatedUser } from './models';
+import { AuthenticatedUser, UserRole } from './models';
 
 const TOKEN_KEY = 'judo.auth.token';
 const EXPIRES_KEY = 'judo.auth.expires';
@@ -25,7 +25,8 @@ export class AuthStateService {
   readonly role = computed(() => this.user()?.role ?? null);
   readonly isAdmin = computed(() => this.role() === 'Admin');
   readonly canOperate = computed(() => this.role() === 'Admin' || this.role() === 'Operator');
-  readonly canDisplay = computed(() => this.canOperate() || this.role() === 'Display');
+  readonly canOperateLive = computed(() => this.canOperate() || this.role() === 'Competition');
+  readonly canDisplay = computed(() => this.canOperateLive() || this.role() === 'Display');
 
   constructor(private readonly api: ApiService) {
     this.restoreToken();
@@ -52,7 +53,7 @@ export class AuthStateService {
     return new Promise((resolve) => {
       this.api.me().subscribe({
         next: (user) => {
-          this.user.set({ userId: user.userId, userName: user.userName, role: user.role as 'Admin' | 'Operator' | 'Display' });
+          this.user.set({ userId: user.userId, userName: user.userName, role: user.role as UserRole });
           this.loading.set(false);
           resolve();
         },
@@ -82,7 +83,7 @@ export class AuthStateService {
 
           this.api.me().subscribe({
             next: (me) => {
-              this.user.set({ userId: me.userId, userName: me.userName, role: me.role as 'Admin' | 'Operator' | 'Display' });
+              this.user.set({ userId: me.userId, userName: me.userName, role: me.role as UserRole });
               this.loading.set(false);
               resolve(true);
             },

@@ -35,7 +35,7 @@ public sealed class CompletedFightsController : ControllerBase
     /// Returns all completed (non-bye) fights of a tournament, most recently completed first,
     /// with resolved athlete, club, category, and tatami names.
     /// </summary>
-    [Authorize(Roles = "Admin,Operator")]
+    [Authorize(Roles = "Admin,Operator,Competition")]
     [HttpGet("completed-fights")]
     [ProducesResponseType(typeof(IReadOnlyList<CompletedFightSummary>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

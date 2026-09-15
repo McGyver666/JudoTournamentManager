@@ -115,8 +115,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = null;
     options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
-        .RequireRole("Admin", "Operator", "Display")
+        .RequireRole("Admin", "Operator", "Display", "Competition")
         .Build();
+    options.AddPolicy("LiveFightOperation", policy => policy
+        .RequireAuthenticatedUser()
+        .RequireRole("Admin", "Operator", "Competition"));
 });
 builder.Services.AddScoped<ITournamentStore, SqliteTournamentStore>();
 builder.Services.AddSingleton<ITeamMatchdayRules, TeamMatchdayRules>();

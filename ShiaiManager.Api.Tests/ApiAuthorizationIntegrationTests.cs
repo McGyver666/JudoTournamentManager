@@ -78,6 +78,40 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
     }
 
     [Fact]
+    public async Task CompetitionRole_CanBeCreatedAndCanReadTournaments()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "competition1", "Competition");
+
+        var competitionToken = await LoginAndGetTokenAsync(client, "competition1", "Competition!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", competitionToken);
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CompetitionRole_CannotCreateTournament()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "competition2", "Competition");
+
+        var competitionToken = await LoginAndGetTokenAsync(client, "competition2", "Competition!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", competitionToken);
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", new CreateTournamentRequest
+        {
+            Name = "Nicht erlaubt",
+            Date = DateOnly.FromDateTime(DateTime.UtcNow),
+            Venue = "Essen",
+            Organizer = "JV Essen"
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetTournaments_WithoutToken_Returns401()
     {
         using var client = _factory.CreateClient();

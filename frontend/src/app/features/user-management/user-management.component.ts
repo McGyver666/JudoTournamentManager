@@ -135,6 +135,8 @@ export class UserManagementComponent implements OnInit {
         return 'users.roleAdmin';
       case 'Display':
         return 'users.roleDisplay';
+      case 'Competition':
+        return 'users.roleCompetition';
       default:
         return 'users.roleOperator';
     }

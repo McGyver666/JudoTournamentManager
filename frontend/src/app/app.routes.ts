@@ -1,15 +1,15 @@
 import { Routes } from '@angular/router';
-import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireOperatorGuard } from './core/auth.guards';
+import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireLiveOperationGuard, requireOperatorGuard, requireTournamentContextGuard } from './core/auth.guards';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'tournament-overview' },
+  { path: '', pathMatch: 'full', redirectTo: 'tournaments' },
   {
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
   },
   {
     path: 'tournament-overview',
-    canActivate: [requireAuthGuard],
+    canActivate: [requireTournamentContextGuard],
     loadComponent: () =>
       import('./features/tournament-overview/tournament-overview.component').then(
         (m) => m.TournamentOverviewComponent),
@@ -22,63 +22,63 @@ export const routes: Routes = [
   },
   {
     path: 'config',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireOperatorGuard],
     loadComponent: () =>
       import('./features/config/config.component').then((m) => m.ConfigComponent),
   },
   {
     path: 'registrations',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireOperatorGuard],
     loadComponent: () =>
       import('./features/registrations/registrations.component').then(
         (m) => m.RegistrationsComponent),
   },
   {
     path: 'category-assignment',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireOperatorGuard],
     loadComponent: () =>
       import('./features/category-assignment/category-assignment.component').then(
         (m) => m.CategoryAssignmentComponent),
   },
   {
     path: 'draw',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireOperatorGuard],
     loadComponent: () => import('./features/draw/draw.component').then((m) => m.DrawComponent),
   },
   {
     path: 'draw/print-match-lists',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireOperatorGuard],
     loadComponent: () =>
       import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
   },
   {
     path: 'tatami-assignment',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireOperatorGuard],
     loadComponent: () =>
       import('./features/tatami-assignment/tatami-assignment.component').then(
         (m) => m.TatamiAssignmentComponent),
   },
   {
     path: 'team-matchday',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireOperatorGuard],
     loadComponent: () =>
       import('./features/team-matchday/team-matchday.component').then((m) => m.TeamMatchdayComponent),
   },
   {
     path: 'combat-overview',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireAuthGuard],
     loadComponent: () =>
       import('./features/combat-overview/combat-overview.component').then(
         (m) => m.CombatOverviewComponent),
   },
   {
     path: 'match',
-    canActivate: [requireOperatorGuard],
+    canActivate: [requireTournamentContextGuard, requireLiveOperationGuard],
     loadComponent: () => import('./features/match/match.component').then((m) => m.MatchComponent),
   },
   {
     path: 'results',
-    canActivate: [requireAuthGuard],
+    canActivate: [requireTournamentContextGuard, requireAuthGuard],
     loadComponent: () => import('./features/results/results.component').then((m) => m.ResultsComponent),
   },
   {
@@ -109,5 +109,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/match-lists/match-lists.component').then((m) => m.MatchListsComponent),
   },
-  { path: '**', redirectTo: 'tournament-overview' },
+  { path: '**', redirectTo: 'tournaments' },
 ];

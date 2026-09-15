@@ -15,7 +15,7 @@ public sealed class SqliteAuthService : IAuthService
     private const int MaxFailedAttempts = 5;
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan SessionDuration = TimeSpan.FromHours(8);
-    private static readonly string[] AllowedRoles = ["Admin", "Operator", "Display"];
+    private static readonly string[] AllowedRoles = ["Admin", "Operator", "Display", "Competition"];
 
     private readonly AppDbContext _dbContext;
     private readonly IPasswordHasherService _passwordHasher;
@@ -266,7 +266,7 @@ public sealed class SqliteAuthService : IAuthService
         var normalizedRole = NormalizeRole(role);
         if (normalizedRole is null)
         {
-            validationErrors.Add("Ungültige Rolle. Erlaubt sind: Admin, Operator, Display.");
+            validationErrors.Add("Ungültige Rolle. Erlaubt sind: Admin, Operator, Display, Competition.");
         }
 
         var normalizedUser = NormalizeUserName(userName);
