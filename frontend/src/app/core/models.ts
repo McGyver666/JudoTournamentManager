@@ -690,11 +690,6 @@ export interface LocalUserAccount {
   updatedUtc: string;
 }
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-}
-
 export interface CreateUserRequest {
   userName: string;
   role: UserRole;

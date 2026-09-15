@@ -243,65 +243,6 @@ public sealed class AuthController : ControllerBase
         });
     }
 
-    /// <summary>
-    /// Changes the password of the currently authenticated local user.
-    /// </summary>
-    [Authorize]
-    [HttpPost("change-password")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ChangePasswordAsync(
-        [FromBody] ChangePasswordRequest request,
-        CancellationToken cancellationToken)
-    {
-        var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var token = ReadBearerToken();
-        if (!Guid.TryParse(idClaim, out var userId) || string.IsNullOrWhiteSpace(token))
-        {
-            return Unauthorized();
-        }
-
-        var result = await _authService.ChangePasswordAsync(
-            userId,
-            token,
-            request.CurrentPassword,
-            request.NewPassword,
-            cancellationToken);
-        if (result.Changed)
-        {
-            return NoContent();
-        }
-
-        if (string.Equals(result.ErrorCode, "InvalidSession", StringComparison.Ordinal))
-        {
-            return Unauthorized();
-        }
-
-        if (string.Equals(result.ErrorCode, "InvalidCurrentPassword", StringComparison.Ordinal))
-        {
-            ModelState.AddModelError(nameof(request.CurrentPassword), result.ErrorMessage ?? "Aktuelles Passwort ist ungültig.");
-            return ValidationProblem(ModelState);
-        }
-
-        if (result.ValidationErrors is { Count: > 0 })
-        {
-            foreach (var error in result.ValidationErrors)
-            {
-                ModelState.AddModelError(nameof(request.NewPassword), error);
-            }
-
-            return ValidationProblem(ModelState);
-        }
-
-        return BadRequest(new ProblemDetails
-        {
-            Title = "Passwort konnte nicht geändert werden.",
-            Detail = result.ErrorMessage,
-            Status = StatusCodes.Status400BadRequest
-        });
-    }
-
     private string? ReadBearerToken()
     {
         var header = Request.Headers.Authorization.ToString();

@@ -477,7 +477,6 @@ are served at `/i18n/{lang}.json`.
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
-- `POST /api/auth/change-password` (authenticated user, own password only)
 - `GET /api/time`
 - `GET /api/auth/users`
 - `POST /api/auth/users`
