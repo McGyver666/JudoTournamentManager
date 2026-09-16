@@ -71,13 +71,22 @@ public sealed class AuthController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _authService.LoginAsync(request.UserName, request.Password, cancellationToken);
-        return result.Status switch
+        if (result.Status == LoginStatus.Success)
         {
-            LoginStatus.Success => Ok(new LoginResponse(
+            Response.Cookies.Append(
+                AuthCookie.Name,
+                result.AccessToken!,
+                AuthCookie.CreateOptions(result.ExpiresAtUtc, Request.IsHttps));
+
+            return Ok(new LoginResponse(
                 result.AccessToken!,
                 result.ExpiresAtUtc!.Value,
                 result.UserName!,
-                result.Role!)),
+                result.Role!));
+        }
+
+        return result.Status switch
+        {
             LoginStatus.Locked => StatusCode(StatusCodes.Status423Locked, new ProblemDetails
             {
                 Title = "Benutzer ist gesperrt.",
@@ -107,11 +116,13 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> LogoutAsync(CancellationToken cancellationToken)
     {
-        var token = ReadBearerToken();
+        var token = ReadAuthToken();
         if (!string.IsNullOrWhiteSpace(token))
         {
             await _authService.LogoutAsync(token, cancellationToken);
         }
+
+        Response.Cookies.Delete(AuthCookie.Name, AuthCookie.CreateOptions(isHttps: Request.IsHttps));
 
         return NoContent();
     }
@@ -184,6 +195,7 @@ public sealed class AuthController : ControllerBase
         var result = await _authService.SetUserActiveStateAsync(actor, userId, request.IsActive, cancellationToken);
         if (result.Updated)
         {
+            Response.Cookies.Delete(AuthCookie.Name, AuthCookie.CreateOptions(isHttps: Request.IsHttps));
             return NoContent();
         }
 
@@ -217,6 +229,7 @@ public sealed class AuthController : ControllerBase
         var result = await _authService.ResetPasswordAsync(actor, userId, request.NewPassword, cancellationToken);
         if (result.Updated)
         {
+            Response.Cookies.Delete(AuthCookie.Name, AuthCookie.CreateOptions(isHttps: Request.IsHttps));
             return NoContent();
         }
 
@@ -256,7 +269,7 @@ public sealed class AuthController : ControllerBase
         CancellationToken cancellationToken)
     {
         var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var token = ReadBearerToken();
+        var token = ReadAuthToken();
         if (!Guid.TryParse(idClaim, out var userId) || string.IsNullOrWhiteSpace(token))
         {
             return Unauthorized();
@@ -302,15 +315,21 @@ public sealed class AuthController : ControllerBase
         });
     }
 
-    private string? ReadBearerToken()
+    private string? ReadAuthToken()
     {
         var header = Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(header) || !header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(header) && header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            return null;
+            var bearerToken = header["Bearer ".Length..].Trim();
+            if (!string.IsNullOrWhiteSpace(bearerToken))
+            {
+                return bearerToken;
+            }
         }
 
-        var token = header["Bearer ".Length..].Trim();
-        return string.IsNullOrWhiteSpace(token) ? null : token;
+        return Request.Cookies.TryGetValue(AuthCookie.Name, out var cookieToken)
+            && !string.IsNullOrWhiteSpace(cookieToken)
+            ? cookieToken
+            : null;
     }
 }

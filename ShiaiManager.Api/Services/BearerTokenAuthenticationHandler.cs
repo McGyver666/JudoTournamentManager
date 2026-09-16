@@ -31,7 +31,7 @@ public sealed class BearerTokenAuthenticationHandler : AuthenticationHandler<Aut
     /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var token = TryReadBearerTokenFromHeader();
+        var token = TryReadToken();
         if (string.IsNullOrWhiteSpace(token) && Request.Path.StartsWithSegments("/hubs/tournament"))
         {
             token = Request.Query["access_token"].ToString();
@@ -80,14 +80,24 @@ public sealed class BearerTokenAuthenticationHandler : AuthenticationHandler<Aut
         return AuthenticateResult.Success(ticket);
     }
 
-    private string? TryReadBearerTokenFromHeader()
+    private string? TryReadToken()
     {
         var header = Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(header) || !header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(header) && header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            return null;
+            var bearerToken = header["Bearer ".Length..].Trim();
+            if (!string.IsNullOrWhiteSpace(bearerToken))
+            {
+                return bearerToken;
+            }
         }
 
-        return header["Bearer ".Length..].Trim();
+        if (Request.Cookies.TryGetValue(AuthCookie.Name, out var cookieToken)
+            && !string.IsNullOrWhiteSpace(cookieToken))
+        {
+            return cookieToken;
+        }
+
+        return null;
     }
 }

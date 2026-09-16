@@ -250,8 +250,16 @@ chmod +x "$INSTALL_DIR/app/ShiaiManager.Api"
 install -d /etc/default
 if [[ ! -f /etc/default/shiai-manager ]]; then
   SECRET="$(openssl rand -base64 48 | tr -d '\n')"
-  printf 'Security__AuthTokenHmacSecret=%s\n' "$SECRET" > /etc/default/shiai-manager
+  printf 'Security__AuthTokenHmacSecret=%s\nAllowedHosts=%s\nGuestShare__PublicBaseUrl=https://%s\n' \
+    "$SECRET" "$HOSTNAME" "$HOSTNAME" > /etc/default/shiai-manager
   chmod 600 /etc/default/shiai-manager
+fi
+
+if ! grep -q '^AllowedHosts=' /etc/default/shiai-manager; then
+  printf 'AllowedHosts=%s\n' "$HOSTNAME" >> /etc/default/shiai-manager
+fi
+if ! grep -q '^GuestShare__PublicBaseUrl=' /etc/default/shiai-manager; then
+  printf 'GuestShare__PublicBaseUrl=https://%s\n' "$HOSTNAME" >> /etc/default/shiai-manager
 fi
 
 cp "$INSTALL_DIR/deploy/shiai-manager.service" /etc/systemd/system/shiai-manager.service
@@ -260,6 +268,20 @@ cp "$INSTALL_DIR/deploy/shiai-manager.service" /etc/systemd/system/shiai-manager
 # this server block with a TLS-enabled one when it is run below.
 install -d "$(dirname "$NGINX_CONFIG_PATH")"
 cat > "$NGINX_CONFIG_PATH" <<EOF
+server {
+  listen 80 default_server;
+  server_name _;
+
+  return 444;
+}
+
+server {
+  listen 443 ssl default_server;
+  server_name _;
+
+  ssl_reject_handshake on;
+}
+
 server {
     listen 80;
     server_name $HOSTNAME;

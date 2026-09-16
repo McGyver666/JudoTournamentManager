@@ -60,6 +60,8 @@ The manual steps below remain available for source-based or customised installs.
 - The API will listen on `127.0.0.1:5080`
 - nginx terminates TLS and forwards requests to the app
 - The public hostname is provided at deploy time via the `DOMAIN` variable (the nginx config ships with a `__SERVER_NAME__` placeholder)
+- Production host validation uses `AllowedHosts`; the installer sets it to the supplied hostname.
+- Guest-share URLs use the canonical `GuestShare__PublicBaseUrl` configured by the installer instead of the incoming `Host` header.
 
 ## 1) Install prerequisites
 ```bash
@@ -98,8 +100,14 @@ sudo ln -s /etc/nginx/sites-available/shiai-manager /etc/nginx/sites-enabled/shi
 sudo mkdir -p /etc/default
 sudo tee /etc/default/shiai-manager > /dev/null <<'EOF'
 Security__AuthTokenHmacSecret=replace-with-a-long-random-secret
+AllowedHosts=tournament.example.com
+GuestShare__PublicBaseUrl=https://tournament.example.com
 EOF
 ```
+
+`AllowedHosts` must contain the public hostname used by nginx. `GuestShare__PublicBaseUrl`
+is the canonical HTTPS origin used in guest links and QR codes. The bundled installer
+writes both values from `--hostname` and preserves them on upgrades when they already exist.
 
 ## 6) Obtain TLS certificate
 Use the HTTP-only nginx config above for the first run. Certbot will then add the HTTPS server block and the certificate paths for you.
@@ -124,5 +132,6 @@ sudo ufw enable
 
 ## Notes
 - The API is expected to serve the built Angular frontend from its `wwwroot` directory.
+- nginx rejects unmatched HTTP and HTTPS hostnames with status `444` before proxying to the API.
 - The app uses SQLite, so keep `/opt/shiai-manager/ShiaiManager.Api/App_Data` on persistent storage if the container is rebuilt.
 - If you want to avoid publishing the app from source, you can replace the `ExecStartPre` line with a pre-built deployment directory.

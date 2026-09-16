@@ -30,6 +30,41 @@ describe('authInterceptor', () => {
         next: () => {
           expect(captured).not.toBeNull();
           expect(captured!.headers.get('Authorization')).toBe('Bearer token-123');
+          expect(captured!.withCredentials).toBeTrue();
+          done();
+        },
+        error: done.fail,
+      });
+    });
+  });
+
+  it('adds credentials and the CSRF header for API state changes', (done) => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AuthStateService,
+          useValue: {
+            token: () => null,
+          },
+        },
+      ],
+    });
+
+    const req = new HttpRequest('POST', 'api/tournaments', {});
+    let captured: HttpRequest<unknown> | null = null;
+
+    const next: HttpHandlerFn = (forwarded) => {
+      captured = forwarded;
+      return of(new HttpResponse({ status: 200 }));
+    };
+
+    TestBed.runInInjectionContext(() => {
+      authInterceptor(req, next).subscribe({
+        next: () => {
+          expect(captured).not.toBeNull();
+          expect(captured!.headers.has('Authorization')).toBeFalse();
+          expect(captured!.headers.get('X-Requested-With')).toBe('ShiaiManager');
+          expect(captured!.withCredentials).toBeTrue();
           done();
         },
         error: done.fail,
@@ -62,6 +97,7 @@ describe('authInterceptor', () => {
         next: () => {
           expect(captured).not.toBeNull();
           expect(captured!.headers.has('Authorization')).toBeFalse();
+          expect(captured!.withCredentials).toBeFalse();
           done();
         },
         error: done.fail,

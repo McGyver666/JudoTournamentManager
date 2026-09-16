@@ -56,6 +56,10 @@ export class TournamentHubService {
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl('/hubs/tournament', {
         accessTokenFactory: () => this.auth.token() ?? '',
+        withCredentials: true,
+        headers: {
+          'X-Requested-With': 'ShiaiManager',
+        },
       })
       .withAutomaticReconnect()
       .build();

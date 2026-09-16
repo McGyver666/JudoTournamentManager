@@ -47,15 +47,19 @@ public sealed class AuthControllerTests
     public async Task LoginAsync_WhenSuccess_ReturnsTokenPayload()
     {
         var auth = new Mock<IAuthService>();
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(1);
         auth.Setup(x => x.LoginAsync("admin", "Strong!Pass123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new LoginResult(
                 LoginStatus.Success,
                 "token123",
-                DateTimeOffset.UtcNow.AddHours(1),
+                expiresAtUtc,
                 "admin",
                 "Admin"));
 
-        var controller = new AuthController(auth.Object);
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
         var result = await controller.LoginAsync(
             new LoginRequest { UserName = "admin", Password = "Strong!Pass123" },
             CancellationToken.None);
@@ -63,6 +67,62 @@ public sealed class AuthControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal(StatusCodes.Status200OK, ok.StatusCode);
         Assert.IsType<LoginResponse>(ok.Value);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WhenSuccess_SetsHttpOnlyStrictAuthCookie()
+    {
+        var auth = new Mock<IAuthService>();
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(1);
+        auth.Setup(x => x.LoginAsync("admin", "Strong!Pass123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LoginResult(
+                LoginStatus.Success,
+                "token123",
+                expiresAtUtc,
+                "admin",
+                "Admin"));
+
+        var httpContext = new DefaultHttpContext();
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        await controller.LoginAsync(
+            new LoginRequest { UserName = "admin", Password = "Strong!Pass123" },
+            CancellationToken.None);
+
+        var setCookie = httpContext.Response.Headers.SetCookie.ToString();
+        Assert.Contains("shiai_auth=token123", setCookie, StringComparison.Ordinal);
+        Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("samesite=strict", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("path=/", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(expiresAtUtc.UtcDateTime.ToString("R"), setCookie, StringComparison.Ordinal);
+        Assert.DoesNotContain("; secure", setCookie, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_WhenCookieSessionExists_RevokesTokenAndDeletesCookie()
+    {
+        var auth = new Mock<IAuthService>();
+        auth.Setup(x => x.LogoutAsync("cookie-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Cookie = "shiai_auth=cookie-token";
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        var result = await controller.LogoutAsync(CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+        auth.Verify(x => x.LogoutAsync("cookie-token", It.IsAny<CancellationToken>()), Times.Once);
+        var setCookie = httpContext.Response.Headers.SetCookie.ToString();
+        Assert.Contains("shiai_auth=", setCookie, StringComparison.Ordinal);
+        Assert.Contains("expires=", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("path=/", setCookie, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

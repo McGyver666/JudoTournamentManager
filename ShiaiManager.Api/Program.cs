@@ -15,6 +15,8 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+const string csrfHeaderName = "X-Requested-With";
+const string csrfHeaderValue = "ShiaiManager";
 
 var authTokenHmacSecret = builder.Configuration["Security:AuthTokenHmacSecret"];
 if (string.IsNullOrWhiteSpace(authTokenHmacSecret))
@@ -196,6 +198,27 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    if (RequiresCsrfHeader(context)
+        && !string.Equals(
+            context.Request.Headers[csrfHeaderName].ToString(),
+            csrfHeaderValue,
+            StringComparison.Ordinal))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            title = "CSRF-Prüfung fehlgeschlagen.",
+            detail = "Für diese Sitzung ist ein gültiger CSRF-Header erforderlich.",
+            status = StatusCodes.Status403Forbidden
+        });
+        return;
+    }
+
+    await next();
+});
 app.UseAuthorization();
 app.UseRateLimiter();
 
@@ -208,6 +231,21 @@ app.MapHub<TournamentHub>("/hubs/tournament");
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+static bool RequiresCsrfHeader(HttpContext context)
+{
+    if (HttpMethods.IsGet(context.Request.Method)
+        || HttpMethods.IsHead(context.Request.Method)
+        || HttpMethods.IsOptions(context.Request.Method))
+    {
+        return false;
+    }
+
+    return context.User.Identity?.IsAuthenticated == true
+        && context.Request.Cookies.ContainsKey(AuthCookie.Name)
+        && !context.Request.Headers.ContainsKey("Authorization")
+        && context.GetEndpoint()?.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAuthorizeData>() is not null;
+}
 
 static async Task InitializeDatabaseAsync(WebApplication application)
 {

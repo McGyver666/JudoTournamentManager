@@ -14,10 +14,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace ShiaiManager.Api.Tests;
 
 /// <summary>
-/// Integration tests for the <c>UseForwardedHeaders</c> middleware (issue #12): verifies that an
+/// Integration tests for forwarded headers and host filtering: verifies that an
 /// <c>X-Forwarded-Proto: https</c> header from a trusted proxy yields an <c>https</c> request scheme
 /// (so the guest-share public URL is HTTPS), while a request without the header keeps the local
-/// <c>http</c> scheme.
+/// <c>http</c> scheme and a non-allowlisted host is rejected.
 /// </summary>
 [Trait("Category", "UnitTest")]
 public sealed class ForwardedHeadersIntegrationTests : IClassFixture<ForwardedHeadersIntegrationTests.ApiFactory>
@@ -77,6 +77,17 @@ public sealed class ForwardedHeadersIntegrationTests : IClassFixture<ForwardedHe
         Assert.StartsWith("http://", payload.PublicUrl, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Request_WhenHostIsNotAllowed_IsRejected()
+    {
+        using var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Host = "unexpected.example.test";
+
+        var response = await client.GetAsync("/health");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private static async Task<string> BootstrapAndLoginAdminAsync(HttpClient client)
     {
         await client.PostAsJsonAsync("/api/auth/bootstrap-admin", new BootstrapAdminRequest
@@ -130,6 +141,7 @@ public sealed class ForwardedHeadersIntegrationTests : IClassFixture<ForwardedHe
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+            builder.UseSetting("AllowedHosts", "localhost;allowed.example.test");
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<AppDbContext>>();

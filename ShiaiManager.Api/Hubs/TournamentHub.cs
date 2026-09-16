@@ -9,7 +9,7 @@ namespace ShiaiManager.Api.Hubs;
 /// SignalR hub for real-time tournament updates.
 /// Clients join a tournament group and receive fight-state change notifications.
 /// </summary>
-[Authorize]
+[Authorize(Roles = "Admin,Operator,Display,Competition,Guest")]
 public sealed class TournamentHub : Hub
 {
     private readonly ITournamentStore _tournamentStore;
