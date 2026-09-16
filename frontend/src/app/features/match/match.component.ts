@@ -33,6 +33,7 @@ import {
 } from '../../core/models';
 
 const OPERATOR_NAME_KEY = 'judo.operatorName';
+const KEYBOARD_BLOCKED_SELECTORS = 'input, textarea, select, button, dialog, [contenteditable="true"], [role="dialog"], [aria-modal="true"]';
 
 interface WinnerConfirmationState {
   fight: Fight;
@@ -283,6 +284,77 @@ export class MatchComponent implements OnInit, OnDestroy {
     if (document.visibilityState === 'visible') {
       void this.time.synchronizeIfStale();
     }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  protected onKeyboardShortcut(event: KeyboardEvent): void {
+    if (event.defaultPrevented || event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+      return;
+    }
+
+    if (this.isKeyboardShortcutBlocked(event)) {
+      return;
+    }
+
+    if (!this.canOperate() || !this.context.tournamentId() || !this.selectedTatamiId()) {
+      return;
+    }
+
+    const fight = this.currentFight();
+    if (!fight) {
+      return;
+    }
+
+    const key = event.code === 'Space' || event.key === ' ' ? 'space' : event.key.toLowerCase();
+    let action: (() => void) | null = null;
+
+    switch (key) {
+      case 'space':
+        if (fight.status === 'Pending') {
+          action = () => this.startFight(fight);
+        } else if (fight.status === 'InProgress') {
+          action = () => this.pauseFight(fight);
+        } else if (fight.status === 'Paused') {
+          action = () => this.resumeFight(fight);
+        }
+        break;
+      case 's':
+        if (this.canRecordScore(fight) && this.canStartOsaeKomi(fight, 'white')) {
+          action = () => this.startOsaeKomi(fight, 'white');
+        }
+        break;
+      case 'f':
+        if (this.canRecordScore(fight) && this.canStartOsaeKomi(fight, 'blue')) {
+          action = () => this.startOsaeKomi(fight, 'blue');
+        }
+        break;
+      case 'd':
+        if (this.canRecordScore(fight) && this.osaeKomiSide() !== null) {
+          action = () => this.stopOsaeKomi(fight);
+        }
+        break;
+    }
+
+    if (!action) {
+      return;
+    }
+
+    event.preventDefault();
+    action();
+  }
+
+  private isKeyboardShortcutBlocked(event: KeyboardEvent): boolean {
+    if (this.winnerConfirmation() !== null) {
+      return true;
+    }
+
+    const target = event.target instanceof Element ? event.target : document.activeElement;
+    if (!target) {
+      return false;
+    }
+
+    return target.matches(KEYBOARD_BLOCKED_SELECTORS)
+      || target.closest(KEYBOARD_BLOCKED_SELECTORS) !== null;
   }
 
   protected refreshQueue(): void {
