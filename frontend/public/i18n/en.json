@@ -413,6 +413,7 @@
   "users.roleAdmin": "Administrator",
   "users.roleOperator": "Operator",
   "users.roleDisplay": "Display",
+  "users.roleCompetition": "Competition",
   "users.active": "Active",
   "users.activate": "Activate",
   "users.deactivate": "Deactivate",

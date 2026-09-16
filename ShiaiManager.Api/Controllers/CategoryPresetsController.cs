@@ -33,7 +33,7 @@ public sealed class CategoryPresetsController : ControllerBase
     /// Returns all category presets for a tournament, with birth years computed
     /// from the tournament date.
     /// </summary>
-    [Authorize(Roles = "Admin,Operator,Display")]
+    [Authorize(Roles = "Admin,Operator,Display,Competition")]
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<CategoryPresetResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

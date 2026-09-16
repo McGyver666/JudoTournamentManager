@@ -11,7 +11,7 @@ namespace ShiaiManager.Api.Controllers;
 /// winner confirmation and result correction (F-02, F-03).
 /// </summary>
 [ApiController]
-[Authorize(Roles = "Admin,Operator")]
+[Authorize(Policy = "LiveFightOperation")]
 [Route("api/tournaments/{tournamentId:guid}/fights/{fightId:guid}")]
 public sealed class MatchController : ControllerBase
 {

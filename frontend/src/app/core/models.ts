@@ -661,7 +661,7 @@ export interface GlobalClubScoringResponse {
   clubs: ClubScoringEntry[];
 }
 
-export type UserRole = 'Admin' | 'Operator' | 'Display';
+export type UserRole = 'Admin' | 'Operator' | 'Display' | 'Competition';
 
 export interface LoginRequest {
   userName: string;

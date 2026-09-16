@@ -415,6 +415,7 @@
   "users.roleAdmin": "Administrator",
   "users.roleOperator": "Operator",
   "users.roleDisplay": "Anzeige",
+  "users.roleCompetition": "Wettkampf",
   "users.active": "Aktiv",
   "users.activate": "Aktivieren",
   "users.deactivate": "Deaktivieren",

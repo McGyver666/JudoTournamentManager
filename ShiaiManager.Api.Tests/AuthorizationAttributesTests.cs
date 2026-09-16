@@ -40,12 +40,12 @@ public sealed class AuthorizationAttributesTests
     }
 
     [Fact]
-    public void MatchController_HasClassLevelAdminOperatorAuthorization()
+    public void MatchController_HasClassLevelLiveFightAuthorization()
     {
         var authorize = typeof(MatchController).GetCustomAttribute<AuthorizeAttribute>();
 
         Assert.NotNull(authorize);
-        Assert.Equal("Admin,Operator", authorize!.Roles);
+        Assert.Equal("LiveFightOperation", authorize!.Policy);
     }
 
     [Fact]

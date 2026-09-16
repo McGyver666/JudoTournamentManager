@@ -13,7 +13,7 @@ namespace ShiaiManager.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/tournaments/{tournamentId:guid}/public")]
-[Authorize(Roles = "Admin,Operator,Display,Guest")]
+[Authorize(Roles = "Admin,Operator,Display,Competition,Guest")]
 [EnableRateLimiting("PublicPolicy")]
 public sealed class PublicController : ControllerBase
 {

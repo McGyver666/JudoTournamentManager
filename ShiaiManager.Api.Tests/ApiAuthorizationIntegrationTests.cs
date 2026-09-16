@@ -78,6 +78,139 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
     }
 
     [Fact]
+    public async Task CompetitionRole_CanBeCreatedAndCanReadTournaments()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "competition1", "Competition");
+
+        var competitionToken = await LoginAndGetTokenAsync(client, "competition1", "Competition!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", competitionToken);
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CompetitionRole_CannotCreateTournament()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "competition2", "Competition");
+
+        var competitionToken = await LoginAndGetTokenAsync(client, "competition2", "Competition!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", competitionToken);
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", new CreateTournamentRequest
+        {
+            Name = "Nicht erlaubt",
+            Date = DateOnly.FromDateTime(DateTime.UtcNow),
+            Venue = "Essen",
+            Organizer = "JV Essen"
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CompetitionRole_CanReachCompetitionReadAndLiveOperationEndpoints()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "competition-reads", "Competition");
+
+        var token = await LoginAndGetTokenAsync(client, "competition-reads", "Competition!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var tournamentId = Guid.NewGuid();
+        var fightId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        var tatamiId = Guid.NewGuid();
+
+        var requests = new (HttpMethod Method, string Uri, HttpContent? Content)[]
+        {
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/completed-fights", null),
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/medal-table", null),
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/categories/{categoryId}/rankings", null),
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/tatamis/{tatamiId}/queue", null),
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/team-matchday/encounters/{Guid.NewGuid()}/lineups/1", null),
+            (HttpMethod.Post, $"/api/tournaments/{tournamentId}/fights/{fightId}/queue-move", JsonContent.Create(new { Direction = "Up" })),
+            (HttpMethod.Post, $"/api/tournaments/{tournamentId}/fights/{fightId}/start", null),
+            (HttpMethod.Post, $"/api/tournaments/{tournamentId}/fights/{fightId}/result", JsonContent.Create(new { WinnerId = Guid.NewGuid() })),
+        };
+
+        foreach (var request in requests)
+        {
+            using var message = new HttpRequestMessage(request.Method, request.Uri) { Content = request.Content };
+            using var response = await client.SendAsync(message);
+
+            Assert.True(
+                response.StatusCode is HttpStatusCode.OK or HttpStatusCode.NotFound,
+                $"Competition request {request.Method} {request.Uri} was rejected with {response.StatusCode}.");
+        }
+    }
+
+    [Fact]
+    public async Task CompetitionRole_CannotUseManagementOrAdministrativeEndpoints()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "competition-denied", "Competition");
+
+        var token = await LoginAndGetTokenAsync(client, "competition-denied", "Competition!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var tournamentId = Guid.NewGuid();
+
+        var requests = new (HttpMethod Method, string Uri, HttpContent? Content)[]
+        {
+            (HttpMethod.Put, $"/api/tournaments/{tournamentId}", JsonContent.Create(new { Name = "Nicht erlaubt" })),
+            (HttpMethod.Post, $"/api/tournaments/{tournamentId}/categories", JsonContent.Create(new { Name = "Nicht erlaubt" })),
+            (HttpMethod.Post, $"/api/tournaments/{tournamentId}/team-matchday/teams", JsonContent.Create(new { })),
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/audit-log", null),
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/backup", null),
+            (HttpMethod.Get, $"/api/tournaments/{tournamentId}/guest-share", null),
+            (HttpMethod.Post, $"/api/tournaments/{tournamentId}/completed-fights/{Guid.NewGuid()}/edit-result", JsonContent.Create(new { })),
+        };
+
+        foreach (var request in requests)
+        {
+            using var message = new HttpRequestMessage(request.Method, request.Uri) { Content = request.Content };
+            using var response = await client.SendAsync(message);
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task DisplayRole_CannotOperateLiveFight()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "display-live", "Display");
+
+        var token = await LoginAndGetTokenAsync(client, "display-live", "Display!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{Guid.NewGuid()}/fights/{Guid.NewGuid()}/start", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Admin", "admin-regression", "Admin!123456")]
+    [InlineData("Operator", "operator-regression", "Operator!1234")]
+    public async Task AdminAndOperator_CanReachCompletedResultCorrection(string role, string userName, string password)
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, userName, role);
+
+        var token = await LoginAndGetTokenAsync(client, userName, password);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{Guid.NewGuid()}/completed-fights/{Guid.NewGuid()}/edit-result",
+            new EditFightResultRequest());
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetTournaments_WithoutToken_Returns401()
     {
         using var client = _factory.CreateClient();
@@ -149,6 +282,24 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
         {
             CurrentPassword = "Display!1234",
             NewPassword = "Changed!Pass456"
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithCompetitionRole_Returns204()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "password-competition", "Competition");
+
+        var token = await LoginAndGetTokenAsync(client, "password-competition", "Competition!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsJsonAsync("/api/auth/change-password", new ChangePasswordRequest
+        {
+            CurrentPassword = "Competition!1234",
+            NewPassword = "Changed!Pass789"
         });
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -328,7 +479,7 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
         {
             UserName = userName,
             Role = role,
-            Password = role + "!1234"
+            Password = role == "Admin" ? "Admin!123456" : role + "!1234"
         });
 
         Assert.Equal(HttpStatusCode.Created, createUserResponse.StatusCode);

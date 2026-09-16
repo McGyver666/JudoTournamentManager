@@ -43,6 +43,7 @@ export class AppComponent implements OnInit, OnDestroy {
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly canOperate = this.auth.canOperate;
+  protected readonly canOperateLive = this.auth.canOperateLive;
   protected readonly currentUser = this.auth.user;
   protected readonly hubConnected = this.hub.connected;
   protected readonly displayTatamis = signal<Tatami[]>([]);

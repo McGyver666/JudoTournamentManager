@@ -88,7 +88,7 @@
           }
 
           <span class="nav-label">{{ 'nav.sectionWettkampf' | t }}</span>
-          @if (canOperate()) {
+          @if (canOperateLive()) {
             <div class="nav-group" [class.open]="matchMenuOpen()">
               <button
                 type="button"
