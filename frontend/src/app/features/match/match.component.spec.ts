@@ -382,6 +382,22 @@ describe('MatchComponent', () => {
     fixture.destroy();
   });
 
+  it('renders the keyboard shortcut help in the match header', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector('.hotkey-help__trigger') as HTMLButtonElement;
+    const popover = fixture.nativeElement.querySelector('#match-hotkeys-popover') as HTMLElement;
+    const keys = Array.from(popover.querySelectorAll('kbd')).map((key) => key.textContent?.trim());
+
+    expect(trigger).not.toBeNull();
+    expect(trigger.getAttribute('aria-describedby')).toBe('match-hotkeys-popover');
+    expect(popover.getAttribute('role')).toBe('tooltip');
+    expect(keys).toEqual(['Space', 'S', 'F', 'D']);
+
+    fixture.destroy();
+  });
+
   it('refreshes queue and athlete metadata immediately after a completed fight update', () => {
     const fixture = TestBed.createComponent(MatchComponent);
     fixture.detectChanges();

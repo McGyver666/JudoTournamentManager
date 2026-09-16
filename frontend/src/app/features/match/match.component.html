@@ -3,6 +3,26 @@
     <header class="section-head card-pad">
       <h2 class="section-head__title">{{ 'sectionHeads.match.title' | t }}</h2>
       <p class="section-head__text">{{ 'sectionHeads.match.text' | t }}</p>
+      <div class="hotkey-help">
+        <button
+          type="button"
+          class="hotkey-help__trigger"
+          [attr.aria-label]="'match.hotkeysAriaLabel' | t"
+          aria-describedby="match-hotkeys-popover"
+          [title]="'match.hotkeysAriaLabel' | t">
+          <span class="hotkey-help__icon" aria-hidden="true">i</span>
+          <span>{{ 'match.hotkeysLabel' | t }}</span>
+        </button>
+        <div id="match-hotkeys-popover" class="hotkey-help__popover" role="tooltip">
+          <strong>{{ 'match.hotkeysTitle' | t }}</strong>
+          <ul>
+            <li><kbd>Space</kbd><span>{{ 'match.hotkeyFightClock' | t }}</span></li>
+            <li><kbd>S</kbd><span>{{ 'match.hotkeyOsaeWhite' | t }}</span></li>
+            <li><kbd>F</kbd><span>{{ 'match.hotkeyOsaeBlue' | t }}</span></li>
+            <li><kbd>D</kbd><span>{{ 'match.hotkeyOsaeStop' | t }}</span></li>
+          </ul>
+        </div>
+      </div>
     </header>
   </section>
 
