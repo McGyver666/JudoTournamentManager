@@ -1,7 +1,7 @@
 import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
 import { Athlete, Category, Club, Fight, Tatami, TatamiQueue, Tournament } from '../../core/models';
@@ -17,6 +17,11 @@ describe('MatchComponent', () => {
   let categoryFightsUpdates: Subject<{ tournamentId: string; categoryId: string }>;
   let getTatamiQueueSpy: jasmine.Spy;
   let getAthletesSpy: jasmine.Spy;
+  let startFightSpy: jasmine.Spy;
+  let pauseFightSpy: jasmine.Spy;
+  let resumeFightSpy: jasmine.Spy;
+  let startOsaeKomiSpy: jasmine.Spy;
+  let stopOsaeKomiSpy: jasmine.Spy;
   let tournamentSignal: WritableSignal<Tournament>;
 
   function createTournament(): Tournament {
@@ -132,10 +137,20 @@ describe('MatchComponent', () => {
         onDeck: null,
         upcoming: [],
       } as TatamiQueue)),
+      startFight: jasmine.createSpy('startFight').and.returnValue(of(undefined)),
+      pauseFight: jasmine.createSpy('pauseFight').and.returnValue(of(undefined)),
+      resumeFight: jasmine.createSpy('resumeFight').and.returnValue(of(undefined)),
+      startOsaeKomi: jasmine.createSpy('startOsaeKomi').and.returnValue(of(undefined)),
+      stopOsaeKomi: jasmine.createSpy('stopOsaeKomi').and.returnValue(of(undefined)),
     };
 
     getTatamiQueueSpy = apiMock.getTatamiQueue as jasmine.Spy;
     getAthletesSpy = apiMock.getAthletes as jasmine.Spy;
+    startFightSpy = apiMock.startFight as jasmine.Spy;
+    pauseFightSpy = apiMock.pauseFight as jasmine.Spy;
+    resumeFightSpy = apiMock.resumeFight as jasmine.Spy;
+    startOsaeKomiSpy = apiMock.startOsaeKomi as jasmine.Spy;
+    stopOsaeKomiSpy = apiMock.stopOsaeKomi as jasmine.Spy;
 
     TestBed.configureTestingModule({
       providers: [
@@ -175,6 +190,212 @@ describe('MatchComponent', () => {
         { provide: Router, useValue: { navigate: jasmine.createSpy('navigate').and.returnValue(Promise.resolve(true)) } },
       ],
     });
+  });
+
+  it('starts a pending fight with the space bar and refreshes the queue', () => {
+    getTatamiQueueSpy.and.returnValue(of({
+      current: createFight({ status: 'Pending', startedAtUtc: null, completedAtUtc: null }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    } as TatamiQueue));
+
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+    getTatamiQueueSpy.calls.reset();
+
+    const event = new KeyboardEvent('keydown', { key: ' ', code: 'Space', cancelable: true });
+    document.dispatchEvent(event);
+
+    expect(startFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(getTatamiQueueSpy).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBeTrue();
+
+    fixture.destroy();
+  });
+
+  it('pauses and resumes the current fight with the space bar', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    const component = fixture.componentInstance as any;
+
+    getTatamiQueueSpy.and.returnValue(of({
+      current: createFight({ status: 'InProgress' }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    } as TatamiQueue));
+    fixture.detectChanges();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+
+    expect(pauseFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+
+    component.queue.set({
+      current: createFight({ status: 'Paused' }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    });
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+
+    expect(resumeFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(startFightSpy).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
+  it('starts and stops Osae-komi with S, F, and D without touching the fight clock', () => {
+    tournamentSignal.update((tournament) => ({ ...tournament, accentSideColor: 'Red' }));
+    const fixture = TestBed.createComponent(MatchComponent);
+    const component = fixture.componentInstance as any;
+    const fight = createFight({ status: 'InProgress' });
+    getTatamiQueueSpy.and.returnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }));
+    component.osaeKomiSide.set('white');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
+
+    expect(startOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', { side: 'white' }, jasmine.any(String));
+    expect(startOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', { side: 'blue' }, jasmine.any(String));
+    expect(stopOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(pauseFightSpy).not.toHaveBeenCalled();
+    expect(resumeFightSpy).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
+  it('ignores repeated, modified, invalid, unauthorized, and focused-input shortcuts', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    const auth = TestBed.inject(AuthStateService) as AuthStateService & { canOperate: WritableSignal<boolean> };
+    const component = fixture.componentInstance as any;
+    const fight = createFight({ status: 'InProgress' });
+    getTatamiQueueSpy.and.returnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
+    fixture.detectChanges();
+
+    component.osaeKomiSide.set(null);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', repeat: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', ctrlKey: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
+    auth.canOperate.set(false);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+    auth.canOperate.set(true);
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+
+    expect(startFightSpy).not.toHaveBeenCalled();
+    expect(pauseFightSpy).not.toHaveBeenCalled();
+    expect(startOsaeKomiSpy).not.toHaveBeenCalled();
+    expect(stopOsaeKomiSpy).not.toHaveBeenCalled();
+
+    input.remove();
+    fixture.destroy();
+  });
+
+  it('does not handle shortcuts for a completed or missing current fight', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    const component = fixture.componentInstance as any;
+    fixture.detectChanges();
+
+    component.queue.set({
+      current: createFight({ status: 'Completed' }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    });
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
+    component.queue.set({ current: null, next: null, onDeck: null, upcoming: [] });
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+
+    expect(startFightSpy).not.toHaveBeenCalled();
+    expect(startOsaeKomiSpy).not.toHaveBeenCalled();
+    expect(stopOsaeKomiSpy).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
+  it('ignores shortcuts without a selected tatami, tournament, or outside a modal dialog', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    const component = fixture.componentInstance as any;
+    const fight = createFight({ status: 'Pending', startedAtUtc: null, completedAtUtc: null });
+    getTatamiQueueSpy.and.returnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
+    fixture.detectChanges();
+
+    component.selectedTatamiId.set(null);
+    const noTatamiEvent = new KeyboardEvent('keydown', { key: ' ', cancelable: true });
+    document.dispatchEvent(noTatamiEvent);
+
+    component.selectedTatamiId.set('tatami-1');
+    component.context.tournamentId.set(null);
+    const noTournamentEvent = new KeyboardEvent('keydown', { key: ' ', cancelable: true });
+    document.dispatchEvent(noTournamentEvent);
+
+    component.context.tournamentId.set('tournament-1');
+    component.winnerConfirmation.set({ fight, winnerId: fight.whiteAthleteId, nextFight: null });
+    const dialogEvent = new KeyboardEvent('keydown', { key: ' ', cancelable: true });
+    document.dispatchEvent(dialogEvent);
+
+    expect(startFightSpy).not.toHaveBeenCalled();
+    expect(noTatamiEvent.defaultPrevented).toBeFalse();
+    expect(noTournamentEvent.defaultPrevented).toBeFalse();
+    expect(dialogEvent.defaultPrevented).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('uses the existing error path when a keyboard action fails', () => {
+    getTatamiQueueSpy.and.returnValue(of({
+      current: createFight({ status: 'Pending', startedAtUtc: null, completedAtUtc: null }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    } as TatamiQueue));
+    startFightSpy.and.returnValue(throwError(() => new Error('start failed')));
+
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+    const event = new KeyboardEvent('keydown', { key: ' ', cancelable: true });
+    document.dispatchEvent(event);
+
+    expect(startFightSpy).toHaveBeenCalled();
+    expect((fixture.componentInstance as any).errorMessage()).toBe('Kampf konnte nicht gestartet werden.');
+    expect(event.defaultPrevented).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('uses the shared keyboard lifecycle for TeamMatchday fights', () => {
+    tournamentSignal.update((tournament) => ({ ...tournament, competitionMode: 'TeamMatchday' }));
+    getTatamiQueueSpy.and.returnValue(of({
+      current: createFight({ status: 'InProgress' }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    } as TatamiQueue));
+
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+
+    expect(pauseFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    fixture.destroy();
+  });
+
+  it('renders the keyboard shortcut help in the match header', () => {
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector('.hotkey-help__trigger') as HTMLButtonElement;
+    const popover = fixture.nativeElement.querySelector('#match-hotkeys-popover') as HTMLElement;
+    const keys = Array.from(popover.querySelectorAll('kbd')).map((key) => key.textContent?.trim());
+
+    expect(trigger).not.toBeNull();
+    expect(trigger.getAttribute('aria-describedby')).toBe('match-hotkeys-popover');
+    expect(popover.getAttribute('role')).toBe('tooltip');
+    expect(keys).toEqual(['Space', 'S', 'F', 'D']);
+
+    fixture.destroy();
   });
 
   it('refreshes queue and athlete metadata immediately after a completed fight update', () => {
