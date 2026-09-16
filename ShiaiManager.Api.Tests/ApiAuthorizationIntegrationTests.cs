@@ -221,6 +221,58 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
     }
 
     [Fact]
+    public async Task CookieSession_CanAuthenticateWithoutAuthorizationHeader()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "cookie-session", "Operator");
+        await LoginAndGetTokenAsync(client, "cookie-session", "Operator!1234");
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var response = await client.GetAsync("/api/auth/me");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CookieAuthenticatedStateChange_WithoutCsrfHeader_Returns403()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "cookie-csrf", "Operator");
+        await LoginAndGetTokenAsync(client, "cookie-csrf", "Operator!1234");
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var response = await client.PostAsJsonAsync("/api/tournaments", new CreateTournamentRequest
+        {
+            Name = "CSRF-Test",
+            Date = DateOnly.FromDateTime(DateTime.UtcNow),
+            Venue = "Halle",
+            Organizer = "JV Test"
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CookieAuthenticatedStateChange_WithCsrfHeader_Succeeds()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "cookie-csrf-valid", "Operator");
+        await LoginAndGetTokenAsync(client, "cookie-csrf-valid", "Operator!1234");
+
+        client.DefaultRequestHeaders.Authorization = null;
+        client.DefaultRequestHeaders.Add("X-Requested-With", "ShiaiManager");
+        var response = await client.PostAsJsonAsync("/api/tournaments", new CreateTournamentRequest
+        {
+            Name = "CSRF-Test gültig",
+            Date = DateOnly.FromDateTime(DateTime.UtcNow),
+            Venue = "Halle",
+            Organizer = "JV Test"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
     public async Task ChangePassword_WithoutToken_Returns401()
     {
         using var client = _factory.CreateClient();

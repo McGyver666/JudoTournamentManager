@@ -1,5 +1,6 @@
 using System.Reflection;
 using ShiaiManager.Api.Controllers;
+using ShiaiManager.Api.Hubs;
 using Microsoft.AspNetCore.Authorization;
 
 namespace ShiaiManager.Api.Tests;
@@ -76,6 +77,15 @@ public sealed class AuthorizationAttributesTests
 
         Assert.NotNull(authorize);
         Assert.Equal("Admin", authorize!.Roles);
+    }
+
+    [Fact]
+    public void TournamentHub_AllowsGuestRealtimeAccess()
+    {
+        var authorize = typeof(TournamentHub).GetCustomAttribute<AuthorizeAttribute>();
+
+        Assert.NotNull(authorize);
+        Assert.Equal("Admin,Operator,Display,Competition,Guest", authorize!.Roles);
     }
 
     private static MethodInfo FindMethod(Type controllerType, string methodName)

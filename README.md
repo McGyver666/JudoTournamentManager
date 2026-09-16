@@ -69,8 +69,8 @@ Already available:
 - Sono-mama/Yoshi pause and resume for active osae-komi, preserving hold time and freezing the fight clock
 - tenth-second local display for running final fight seconds and active osae-komi countdowns
 - results and medal table views
-- local authentication flow (login/logout, session persistence, admin user management)
-- authenticated SignalR hub access (realtime updates require valid bearer token)
+- local authentication flow (login/logout, HttpOnly cookie session persistence, admin user management)
+- authenticated SignalR hub access (operator sessions use same-origin cookies; guest shares use ephemeral bearer tokens)
 - security response headers (CSP, frame/mime/referrer protections)
 - auth endpoint rate limiting + request body size limits (restore endpoint explicitly allowed larger payload)
 - migration-first database startup (`MigrateAsync`) with EF migration history and legacy schema adoption
@@ -229,9 +229,14 @@ request and generated links (e.g. the guest-share public URL) use `https://`. In
 offline/LAN mode without a proxy, no forwarded headers are present and the scheme stays
 `http`.
 
+Production host validation is restricted through `AllowedHosts`, and guest-share links use
+the canonical `GuestShare__PublicBaseUrl` rather than the incoming `Host` header. The installer
+sets both values from `--hostname`; manual deployments must configure them in the systemd
+environment file.
+
 Unlike the offline/LAN mode, this mode is public-facing and does not rely on a trusted
-local network — keep TLS enforced and inject secrets (e.g. `Security:AuthTokenHmacSecret`)
-via configuration rather than hardcoding them.
+local network — keep TLS enforced, send the CSRF header for state-changing cookie-authenticated
+requests, and inject secrets (e.g. `Security:AuthTokenHmacSecret`) via configuration rather than hardcoding them.
 
 ## Admin-Passwort Bootstrap
 
@@ -570,7 +575,7 @@ Current backend culture setup:
 - the internet-hosted mode is public-facing: enforce TLS and treat the network as untrusted (do not rely on the trusted-LAN assumption)
 - all future auth, audit logging, and backup features must follow the backlog
 - secrets must never be hardcoded if external integrations are added later
-- SignalR hub access requires authentication; frontend passes bearer token for realtime channel setup
+- SignalR hub access requires authentication; operator sessions use the HttpOnly session cookie and guest shares use an ephemeral bearer token
 - fight timing remains server-authoritative; frontend clock sync is display-only and must not make rules decisions offline
 - helper scripts abort when `ASPNETCORE_ENVIRONMENT=Production`
 

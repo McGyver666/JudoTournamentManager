@@ -4,9 +4,6 @@ import { ApiService } from './api.service';
 import { AuthStateService } from './auth-state.service';
 
 describe('AuthStateService', () => {
-  const tokenKey = 'judo.auth.token';
-  const expiresKey = 'judo.auth.expires';
-
   let apiSpy: jasmine.SpyObj<Pick<ApiService, 'me' | 'login' | 'logout'>>;
 
   beforeEach(() => {
@@ -22,36 +19,30 @@ describe('AuthStateService', () => {
     return TestBed.inject(AuthStateService);
   }
 
-  it('restores valid token from localStorage', () => {
-    localStorage.setItem(tokenKey, 'stored-token');
-    localStorage.setItem(expiresKey, new Date(Date.now() + 60_000).toISOString());
-
-    const service = createService();
-
-    expect(service.token()).toBe('stored-token');
-  });
-
-  it('clears expired token from localStorage', () => {
-    localStorage.setItem(tokenKey, 'expired-token');
-    localStorage.setItem(expiresKey, new Date(Date.now() - 60_000).toISOString());
+  it('does not restore an auth token from localStorage', () => {
+    localStorage.setItem('judo.auth.token', 'stored-token');
+    localStorage.setItem('judo.auth.expires', new Date(Date.now() + 60_000).toISOString());
 
     const service = createService();
 
     expect(service.token()).toBeNull();
-    expect(localStorage.getItem(tokenKey)).toBeNull();
-    expect(localStorage.getItem(expiresKey)).toBeNull();
   });
 
-  it('init() clears session when me() fails for stored token', async () => {
-    localStorage.setItem(tokenKey, 'stored-token');
-    localStorage.setItem(expiresKey, new Date(Date.now() + 60_000).toISOString());
-    apiSpy.me.and.returnValue(throwError(() => new Error('unauthorized')));
+  it('restores the authenticated user through me()', async () => {
+    apiSpy.me.and.returnValue(
+      of({
+        userId: 'u1',
+        userName: 'admin',
+        role: 'Admin',
+      }),
+    );
 
     const service = createService();
     await service.init();
 
+    expect(service.user()).toEqual({ userId: 'u1', userName: 'admin', role: 'Admin' });
+    expect(service.isAuthenticated()).toBeTrue();
     expect(service.token()).toBeNull();
-    expect(service.user()).toBeNull();
   });
 
   it('login() stores token and resolves true on success', async () => {
@@ -76,9 +67,10 @@ describe('AuthStateService', () => {
     const ok = await service.login('admin', 'pw');
 
     expect(ok).toBeTrue();
-    expect(service.token()).toBe('login-token');
+    expect(service.token()).toBeNull();
     expect(service.isAuthenticated()).toBeTrue();
-    expect(localStorage.getItem(tokenKey)).toBe('login-token');
+    expect(localStorage.getItem('judo.auth.token')).toBeNull();
+    expect(localStorage.getItem('judo.auth.expires')).toBeNull();
   });
 
   it('logout() clears session even when API logout fails', async () => {

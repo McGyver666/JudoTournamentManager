@@ -69,8 +69,8 @@ Bereits verfuegbar:
 - Sono-mama/Yoshi zum Pausieren und Fortsetzen aktiver Osae-komi-Haltezeiten mit eingefrorener Kampfzeit
 - lokale Zehntelsekundenanzeige fuer laufende Schlusssekunden des Kampfes und aktive Osae-komi-Zeiten
 - Ergebnis- und Medaillenspiegelansichten
-- lokale Authentifizierung (Anmelden/Abmelden, Sitzungspersistenz, Benutzerverwaltung fuer Administratoren)
-- authentifizierter SignalR-Hub-Zugriff (Echtzeitaktualisierungen erfordern ein gueltiges Bearer-Token)
+- lokale Authentifizierung (Anmelden/Abmelden, Sitzungspersistenz per HttpOnly-Cookie, Benutzerverwaltung fuer Administratoren)
+- authentifizierter SignalR-Hub-Zugriff (Operator-Sitzungen verwenden Same-Origin-Cookies, Gastfreigaben fluechtige Bearer-Tokens)
 - Sicherheitsantwortheader (CSP sowie Frame-, MIME- und Referrer-Schutz)
 - Ratenbegrenzung fuer Auth-Endpunkte und Begrenzungen der Anfragetextgroesse (der Restore-Endpunkt erlaubt ausdruecklich groessere Nutzdaten)
 - migrationsbasierter Datenbankstart (`MigrateAsync`) mit EF-Migrationshistorie und Uebernahme bestehender Schemata
@@ -230,6 +230,11 @@ nginx-Konfiguration und Certbot-Einrichtung.
 Anders als im Offline-/LAN-Modus ist dieser Modus oeffentlich erreichbar und verlaesst sich
 nicht auf ein vertrauenswuerdiges lokales Netzwerk — TLS erzwingen und Geheimnisse
 (z. B. `Security:AuthTokenHmacSecret`) ueber die Konfiguration einspeisen statt sie zu hartcodieren.
+
+Die Produktionspruefung beschraenkt zulaessige Hosts ueber `AllowedHosts`; Gastfreigabe-Links
+verwenden die kanonische `GuestShare__PublicBaseUrl` statt des eingehenden `Host`-Headers.
+Das Installationsskript setzt beide Werte aus `--hostname`; bei manuellen Bereitstellungen
+muessen sie in der systemd-Umgebungsdatei konfiguriert werden.
 
 ## Bootstrap des Administratorpassworts
 
@@ -569,7 +574,7 @@ Aktuelle Kultureinstellung des Backends:
 - Der internet-gehostete Modus ist oeffentlich erreichbar: TLS erzwingen und das Netzwerk als nicht vertrauenswuerdig behandeln (nicht auf die Trusted-LAN-Annahme verlassen)
 - Alle kuenftigen Funktionen fuer Authentifizierung, Audit-Logging und Sicherungen muessen dem Backlog folgen
 - Geheimnisse duerfen bei spaeteren externen Integrationen niemals hartcodiert sein
-- SignalR-Hub-Zugriff erfordert Authentifizierung; das Frontend uebergibt fuer den Echtzeitkanal ein Bearer-Token
+- SignalR-Hub-Zugriff erfordert Authentifizierung; Operator-Sitzungen verwenden das HttpOnly-Sitzungscookie, Gastfreigaben ein fluechtiges Bearer-Token
 - Die Kampfzeit bleibt serverautoritativ; die Frontend-Zeitsynchronisation dient nur der Anzeige und darf offline keine Regelentscheidung ausloesen
 - Hilfsskripte brechen ab, wenn `ASPNETCORE_ENVIRONMENT=Production` gesetzt ist
 
