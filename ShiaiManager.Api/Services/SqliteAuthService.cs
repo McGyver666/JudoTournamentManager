@@ -412,6 +412,48 @@ public sealed class SqliteAuthService : IAuthService
     }
 
     /// <inheritdoc />
+    public async Task<DeleteUserResult> DeleteUserAsync(
+        string actorUserName,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var user = await _dbContext.UserAccounts.SingleOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            return new DeleteUserResult(false, "NotFound", "Benutzer wurde nicht gefunden.");
+        }
+
+        if (string.Equals(actorUserName?.Trim(), user.UserName, StringComparison.OrdinalIgnoreCase))
+        {
+            return new DeleteUserResult(false, "SelfDelete", "Eigener Benutzer kann nicht gelöscht werden.");
+        }
+
+        if (string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase)
+            && await _dbContext.UserAccounts.CountAsync(x => x.Role == "Admin", cancellationToken) <= 1)
+        {
+            return new DeleteUserResult(false, "LastAdmin", "Der letzte Admin darf nicht gelöscht werden.");
+        }
+
+        var sessions = await _dbContext.AuthSessions
+            .Where(x => x.UserAccountId == userId)
+            .ToListAsync(cancellationToken);
+        _dbContext.AuthSessions.RemoveRange(sessions);
+        _dbContext.UserAccounts.Remove(user);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            null,
+            string.IsNullOrWhiteSpace(actorUserName) ? "unbekannt" : actorUserName.Trim(),
+            "UserDeleted",
+            "Auth",
+            userId,
+            null,
+            cancellationToken);
+
+        return new DeleteUserResult(true, null, null);
+    }
+
+    /// <inheritdoc />
     public async Task<ChangePasswordResult> ChangePasswordAsync(
         Guid userId,
         string currentToken,

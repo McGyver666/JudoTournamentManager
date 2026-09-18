@@ -426,6 +426,8 @@
   "users.created": "Benutzer wurde erstellt.",
   "users.statusUpdated": "Benutzerstatus wurde aktualisiert.",
   "users.passwordReset": "Passwort wurde zurückgesetzt.",
+  "users.delete": "Benutzer löschen",
+  "users.deleted": "Benutzer wurde gelöscht.",
 
   "common.noTournamentSelected": "Kein Turnier ausgewählt. Bitte zuerst ein Turnier öffnen.",
   "common.reload": "Aktualisieren",

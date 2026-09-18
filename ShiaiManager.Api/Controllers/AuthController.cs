@@ -213,6 +213,36 @@ public sealed class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Deletes a local user account. Admin only.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("users/{userId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var actor = User.Identity?.Name ?? "unbekannt";
+        var result = await _authService.DeleteUserAsync(actor, userId, cancellationToken);
+        if (result.Deleted)
+        {
+            return NoContent();
+        }
+
+        if (string.Equals(result.ErrorCode, "NotFound", StringComparison.Ordinal))
+        {
+            return NotFound();
+        }
+
+        return Conflict(new ProblemDetails
+        {
+            Title = "Benutzer konnte nicht gelöscht werden.",
+            Detail = result.ErrorMessage,
+            Status = StatusCodes.Status409Conflict
+        });
+    }
+
+    /// <summary>
     /// Resets a local user password. Admin only.
     /// </summary>
     [Authorize(Roles = "Admin")]

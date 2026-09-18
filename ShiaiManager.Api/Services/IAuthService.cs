@@ -48,6 +48,11 @@ public interface IAuthService
     Task<ResetPasswordResult> ResetPasswordAsync(string actorUserName, Guid userId, string newPassword, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Deletes a local user account and invalidates all of its sessions.
+    /// </summary>
+    Task<DeleteUserResult> DeleteUserAsync(string actorUserName, Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Changes the authenticated user's password while preserving the current session.
     /// </summary>
     Task<ChangePasswordResult> ChangePasswordAsync(
@@ -98,6 +103,11 @@ public sealed record UpdateUserStateResult(bool Updated, string? ErrorCode, stri
 /// Result of resetting a user password.
 /// </summary>
 public sealed record ResetPasswordResult(bool Updated, string? ErrorCode, string? ErrorMessage, IReadOnlyList<string>? ValidationErrors);
+
+/// <summary>
+/// Result of deleting a local user account.
+/// </summary>
+public sealed record DeleteUserResult(bool Deleted, string? ErrorCode, string? ErrorMessage);
 
 /// <summary>
 /// Result of changing the authenticated user's password.

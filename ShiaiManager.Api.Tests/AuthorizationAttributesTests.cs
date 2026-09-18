@@ -31,6 +31,7 @@ public sealed class AuthorizationAttributesTests
     [InlineData(typeof(RegistrationsController), nameof(RegistrationsController.AssignCategoryAsync), "Admin,Operator")]
     [InlineData(typeof(FightsController), nameof(FightsController.GenerateDrawAsync), "Admin,Operator")]
     [InlineData(typeof(FightsController), nameof(FightsController.SwapAthletesAsync), "Admin,Operator")]
+    [InlineData(typeof(AuthController), nameof(AuthController.DeleteUserAsync), "Admin")]
     public void Endpoint_HasExpectedAuthorizeRoles(Type controllerType, string methodName, string expectedRoles)
     {
         var method = FindMethod(controllerType, methodName);

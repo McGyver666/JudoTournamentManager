@@ -171,6 +171,80 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task DeleteUserAsync_RemovesAccountInvalidatesSessionsAndWritesAuditEntry()
+    {
+        var dbPath = CreateDatabasePath();
+        await using var db = CreateDbContext(dbPath);
+        await db.Database.EnsureCreatedAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        var service = new SqliteAuthService(db, new Pbkdf2PasswordHasherService(), audit.Object, TestConfiguration);
+        await service.BootstrapAdminAsync("admin", "SicheresPasswort!123", CancellationToken.None);
+        var created = await service.CreateUserAsync("admin", "operator1", "Operator", "Operator!1234", CancellationToken.None);
+        var login = await service.LoginAsync("operator1", "Operator!1234", CancellationToken.None);
+
+        var result = await service.DeleteUserAsync("admin", created.UserId!.Value, CancellationToken.None);
+
+        Assert.True(result.Deleted);
+        Assert.Null(await service.ValidateTokenAsync(login.AccessToken!, CancellationToken.None));
+        Assert.False(await db.UserAccounts.AnyAsync(x => x.Id == created.UserId.Value));
+        audit.Verify(x => x.LogAsync(
+            null,
+            "admin",
+            "UserDeleted",
+            "Auth",
+            created.UserId.Value,
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_DoesNotDeleteLastAdmin()
+    {
+        var dbPath = CreateDatabasePath();
+        await using var db = CreateDbContext(dbPath);
+        await db.Database.EnsureCreatedAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        var service = new SqliteAuthService(db, new Pbkdf2PasswordHasherService(), audit.Object, TestConfiguration);
+        await service.BootstrapAdminAsync("admin", "SicheresPasswort!123", CancellationToken.None);
+        var adminId = (await db.UserAccounts.SingleAsync()).Id;
+
+        var result = await service.DeleteUserAsync("operator1", adminId, CancellationToken.None);
+
+        Assert.False(result.Deleted);
+        Assert.Equal("LastAdmin", result.ErrorCode);
+        Assert.True(await db.UserAccounts.AnyAsync(x => x.Id == adminId));
+        audit.Verify(x => x.LogAsync(
+            It.IsAny<Guid?>(),
+            It.IsAny<string>(),
+            "UserDeleted",
+            It.IsAny<string>(),
+            It.IsAny<Guid?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_DoesNotDeleteActor()
+    {
+        var dbPath = CreateDatabasePath();
+        await using var db = CreateDbContext(dbPath);
+        await db.Database.EnsureCreatedAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        var service = new SqliteAuthService(db, new Pbkdf2PasswordHasherService(), audit.Object, TestConfiguration);
+        await service.BootstrapAdminAsync("admin", "SicheresPasswort!123", CancellationToken.None);
+        var adminId = (await db.UserAccounts.SingleAsync()).Id;
+
+        var result = await service.DeleteUserAsync("admin", adminId, CancellationToken.None);
+
+        Assert.False(result.Deleted);
+        Assert.Equal("SelfDelete", result.ErrorCode);
+        Assert.True(await db.UserAccounts.AnyAsync(x => x.Id == adminId));
+    }
+
+    [Fact]
     public async Task ChangePasswordAsync_KeepsCurrentSession_AndRevokesOtherSessions()
     {
         var dbPath = CreateDatabasePath();

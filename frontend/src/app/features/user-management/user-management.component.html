@@ -64,6 +64,9 @@
               <div class="user-actions">
                 <button (click)="toggleActive(u)">{{ u.isActive ? ('users.deactivate' | t) : ('users.activate' | t) }}</button>
                 <button (click)="openResetPassword(u)">{{ 'users.resetPassword' | t }}</button>
+                @if (canDelete(u)) {
+                  <button (click)="deleteUser(u)">{{ 'users.delete' | t }}</button>
+                }
               </div>
             </td>
           </tr>
