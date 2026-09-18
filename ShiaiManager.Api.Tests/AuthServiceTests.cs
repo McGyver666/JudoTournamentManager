@@ -146,6 +146,35 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task SetUserActiveStateAsync_WhenDeactivatingOtherUser_RevokesTargetSessions()
+    {
+        var dbPath = CreateDatabasePath();
+        await using var db = CreateDbContext(dbPath);
+        await db.Database.EnsureCreatedAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        var service = new SqliteAuthService(db, new Pbkdf2PasswordHasherService(), audit.Object, TestConfiguration);
+        await service.BootstrapAdminAsync("admin", "SicheresPasswort!123", CancellationToken.None);
+        var created = await service.CreateUserAsync("admin", "operator1", "Operator", "Operator!1234", CancellationToken.None);
+        var adminLogin = await service.LoginAsync("admin", "SicheresPasswort!123", CancellationToken.None);
+        var targetLogin = await service.LoginAsync("operator1", "Operator!1234", CancellationToken.None);
+
+        var result = await service.SetUserActiveStateAsync(
+            "admin",
+            created.UserId!.Value,
+            false,
+            CancellationToken.None);
+
+        Assert.True(result.Updated);
+        Assert.NotNull(await service.ValidateTokenAsync(adminLogin.AccessToken!, CancellationToken.None));
+        Assert.Null(await service.ValidateTokenAsync(targetLogin.AccessToken!, CancellationToken.None));
+        Assert.Equal(LoginStatus.Inactive, (await service.LoginAsync(
+            "operator1",
+            "Operator!1234",
+            CancellationToken.None)).Status);
+    }
+
+    [Fact]
     public async Task ResetPasswordAsync_RevokesExistingSessions()
     {
         var dbPath = CreateDatabasePath();

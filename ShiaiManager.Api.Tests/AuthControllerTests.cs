@@ -176,6 +176,31 @@ public sealed class AuthControllerTests
     }
 
     [Fact]
+    public async Task SetUserActiveStateAsync_WhenUpdatingAnotherUser_KeepsCurrentAuthCookie()
+    {
+        var targetUserId = Guid.NewGuid();
+        var auth = new Mock<IAuthService>();
+        auth.Setup(x => x.SetUserActiveStateAsync("admin", targetUserId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UpdateUserStateResult(true, null, null));
+
+        var controllerContext = BuildControllerContext("admin", "Admin");
+        var httpContext = controllerContext.HttpContext;
+        httpContext.Request.Headers.Cookie = "shiai_auth=admin-session";
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = controllerContext
+        };
+
+        var result = await controller.SetUserActiveStateAsync(
+            targetUserId,
+            new SetUserActiveRequest(false),
+            CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.False(httpContext.Response.Headers.ContainsKey("Set-Cookie"));
+    }
+
+    [Fact]
     public async Task DeleteUserAsync_WhenDeleted_Returns204()
     {
         var userId = Guid.NewGuid();

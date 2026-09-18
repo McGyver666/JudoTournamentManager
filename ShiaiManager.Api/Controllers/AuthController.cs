@@ -195,7 +195,6 @@ public sealed class AuthController : ControllerBase
         var result = await _authService.SetUserActiveStateAsync(actor, userId, request.IsActive, cancellationToken);
         if (result.Updated)
         {
-            Response.Cookies.Delete(AuthCookie.Name, AuthCookie.CreateOptions(isHttps: Request.IsHttps));
             return NoContent();
         }
 
