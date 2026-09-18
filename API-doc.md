@@ -89,6 +89,7 @@ The API is served by the ASP.NET Core application under `/api`.
 - `GET /api/time`
 - `GET /api/auth/users`
 - `POST /api/auth/users`
+- `DELETE /api/auth/users/{userId}`
 - `PATCH /api/auth/users/{userId}/active`
 - `POST /api/auth/users/{userId}/reset-password`
 - `GET /api/version` (anonymous; deployed application version)

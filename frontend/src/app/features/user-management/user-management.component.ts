@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
+import { AuthStateService } from '../../core/auth-state.service';
 import { extractApiError } from '../../core/http-error';
 import { I18nService } from '../../core/i18n.service';
 import { CreateUserRequest, LocalUserAccount, UserRole } from '../../core/models';
@@ -15,6 +16,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
 })
 export class UserManagementComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly authState = inject(AuthStateService);
   private readonly i18n = inject(I18nService);
   private static readonly PASSWORD_MIN_LENGTH = 12;
 
@@ -79,6 +81,26 @@ export class UserManagementComponent implements OnInit {
         this.load();
       },
       error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
+    });
+  }
+
+  protected canDelete(user: LocalUserAccount): boolean {
+    return this.authState.user()?.userId !== user.id;
+  }
+
+  protected deleteUser(user: LocalUserAccount): void {
+    if (!this.canDelete(user) || !confirm(this.i18n.translate('common.confirmDelete'))) {
+      return;
+    }
+
+    this.error.set(null);
+    this.info.set(null);
+    this.api.deleteUser(user.id).subscribe({
+      next: () => {
+        this.users.update((users) => users.filter((candidate) => candidate.id !== user.id));
+        this.info.set(this.i18n.translate('users.deleted'));
+      },
+      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.delete'))),
     });
   }
 

@@ -424,6 +424,8 @@
   "users.created": "User created.",
   "users.statusUpdated": "User status updated.",
   "users.passwordReset": "Password reset.",
+  "users.delete": "Delete user",
+  "users.deleted": "User deleted.",
 
   "common.noTournamentSelected": "No tournament selected. Please open a tournament first.",
   "common.reload": "Reload",

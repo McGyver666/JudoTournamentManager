@@ -606,6 +606,10 @@ export class ApiService {
     return this.http.post<void>('api/auth/users', body);
   }
 
+  deleteUser(userId: string): Observable<void> {
+    return this.http.delete<void>(`api/auth/users/${userId}`);
+  }
+
   setUserActive(userId: string, body: SetUserActiveRequest): Observable<void> {
     return this.http.patch<void>(`api/auth/users/${userId}/active`, body);
   }

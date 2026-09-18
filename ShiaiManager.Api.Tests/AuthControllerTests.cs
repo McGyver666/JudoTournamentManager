@@ -176,6 +176,61 @@ public sealed class AuthControllerTests
     }
 
     [Fact]
+    public async Task DeleteUserAsync_WhenDeleted_Returns204()
+    {
+        var userId = Guid.NewGuid();
+        var auth = new Mock<IAuthService>();
+        auth.Setup(x => x.DeleteUserAsync("admin", userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteUserResult(true, null, null));
+
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = BuildControllerContext("admin", "Admin")
+        };
+
+        var result = await controller.DeleteUserAsync(userId, CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_WhenUserDoesNotExist_Returns404()
+    {
+        var userId = Guid.NewGuid();
+        var auth = new Mock<IAuthService>();
+        auth.Setup(x => x.DeleteUserAsync("admin", userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteUserResult(false, "NotFound", "not found"));
+
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = BuildControllerContext("admin", "Admin")
+        };
+
+        var result = await controller.DeleteUserAsync(userId, CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_WhenDeletionIsRejected_Returns409()
+    {
+        var userId = Guid.NewGuid();
+        var auth = new Mock<IAuthService>();
+        auth.Setup(x => x.DeleteUserAsync("admin", userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteUserResult(false, "LastAdmin", "last admin"));
+
+        var controller = new AuthController(auth.Object)
+        {
+            ControllerContext = BuildControllerContext("admin", "Admin")
+        };
+
+        var result = await controller.DeleteUserAsync(userId, CancellationToken.None);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+    }
+
+    [Fact]
     public async Task ResetPasswordAsync_WhenValidationFails_Returns400()
     {
         var auth = new Mock<IAuthService>();
