@@ -353,6 +353,37 @@ public sealed class MatchServiceTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task Pause_WithActiveOsaeKomi_AwardsCompletedHoldScore()
+    {
+        var db = CreateDatabasePath();
+        Guid fightId;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, fightId) = await SeedOsaeKomiFightAsync(ctx);
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "white", "t", CancellationToken.None);
+            var fight = ctx.Fights.Single(x => x.Id == fightId);
+            fight.OsaeKomiStartedAtUtc = DateTimeOffset.UtcNow.AddSeconds(-12);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = CreateDbContext(db))
+        {
+            var result = await CreateService(ctx).PauseAsync(fightId, "t", CancellationToken.None);
+            Assert.Equal(MatchActionResult.Success, result);
+        }
+
+        await using var readContext = CreateDbContext(db);
+        var updated = await readContext.Fights.AsNoTracking().SingleAsync(x => x.Id == fightId);
+        Assert.Equal(1, updated.WhiteWazaAriCount);
+        Assert.Equal(7, updated.WhiteScore);
+        Assert.Equal(FightStatus.Paused.ToString(), updated.Status);
+        Assert.Null(updated.OsaeKomiSide);
+        Assert.Null(updated.OsaeKomiStartedAtUtc);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task RecordScore_PendingFight_ReturnsInvalidState()
     {
         var db = CreateDatabasePath();

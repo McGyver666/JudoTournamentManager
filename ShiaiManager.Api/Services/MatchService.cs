@@ -254,24 +254,17 @@ public sealed class MatchService : IMatchService
         await ExecuteFightOperationAsync(
             fightId,
             user,
-            (fight, ct) =>
+            async (fight, ct) =>
             {
-                if (fight.Status != InProgress) return Task.FromResult(MatchActionResult.InvalidState);
+                if (fight.Status != InProgress) return MatchActionResult.InvalidState;
 
                 var now = DateTimeOffset.UtcNow;
-                if (fight.OsaeKomiPausedAtUtc is not null && fight.StartedAtUtc is not null)
-                {
-                    fight.StartedAtUtc = fight.StartedAtUtc.Value.Add(now - fight.OsaeKomiPausedAtUtc.Value);
-                }
+                await CompleteOsaeKomiAsync(fight, now, ct);
 
                 fight.Status = Paused;
                 fight.PausedAtUtc = now;
-                fight.OsaeKomiSide = null;
-                fight.OsaeKomiStartedAtUtc = null;
-                fight.OsaeKomiPausedAtUtc = null;
-                fight.OsaeKomiElapsedMilliseconds = 0;
                 fight.UpdatedAtUtc = now;
-                return Task.FromResult(MatchActionResult.Success);
+                return MatchActionResult.Success;
             },
             fight => new FightAudit("FightPaused", null),
             cancellationToken);
@@ -466,51 +459,9 @@ public sealed class MatchService : IMatchService
                     return MatchActionResult.InvalidState;
                 }
 
-                // Capture hold duration and side before clearing the timer fields.
                 var now = DateTimeOffset.UtcNow;
-                var elapsedMilliseconds = fight.OsaeKomiElapsedMilliseconds;
-                if (fight.OsaeKomiStartedAtUtc is not null)
-                {
-                    elapsedMilliseconds += Math.Max(0, (long)(now - fight.OsaeKomiStartedAtUtc.Value).TotalMilliseconds);
-                }
-
-                if (fight.OsaeKomiPausedAtUtc is not null)
-                {
-                    fight.StartedAtUtc = fight.StartedAtUtc?.Add(now - fight.OsaeKomiPausedAtUtc.Value);
-                }
-
-                var holdSeconds = (int)Math.Ceiling(elapsedMilliseconds / 1000d);
-                var holderIsWhite = fight.OsaeKomiSide == "White";
-
-                var tournament = await _dbContext.Tournaments
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(t => t.Id == fight.TournamentId, ct);
-
-                var settings = OsaeKomiSettings.FromTournament(tournament);
-                var holderHasWazaAri = holderIsWhite
-                    ? fight.WhiteWazaAriCount > 0
-                    : fight.BlueWazaAriCount > 0;
-
-                var outcome = OsaeKomiRules.EvaluateHold(holdSeconds, holderHasWazaAri, settings);
-
-                fight.OsaeKomiSide = null;
-                fight.OsaeKomiStartedAtUtc = null;
-                fight.OsaeKomiPausedAtUtc = null;
-                fight.OsaeKomiElapsedMilliseconds = 0;
+                await CompleteOsaeKomiAsync(fight, now, ct);
                 fight.UpdatedAtUtc = now;
-
-                if (outcome.ScoreToAward is not null)
-                {
-                    ApplyScoreDelta(fight, holderIsWhite, outcome.ScoreToAward.Value, 1);
-
-                    // A hold-down that results in Ippon must immediately stop the match clock.
-                    if (outcome.ForcesIppon)
-                    {
-                        fight.Status = Paused;
-                        fight.PausedAtUtc = now;
-                    }
-                }
-
                 return MatchActionResult.Success;
             },
             audit: null,
@@ -1116,6 +1067,52 @@ public sealed class MatchService : IMatchService
 
         whiteSide = default;
         return false;
+    }
+
+    private async Task CompleteOsaeKomiAsync(FightRecord fight, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (fight.OsaeKomiSide is null
+            || (fight.OsaeKomiStartedAtUtc is null && fight.OsaeKomiPausedAtUtc is null))
+        {
+            return;
+        }
+
+        var elapsedMilliseconds = fight.OsaeKomiElapsedMilliseconds;
+        if (fight.OsaeKomiStartedAtUtc is not null)
+        {
+            elapsedMilliseconds += Math.Max(0, (long)(now - fight.OsaeKomiStartedAtUtc.Value).TotalMilliseconds);
+        }
+
+        if (fight.OsaeKomiPausedAtUtc is not null)
+        {
+            fight.StartedAtUtc = fight.StartedAtUtc?.Add(now - fight.OsaeKomiPausedAtUtc.Value);
+        }
+
+        var holdSeconds = (int)Math.Ceiling(elapsedMilliseconds / 1000d);
+        var holderIsWhite = string.Equals(fight.OsaeKomiSide, "White", StringComparison.OrdinalIgnoreCase);
+        var tournament = await _dbContext.Tournaments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == fight.TournamentId, cancellationToken);
+        var settings = OsaeKomiSettings.FromTournament(tournament);
+        var holderHasWazaAri = holderIsWhite
+            ? fight.WhiteWazaAriCount > 0
+            : fight.BlueWazaAriCount > 0;
+        var outcome = OsaeKomiRules.EvaluateHold(holdSeconds, holderHasWazaAri, settings);
+
+        fight.OsaeKomiSide = null;
+        fight.OsaeKomiStartedAtUtc = null;
+        fight.OsaeKomiPausedAtUtc = null;
+        fight.OsaeKomiElapsedMilliseconds = 0;
+
+        if (outcome.ScoreToAward is not null)
+        {
+            ApplyScoreDelta(fight, holderIsWhite, outcome.ScoreToAward.Value, 1);
+            if (outcome.ForcesIppon)
+            {
+                fight.Status = Paused;
+                fight.PausedAtUtc = now;
+            }
+        }
     }
 
     private static MatchActionResult ApplyScoreDelta(FightRecord fight, bool whiteSide, ScoreType scoreType, int delta)
