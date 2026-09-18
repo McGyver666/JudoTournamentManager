@@ -43,58 +43,15 @@ Initial admin credentials (save these now):
 ============================================================
 ```
 
-## Project Status
+## Features
 
-The first tagged beta (`v1.0.0-beta`) is available. All core tournament workflows are delivered, and the operator/admin UI has been reskinned with the SHIAI dual-theme (light/dark) dojo design system and sidebar shell (see [ADR-0008](docs/adr/0008-frontend-design-system.md)).
-
-Already available:
-- .NET 10 backend solution with SQLite persistence (EF Core)
-- SHIAI dual-theme (light/dark) dojo design system with sidebar shell and self-hosted OFL fonts (offline, no CDN)
-- local startup script
-- health endpoint
-- tournament, tatami, category, club, athlete, registration, draw and fight APIs
-- NWJV team-matchday mode for senior men/women and U16 profiles, with configurable club teams,
-  matchday weigh-ins, shared weight-class draw, team encounters, and standard-fight preparation
-- athlete file import via DM4 and DMF (with automatic format detection)
-- category assignment workflow (auto + manual)
-- assisted category generation workflow (preview + apply) with two strategies:
-  - standard 2026 classes (source: `altersklassen_2026.md`)
-  - athlete-driven classes by target athletes per class and max weight deviation
-- tatami assignment workflow (auto + manual)
-- live tournament overview at `/tournament-overview` with current-fight hero, all active tatami statuses, whole-tournament stats, queue and club ranking
-- combat overview of completed fights (Operator/Admin) with category/tatami filters and expandable score details
-- Admin-only result correction in combat overview: edit scores + winner inline, with downstream-fight warning and cascade reset
-- public display view with realtime updates (SignalR)
-- server-authoritative synchronized fight and osae-komi timing across operator and display views
-- Sono-mama/Yoshi pause and resume for active osae-komi, preserving hold time and freezing the fight clock
-- tenth-second local display for running final fight seconds and active osae-komi countdowns
-- results and medal table views
-- local authentication flow (login/logout, HttpOnly cookie session persistence, admin user management)
-- authenticated SignalR hub access (operator sessions use same-origin cookies; guest shares use ephemeral bearer tokens)
-- security response headers (CSP, frame/mime/referrer protections)
-- auth endpoint rate limiting + request body size limits (restore endpoint explicitly allowed larger payload)
-- migration-first database startup (`MigrateAsync`) with EF migration history and legacy schema adoption
-- HMAC-SHA256 hashing for auth session tokens (`Security:AuthTokenHmacSecret`)
-- German-first localization baseline
-- Angular 19 frontend (admin + operations + display/results UIs) served from the API
-- hardened local scripts for test/seed usage (`JUDO_TEST_PASSWORD`, production guard)
-- admin backup/restore UI flow in tournaments view (download backup + restore upload)
-- authenticated server time endpoint for frontend clock synchronization (`GET /api/time`)
-- server-side match clock evaluator for timing-based fight and osae-komi decisions
-- osae-komi ippon immediately pauses the fight clock on the server
-- unit test project (354 passing tests, Category=UnitTest)
-- TLS/LAN operational stabilization and repeated field validation runs
-
-## Architecture
-
-## Target Vision
-
-- **Offline-capable** (no hard cloud dependency at runtime)
-- **Single host laptop** as default on-site mode
-- **Optional LAN clients** on the same local network
-- **Also deployable internet-hosted** behind an nginx reverse proxy with TLS (see `deploy/`)
-- **German-first UI**
-- **Localizable from the start**
+- Offline-capable tournament operation on a single laptop or local LAN, with optional internet-hosted deployment behind nginx.
+- Tournament setup, clubs, athletes, registrations, category presets and assisted category generation.
+- Individual tournament draws, brackets, tatami assignment, live fight control and server-authoritative timing.
+- NWJV team-matchday workflows for senior and U16 profiles, including weigh-ins, lineups and encounters.
+- Athlete imports from DM4/DMF files, public displays, match lists, rankings, medal tables and club scoring.
+- Local authentication with role-based access, HttpOnly sessions, audit logging and guest sharing.
+- SQLite persistence, backup/restore, SignalR realtime updates, German-first localization and an Angular frontend served by the API.
 
 ## Current Technical Status
 - **Backend:** ASP.NET Core Web API (.NET 10)
@@ -210,7 +167,7 @@ https://0.0.0.0:7080
 Useful endpoints:
 - Landing page: `http://localhost:5080/`
 - Health: `http://localhost:5080/health`
-- Swagger (Development): `http://localhost:5080/swagger`
+- OpenAPI document (Development): `http://localhost:5080/openapi/v1.json`
 
 If you run an older local database, startup will auto-add missing legacy columns needed by current features.
 For larger local schema drifts, reset the local database by deleting `ShiaiManager.Api/App_Data/judo-tournament.db*` and restart the API.
@@ -238,7 +195,7 @@ Unlike the offline/LAN mode, this mode is public-facing and does not rely on a t
 local network — keep TLS enforced, send the CSRF header for state-changing cookie-authenticated
 requests, and inject secrets (e.g. `Security:AuthTokenHmacSecret`) via configuration rather than hardcoding them.
 
-## Admin-Passwort Bootstrap
+## Admin password bootstrap
 
 Server installs done with `deploy/install_release.sh` (or the one-command bootstrap) create the initial admin automatically and print the credentials once — see [Quick installation guide](#quick-installation-guide). The steps below are for local/manual runs.
 
@@ -311,44 +268,6 @@ Run all unit tests (any OS with global SDK):
 dotnet test ./ShiaiManager.sln --filter Category=UnitTest
 ```
 
-Run draw/lock smoke flow (Windows / PowerShell):
-
-```powershell
-./test-draw-lock-flow.ps1
-```
-
-Run LAN propagation validation (Windows / PowerShell):
-
-```powershell
-./test-lan-validation.ps1
-```
-
-Optional credentials for existing local admin:
-
-```powershell
-$env:JUDO_TEST_PASSWORD="<existing-admin-password>"
-./test-lan-validation.ps1
-```
-
-Run against self-signed HTTPS endpoint (local cert) and skip certificate validation in script requests:
-
-```powershell
-./test-lan-validation.ps1 -BaseUrl https://localhost:7080 -SkipCertificateCheck
-```
-
-The script creates operator/display test users, executes cross-client read/write checks,
-measures propagation latency, and writes a JSON evidence report:
-`lan-validation-report-<timestamp>.json`.
-
-Latest measured evidence:
-- `lan-validation-report-20260706131837.json` -> max propagation 109 ms (target <= 2000 ms)
-
-The smoke script validates this sequence end-to-end against a running local API:
-- draw generation keeps category unlocked
-- category reassignment before first fight start triggers automatic draw refresh
-- first real fight start locks the category
-- reassignment after lock is rejected with HTTP 409
-
 ## Package for Another System
 
 Create a minimal transfer bundle (published API + start scripts + README):
@@ -417,92 +336,9 @@ Localization assets are plain JSON dictionaries in `frontend/public/i18n/`
 (`de.json` is the complete German source; `en.json` is the English fallback) and
 are served at `/i18n/{lang}.json`.
 
-## Current API
+## API
 
-### Core endpoints
-
-- `GET /api/tournaments`
-- `GET /api/tournaments/{tournamentId}`
-- `POST /api/tournaments`
-- `PUT /api/tournaments/{tournamentId}`
-- `DELETE /api/tournaments/{tournamentId}`
-
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/tatamis`
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/categories`
-- `POST /api/tournaments/{tournamentId}/categories/generate/preview`
-- `POST /api/tournaments/{tournamentId}/categories/generate/apply`
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/clubs`
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/athletes`
-- `POST /api/tournaments/{tournamentId}/athletes/import/file` (DM4/DMF upload, auto-detect)
-- `POST /api/tournaments/{tournamentId}/athletes/import/dm4` (DM4-specific compatibility route)
-
-- `GET/POST/DELETE /api/tournaments/{tournamentId}/registrations`
-- `POST /api/tournaments/{tournamentId}/registrations/auto-assign`
-- `POST /api/tournaments/{tournamentId}/registrations/{registrationId}/category`
-- `GET /api/tournaments/{tournamentId}/registrations/export`
-
-- `POST /api/tournaments/{tournamentId}/categories/{categoryId}/draw`
-- `GET /api/tournaments/{tournamentId}/categories/{categoryId}/fights`
-- `POST /api/tournaments/{tournamentId}/categories/{categoryId}/swap`
-- `GET /api/tournaments/{tournamentId}/categories/{categoryId}/rankings`
-
-- `GET /api/tournaments/{tournamentId}/tatamis/{tatamiId}/queue`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/assign-tatami`
-- `POST /api/tournaments/{tournamentId}/fights/assign-tatami-bulk` (assign many fights to tatamis atomically)
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/queue-move`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/start`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/stop`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/resume`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/score/adjust`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/start`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/pause`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/resume`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
-- `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; enriched summaries of finished fights)
-- `GET /api/tournaments/{tournamentId}/overview-stats` (authenticated; whole-tournament registered athletes, clubs, categories, fight progress, average duration and ippon count)
-- `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; correct scores and winner with a confirmation flow for affected downstream fights)
-
-- `GET /api/tournaments/{tournamentId}/medal-table`
-- `GET /api/tournaments/{tournamentId}/audit-log`
-
-- `GET /api/tournaments/{tournamentId}/public/athletes` (data-minimized; Admin/Operator/Display/Guest)
-- `GET /api/tournaments/{tournamentId}/public/clubs`
-- `GET /api/tournaments/{tournamentId}/public/categories`
-- `GET /api/tournaments/{tournamentId}/public/tournament`
-- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/fights`
-- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/standings`
-- `GET /api/tournaments/{tournamentId}/guest-share` (Admin/Operator)
-- `POST /api/tournaments/{tournamentId}/guest-share/enable`
-- `POST /api/tournaments/{tournamentId}/guest-share/disable`
-- `POST /api/tournaments/{tournamentId}/guest-share/rotate`
-- `GET /api/tournaments/{tournamentId}/guest-share/qr` (SVG)
-
-- `POST /api/auth/bootstrap-admin`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
-- `POST /api/auth/change-password` (authenticated user, own password only)
-- `GET /api/time`
-- `GET /api/auth/users`
-- `POST /api/auth/users`
-- `PATCH /api/auth/users/{userId}/active`
-- `POST /api/auth/users/{userId}/reset-password`
-
-Frontend auth routes:
-- `/login`
-- `/users` (Admin)
-
-Example `POST /api/tournaments` request body:
-
-```json
-{
-  "name": "RWE Judo Cup",
-  "date": "2026-09-12",
-  "venue": "Essen",
-  "organizer": "JC Essen"
-}
-```
+See [API-doc.md](API-doc.md) for the current HTTP API endpoints and frontend routes.
 
 ## Guest access (public match lists)
 

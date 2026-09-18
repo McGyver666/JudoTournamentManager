@@ -43,57 +43,15 @@ Initial admin credentials (save these now):
 ============================================================
 ```
 
-## Projektstatus
+## Funktionen
 
-Die erste getaggte Beta (`v1.0.0-beta`) ist verfuegbar. Alle zentralen Turnierablaeufe sind umgesetzt, und die Betreiber-/Admin-Oberflaeche wurde mit dem SHIAI-Dual-Theme-Dojo-Design-System (hell/dunkel) und einer Seitenleisten-Shell neu gestaltet (siehe [ADR-0008](docs/adr/0008-frontend-design-system.md)).
-
-Bereits verfuegbar:
-- .NET-10-Backendloesung mit SQLite-Persistenz (EF Core)
-- SHIAI-Dual-Theme-Dojo-Design-System (hell/dunkel) mit Seitenleisten-Shell und selbstgehosteten OFL-Schriften (offline, kein CDN)
-- lokales Startskript
-- Health-Endpunkt
-- APIs fuer Turniere, Tatamis, Gewichtsklassen, Vereine, Athleten, Meldungen, Auslosungen und Kaempfe
-- NWJV-Mannschafts-Kampftag-Modus fuer Senioren Männer/Frauen und U16-Profile mit konfigurierbaren
-  Vereinsmannschaften, Tageswaage, gemeinsamer Gewichtsklassenauslosung, Begegnungen und Kampfvorbereitung
-- Athleten-Dateiimport ueber DM4 und DMF (mit automatischer Formaterkennung)
-- Ablauf zur Gewichtsklassenzuordnung (automatisch und manuell)
-- unterstuetzte Gewichtsklassengenerierung (Vorschau und Anwenden) mit zwei Strategien:
-  - Standardklassen 2026 (Quelle: `altersklassen_2026.md`)
-  - athletengesteuerte Klassen nach Zielzahl von Athleten je Klasse und maximaler Gewichtsdifferenz
-- Ablauf zur Tatami-Zuordnung (automatisch und manuell)
-- live Turnierübersicht unter `/tournament-overview` mit aktuellem Kampf, allen aktiven Matten, Turnierstatistik, Warteschlange und Vereinswertung
-- Kampfuebersicht abgeschlossener Kaempfe (Operator/Admin) mit Filtern nach Gewichtsklasse/Matte und aufklappbaren Wertungsdetails
-- Admin-Ergebniskorrektur in der Kampfuebersicht: Wertungen und Sieger inline bearbeiten, mit Warnung bei betroffenen Folgekämpfen und kaskadendem Reset
-- oeffentliche Anzeigeansicht mit Echtzeitaktualisierungen (SignalR)
-- serverautorisierte synchronisierte Kampf- und Osae-komi-Zeit in Bedien- und Anzeigeansichten
-- Sono-mama/Yoshi zum Pausieren und Fortsetzen aktiver Osae-komi-Haltezeiten mit eingefrorener Kampfzeit
-- lokale Zehntelsekundenanzeige fuer laufende Schlusssekunden des Kampfes und aktive Osae-komi-Zeiten
-- Ergebnis- und Medaillenspiegelansichten
-- lokale Authentifizierung (Anmelden/Abmelden, Sitzungspersistenz per HttpOnly-Cookie, Benutzerverwaltung fuer Administratoren)
-- authentifizierter SignalR-Hub-Zugriff (Operator-Sitzungen verwenden Same-Origin-Cookies, Gastfreigaben fluechtige Bearer-Tokens)
-- Sicherheitsantwortheader (CSP sowie Frame-, MIME- und Referrer-Schutz)
-- Ratenbegrenzung fuer Auth-Endpunkte und Begrenzungen der Anfragetextgroesse (der Restore-Endpunkt erlaubt ausdruecklich groessere Nutzdaten)
-- migrationsbasierter Datenbankstart (`MigrateAsync`) mit EF-Migrationshistorie und Uebernahme bestehender Schemata
-- HMAC-SHA256-Hashing fuer Authentifizierungs-Sitzungstoken (`Security:AuthTokenHmacSecret`)
-- Grundlage fuer deutschsprachige Lokalisierung
-- Angular-19-Frontend (Administration, Betrieb sowie Anzeige/Ergebnisse), das von der API bereitgestellt wird
-- gehaertete lokale Skripte fuer Test- und Seed-Daten (`JUDO_TEST_PASSWORD`, Produktionsschutz)
-- Sicherungs- und Wiederherstellungsablauf fuer Administratoren in der Turnieransicht (Sicherung herunterladen und Wiederherstellung hochladen)
-- authentifizierter Serverzeit-Endpunkt fuer die Frontend-Zeitsynchronisation (`GET /api/time`)
-- serverseitiger Kampfzeit-Auswerter fuer zeitbasierte Kampf- und Osae-komi-Entscheidungen
-- Osae-komi-Ippon haelt die Kampfzeit auf dem Server sofort an
-- Unit-Test-Projekt (354 erfolgreiche Tests, Category=UnitTest)
-- TLS/LAN-Betriebsstabilisierung und wiederholte Feldvalidierung
-
-## Architektur
-
-## Zielbild
-- **Offline-faehig** (keine harte Cloud-Abhaengigkeit zur Laufzeit)
-- **Ein Host-Laptop** als Standardmodus vor Ort
-- **Optionale LAN-Clients** im selben lokalen Netzwerk
-- **Auch internet-gehostet betreibbar** hinter einem nginx-Reverse-Proxy mit TLS (siehe `deploy/`)
-- **Deutschsprachige Benutzeroberflaeche**
-- **Von Beginn an lokalisierbar**
+- Offline-faehiger Turnierbetrieb auf einem Laptop oder im lokalen LAN, optional internet-gehostet hinter nginx.
+- Turnierverwaltung, Vereine, Athleten, Meldungen, Kategorien, Voreinstellungen und assistierte Klassengenerierung.
+- Einzelturnier-Auslosungen, Brackets, Tatami-Zuordnung, Kampfbetrieb und serverautorisierte Zeitmessung.
+- NWJV-Mannschafts-Kampftage fuer Senioren- und U16-Profile mit Tageswaage, Aufstellungen und Begegnungen.
+- DM4/DMF-Athletenimport, oeffentliche Anzeigen, Wettkampflisten, Ranglisten, Medaillenspiegel und Vereinswertung.
+- Lokale Authentifizierung mit Rollen, HttpOnly-Sitzungen, Audit-Logging und Gastfreigaben.
+- SQLite-Persistenz, Sicherung/Wiederherstellung, SignalR-Echtzeitaktualisierungen, deutschsprachige Lokalisierung und Angular-Frontend aus der API.
 
 ## Aktueller technischer Stand
 - **Backend:** ASP.NET Core Web API (.NET 10)
@@ -209,7 +167,7 @@ https://0.0.0.0:7080
 Nuetzliche Endpunkte:
 - Startseite: `http://localhost:5080/`
 - Health: `http://localhost:5080/health`
-- Swagger (Development): `http://localhost:5080/swagger`
+- OpenAPI-Dokument (Development): `http://localhost:5080/openapi/v1.json`
 
 Bei einer aelteren lokalen Datenbank ergaenzt der Start fehlende Legacy-Spalten, die von aktuellen Funktionen benoetigt werden.
 Bei groesseren lokalen Schemaabweichungen die lokale Datenbank durch Loeschen von `ShiaiManager.Api/App_Data/judo-tournament.db*` zuruecksetzen und anschliessend neu starten.
@@ -309,43 +267,6 @@ Alle Unit-Tests ausfuehren (jedes Betriebssystem mit globalem SDK):
 dotnet test ./ShiaiManager.sln --filter Category=UnitTest
 ```
 
-Smoke-Test fuer Auslosungs-/Sperrablauf ausfuehren (Windows / PowerShell):
-
-```powershell
-./test-draw-lock-flow.ps1
-```
-
-LAN-Propagierungsvalidierung ausfuehren (Windows / PowerShell):
-
-```powershell
-./test-lan-validation.ps1
-```
-
-Optionale Zugangsdaten fuer einen vorhandenen lokalen Administrator:
-
-```powershell
-$env:JUDO_TEST_PASSWORD="<existing-admin-password>"
-./test-lan-validation.ps1
-```
-
-Gegen einen selbstsignierten HTTPS-Endpunkt (lokales Zertifikat) ausfuehren und die Zertifikatspruefung in Skriptanfragen ueberspringen:
-
-```powershell
-./test-lan-validation.ps1 -BaseUrl https://localhost:7080 -SkipCertificateCheck
-```
-
-Das Skript legt Operator- und Anzeige-Testbenutzer an, fuehrt lese- und schreibende Pruefungen ueber Clients hinweg aus, misst die Propagierungslatenz und schreibt einen JSON-Nachweisbericht:
-`lan-validation-report-<timestamp>.json`.
-
-Aktuellster gemessener Nachweis:
-- `lan-validation-report-20260706131837.json` -> maximale Propagierung 109 ms (Ziel <= 2000 ms)
-
-Das Smoke-Skript validiert diese Abfolge Ende-zu-Ende gegen eine laufende lokale API:
-- Die Auslosungsgenerierung laesst die Kategorie entsperrt.
-- Eine Kategorieumzuordnung vor Beginn des ersten Kampfes aktualisiert die Auslosung automatisch.
-- Der erste reale Kampfbeginn sperrt die Kategorie.
-- Eine Umzuordnung nach der Sperre wird mit HTTP 409 abgelehnt.
-
 ## Paket fuer ein anderes System
 
 Ein minimales Uebertragungspaket erstellen (veroeffentlichte API, Startskripte und README):
@@ -412,92 +333,9 @@ Damit bleibt Karma nach Abschluss der Tests nicht im Watch-Modus offen.
 Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i18n/`.
 `de.json` ist die vollstaendige deutsche Quelle, `en.json` der englische Fallback; sie werden unter `/i18n/{lang}.json` bereitgestellt.
 
-## Aktuelle API
+## API
 
-### Kernendpunkte
-
-- `GET /api/tournaments`
-- `GET /api/tournaments/{tournamentId}`
-- `POST /api/tournaments`
-- `PUT /api/tournaments/{tournamentId}`
-- `DELETE /api/tournaments/{tournamentId}`
-
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/tatamis`
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/categories`
-- `POST /api/tournaments/{tournamentId}/categories/generate/preview`
-- `POST /api/tournaments/{tournamentId}/categories/generate/apply`
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/clubs`
-- `GET/POST/PUT/DELETE /api/tournaments/{tournamentId}/athletes`
-- `POST /api/tournaments/{tournamentId}/athletes/import/file` (DM4/DMF-Upload, automatische Erkennung)
-- `POST /api/tournaments/{tournamentId}/athletes/import/dm4` (DM4-spezifische Kompatibilitaetsroute)
-
-- `GET/POST/DELETE /api/tournaments/{tournamentId}/registrations`
-- `POST /api/tournaments/{tournamentId}/registrations/auto-assign`
-- `POST /api/tournaments/{tournamentId}/registrations/{registrationId}/category`
-- `GET /api/tournaments/{tournamentId}/registrations/export`
-
-- `POST /api/tournaments/{tournamentId}/categories/{categoryId}/draw`
-- `GET /api/tournaments/{tournamentId}/categories/{categoryId}/fights`
-- `POST /api/tournaments/{tournamentId}/categories/{categoryId}/swap`
-- `GET /api/tournaments/{tournamentId}/categories/{categoryId}/rankings`
-
-- `GET /api/tournaments/{tournamentId}/tatamis/{tatamiId}/queue`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/assign-tatami`
-- `POST /api/tournaments/{tournamentId}/fights/assign-tatami-bulk` (mehrere Kämpfe atomar Matten zuweisen)
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/queue-move`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/start`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/stop`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/resume`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/score/adjust`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/start`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/pause`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/resume`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/result`
-- `GET /api/tournaments/{tournamentId}/completed-fights` (Admin/Operator; angereicherte Übersicht abgeschlossener Kämpfe)
-- `GET /api/tournaments/{tournamentId}/overview-stats` (authentifiziert; gemeldete Athleten, Vereine, Klassen, Kampf-Fortschritt, durchschnittliche Kampfdauer und Ippon-Gesamtzahl für das ganze Turnier)
-- `POST /api/tournaments/{tournamentId}/completed-fights/{fightId}/edit-result` (Admin; Wertungen und Sieger korrigieren mit Bestätigungsflow für betroffene Folgekämpfe)
-
-- `GET /api/tournaments/{tournamentId}/medal-table`
-- `GET /api/tournaments/{tournamentId}/audit-log`
-
-- `GET /api/tournaments/{tournamentId}/public/athletes` (datenminimiert; Admin/Operator/Display/Gast)
-- `GET /api/tournaments/{tournamentId}/public/clubs`
-- `GET /api/tournaments/{tournamentId}/public/categories`
-- `GET /api/tournaments/{tournamentId}/public/tournament`
-- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/fights`
-- `GET /api/tournaments/{tournamentId}/public/categories/{categoryId}/standings`
-- `GET /api/tournaments/{tournamentId}/guest-share` (Admin/Operator)
-- `POST /api/tournaments/{tournamentId}/guest-share/enable`
-- `POST /api/tournaments/{tournamentId}/guest-share/disable`
-- `POST /api/tournaments/{tournamentId}/guest-share/rotate`
-- `GET /api/tournaments/{tournamentId}/guest-share/qr` (SVG)
-
-- `POST /api/auth/bootstrap-admin`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
-- `POST /api/auth/change-password` (angemeldeter Benutzer, nur eigenes Passwort)
-- `GET /api/time`
-- `GET /api/auth/users`
-- `POST /api/auth/users`
-- `PATCH /api/auth/users/{userId}/active`
-- `POST /api/auth/users/{userId}/reset-password`
-
-Frontend-Authentifizierungsrouten:
-- `/login`
-- `/users` (Administrator)
-
-Beispielanforderung fuer `POST /api/tournaments`:
-
-```json
-{
-  "name": "RWE Judo Cup",
-  "date": "2026-09-12",
-  "venue": "Essen",
-  "organizer": "JC Essen"
-}
-```
+Siehe [API-doc.md](API-doc.md) fuer die aktuellen HTTP-Endpunkte und Frontend-Routen.
 
 ## Gastzugriff (oeffentliche Wettkampflisten)
 

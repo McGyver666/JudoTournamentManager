@@ -74,10 +74,18 @@ sudo apt install -y dotnet-sdk-10 nginx certbot python3-certbot-nginx ufw
 sudo useradd --system --create-home --home-dir /opt/shiai-manager --shell /usr/sbin/nologin shiai
 ```
 
-If you want the app to build the frontend before publishing, also install Node.js/npm in the container:
+For a source-based deployment, build the frontend before publishing. The systemd unit publishes
+the API but does not run npm, so install Node.js/npm and build the Angular app explicitly:
+
 ```bash
 sudo apt install -y nodejs npm
+cd /opt/shiai-manager/frontend
+npm install
+npm run build
 ```
+
+The build writes the frontend to `/opt/shiai-manager/ShiaiManager.Api/wwwroot`. The release archive
+already contains the built frontend and does not require Node.js/npm on the target host.
 
 ## 3) Copy the app to the container
 ```bash

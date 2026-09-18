@@ -12,9 +12,9 @@ role separation.
 
 Use **local authentication**: a bootstrap admin, username/password login/logout with session
 persistence, **PBKDF2** password hashing, and **HMAC-SHA256** hashing of session tokens
-(`Security:AuthTokenHmacSecret`). Enforce **RBAC** with roles **Admin / Operator / Display**: all
-write endpoints require Admin or Operator; read endpoints require at least an authenticated role;
-public/guest endpoints are explicitly scoped and data-minimized.
+(`Security:AuthTokenHmacSecret`). Enforce **RBAC** with roles **Admin / Operator / Display /
+Competition**. Write and live-operation permissions are assigned per endpoint; read endpoints
+require an authenticated role, and public/guest endpoints are explicitly scoped and data-minimized.
 
 ## Consequences
 

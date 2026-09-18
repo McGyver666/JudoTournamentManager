@@ -108,10 +108,10 @@ Use these terms as-is (German primary) in issues, tests, and code names; don't d
   stats strip, next-fights queue and Vereinswertung. Distinct from **Kampfübersicht**.
 - **Kampfübersicht** (Combat overview) — the table of completed, non-bye fights with admin result
   correction. Not the live dashboard.
-- **Rollen** (Roles) — Admin, Operator, Display (RBAC). See
+- **Rollen** (Roles) — Admin, Operator, Display, Competition (RBAC). See
   [ADR-0005](docs/adr/0005-local-auth-and-rbac.md).
 
-## Delivered capabilities (state at migration, 2026-08)
+## Delivered capabilities (state at migration, 2026-09)
 
 Tournaments, tatamis, categories (+ presets & assisted generation), clubs, athletes (DM4/DMF import),
 registration (auto + manual assignment, CSV export), draw/bracket generation with manual swap before

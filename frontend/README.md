@@ -1,59 +1,64 @@
-# JudoFrontend
+# Shiai Manager frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.27.
+The Angular 19 single-page application for Shiai Manager lives in this directory. The API serves
+the compiled application from `ShiaiManager.Api/wwwroot`, so no separate web server is required
+for normal local or production operation.
+
+## Prerequisites
+
+- Node.js and npm
+- A running Shiai Manager API for the development proxy
+
+Install dependencies once:
+
+```bash
+npm install
+```
 
 ## Development server
 
-To start a local development server, run:
+Start Angular with the configured proxy to the local API:
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open `http://localhost:4200/`. The proxy configuration is in `proxy.conf.json`; the API normally
+runs at `http://localhost:5080`.
 
-## Code scaffolding
+## Build
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Build the production frontend directly into the API's `wwwroot` directory:
 
 ```bash
-ng generate component component-name
+npm run build
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+The repository root scripts (`start-local.ps1` and `start-local.sh`) run this build automatically
+unless the frontend build is explicitly skipped and existing `wwwroot` files are available.
+
+## Unit tests
+
+Run tests interactively with Karma:
 
 ```bash
-ng generate --help
+npm test
 ```
 
-## Building
-
-To build the project run:
+Run the headless CI form, which exits automatically:
 
 ```bash
-ng build
+npm run test:ci
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+There is currently no end-to-end test script configured in this project.
 
-## Running unit tests
+## Application routes
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+The main routes are `/tournaments`, `/tournament-overview`, `/config`, `/registrations`,
+`/category-assignment`, `/draw`, `/tatami-assignment`, `/team-matchday`, `/combat-overview`,
+`/match`, `/results`, `/display`, `/display/match-lists`, `/users`, and `/public/match-lists`.
+Authentication guards enforce the role and tournament-context requirements in the application.
 
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Localization files are served from `public/i18n/`; German (`de.json`) is the source language and
+English (`en.json`) is the fallback.

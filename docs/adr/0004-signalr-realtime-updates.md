@@ -10,8 +10,9 @@ changes in near real time across multiple clients on a LAN.
 ## Decision
 
 Use **SignalR** (hub at `/hubs/tournament`) for realtime broadcast of fight and category updates.
-Hub access requires authentication; clients pass a bearer token. Guests join only their own
-tournament group while a guest share is active.
+Hub access requires authentication. Operator sessions use the same-origin HttpOnly session cookie;
+guest shares use an ephemeral bearer token and can join only their own tournament group while a
+guest share is active.
 
 ## Consequences
 
