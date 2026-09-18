@@ -84,13 +84,11 @@ public sealed class MatchClockEvaluator : BackgroundService
             return false;
         }
 
-        var tournament = fight.Tournament;
-        var ipponSeconds = tournament?.OsaeKomiIpponSeconds ?? 20;
-        var wazaAriSeconds = tournament?.OsaeKomiWazaAriSeconds ?? 10;
+        var settings = OsaeKomiSettings.FromTournament(fight.Tournament);
 
         var holderIsWhite = string.Equals(fight.OsaeKomiSide, "White", StringComparison.OrdinalIgnoreCase);
         var holderHasWazaAri = holderIsWhite ? fight.WhiteWazaAriCount > 0 : fight.BlueWazaAriCount > 0;
-        var effectiveCapSeconds = holderHasWazaAri ? wazaAriSeconds : ipponSeconds;
+        var effectiveCapSeconds = OsaeKomiRules.EffectiveCapSeconds(holderHasWazaAri, settings);
 
         var accumulatedSeconds = fight.OsaeKomiElapsedMilliseconds / 1000d;
         var currentSegmentSeconds = (now - fight.OsaeKomiStartedAtUtc.Value).TotalSeconds;

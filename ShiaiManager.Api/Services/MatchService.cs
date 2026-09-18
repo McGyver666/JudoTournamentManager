@@ -56,30 +56,25 @@ public sealed class MatchService : IMatchService
         Guid fightId,
         Guid? tatamiId,
         string user,
-        CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
+        CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            async (fight, ct) =>
+            {
+                if (tatamiId is not null)
+                {
+                    var exists = await _dbContext.Tatamis
+                        .AnyAsync(t => t.Id == tatamiId && t.TournamentId == fight.TournamentId, ct);
+                    if (!exists) return MatchActionResult.InvalidState;
+                }
 
-        if (tatamiId is not null)
-        {
-            var exists = await _dbContext.Tatamis
-                .AnyAsync(t => t.Id == tatamiId && t.TournamentId == fight.TournamentId, cancellationToken);
-            if (!exists) return MatchActionResult.InvalidState;
-        }
-
-        fight.TatamiId = tatamiId;
-        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await _auditLog.LogAsync(
-            fight.TournamentId, user, "FightAssignedToTatami", "Fight", fight.Id,
-            $"TatamiId={tatamiId?.ToString() ?? "none"}", cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
-    }
+                fight.TatamiId = tatamiId;
+                fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                return MatchActionResult.Success;
+            },
+            fight => new FightAudit("FightAssignedToTatami", $"TatamiId={tatamiId?.ToString() ?? "none"}"),
+            cancellationToken);
 
     /// <inheritdoc />
     public async Task<MatchActionResult> AssignTatamiBulkAsync(
@@ -215,105 +210,96 @@ public sealed class MatchService : IMatchService
     }
 
     /// <inheritdoc />
-    public async Task<MatchActionResult> StartAsync(Guid fightId, string user, CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
+    public async Task<MatchActionResult> StartAsync(Guid fightId, string user, CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            async (fight, ct) =>
+            {
+                if (fight.IsBye || fight.Status != Pending
+                    || fight.WhiteAthleteId is null || fight.BlueAthleteId is null)
+                {
+                    return MatchActionResult.InvalidState;
+                }
 
-        if (fight.IsBye || fight.Status != Pending
-            || fight.WhiteAthleteId is null || fight.BlueAthleteId is null)
-        {
-            return MatchActionResult.InvalidState;
-        }
+                var now = DateTimeOffset.UtcNow;
 
-        var now = DateTimeOffset.UtcNow;
+                var category = await _dbContext.Categories
+                    .FirstOrDefaultAsync(c => c.Id == fight.CategoryId, ct);
+                if (category is not null && !category.IsLocked)
+                {
+                    category.IsLocked = true;
+                    category.UpdatedAtUtc = now;
+                    _logger.LogInformation(
+                        "Category {CategoryId} locked because first fight {FightId} has started.",
+                        category.Id,
+                        fight.Id);
+                }
 
-        var category = await _dbContext.Categories
-            .FirstOrDefaultAsync(c => c.Id == fight.CategoryId, cancellationToken);
-        if (category is not null && !category.IsLocked)
-        {
-            category.IsLocked = true;
-            category.UpdatedAtUtc = now;
-            _logger.LogInformation(
-                "Category {CategoryId} locked because first fight {FightId} has started.",
-                category.Id,
-                fight.Id);
-        }
-
-        fight.Status = InProgress;
-        fight.StartedAtUtc = now;
-        fight.PausedAtUtc = null;
-        fight.OsaeKomiSide = null;
-        fight.OsaeKomiStartedAtUtc = null;
-        fight.OsaeKomiPausedAtUtc = null;
-        fight.OsaeKomiElapsedMilliseconds = 0;
-        fight.UpdatedAtUtc = now;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
-    }
-
-    /// <inheritdoc />
-    public async Task<MatchActionResult> PauseAsync(Guid fightId, string user, CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
-
-        if (fight.Status != InProgress) return MatchActionResult.InvalidState;
-
-        var now = DateTimeOffset.UtcNow;
-        if (fight.OsaeKomiPausedAtUtc is not null && fight.StartedAtUtc is not null)
-        {
-            fight.StartedAtUtc = fight.StartedAtUtc.Value.Add(now - fight.OsaeKomiPausedAtUtc.Value);
-        }
-
-        fight.Status = Paused;
-        fight.PausedAtUtc = now;
-        fight.OsaeKomiSide = null;
-        fight.OsaeKomiStartedAtUtc = null;
-        fight.OsaeKomiPausedAtUtc = null;
-        fight.OsaeKomiElapsedMilliseconds = 0;
-        fight.UpdatedAtUtc = now;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await _auditLog.LogAsync(
-            fight.TournamentId, user, "FightPaused", "Fight", fight.Id, null, cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
-    }
+                fight.Status = InProgress;
+                fight.StartedAtUtc = now;
+                fight.PausedAtUtc = null;
+                fight.OsaeKomiSide = null;
+                fight.OsaeKomiStartedAtUtc = null;
+                fight.OsaeKomiPausedAtUtc = null;
+                fight.OsaeKomiElapsedMilliseconds = 0;
+                fight.UpdatedAtUtc = now;
+                return MatchActionResult.Success;
+            },
+            audit: null,
+            cancellationToken);
 
     /// <inheritdoc />
-    public async Task<MatchActionResult> ResumeAsync(Guid fightId, string user, CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
+    public async Task<MatchActionResult> PauseAsync(Guid fightId, string user, CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            (fight, ct) =>
+            {
+                if (fight.Status != InProgress) return Task.FromResult(MatchActionResult.InvalidState);
 
-        if (fight.Status != Paused || fight.StartedAtUtc is null || fight.PausedAtUtc is null)
-            return MatchActionResult.InvalidState;
+                var now = DateTimeOffset.UtcNow;
+                if (fight.OsaeKomiPausedAtUtc is not null && fight.StartedAtUtc is not null)
+                {
+                    fight.StartedAtUtc = fight.StartedAtUtc.Value.Add(now - fight.OsaeKomiPausedAtUtc.Value);
+                }
 
-        var elapsedBeforePause = fight.PausedAtUtc.Value - fight.StartedAtUtc.Value;
-        var now = DateTimeOffset.UtcNow;
-        fight.Status = InProgress;
-        fight.StartedAtUtc = now - elapsedBeforePause;
-        fight.PausedAtUtc = null;
-        fight.OsaeKomiSide = null;
-        fight.OsaeKomiStartedAtUtc = null;
-        fight.OsaeKomiPausedAtUtc = null;
-        fight.OsaeKomiElapsedMilliseconds = 0;
-        fight.UpdatedAtUtc = now;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+                fight.Status = Paused;
+                fight.PausedAtUtc = now;
+                fight.OsaeKomiSide = null;
+                fight.OsaeKomiStartedAtUtc = null;
+                fight.OsaeKomiPausedAtUtc = null;
+                fight.OsaeKomiElapsedMilliseconds = 0;
+                fight.UpdatedAtUtc = now;
+                return Task.FromResult(MatchActionResult.Success);
+            },
+            fight => new FightAudit("FightPaused", null),
+            cancellationToken);
 
-        await _auditLog.LogAsync(
-            fight.TournamentId, user, "FightResumed", "Fight", fight.Id, null, cancellationToken);
+    /// <inheritdoc />
+    public async Task<MatchActionResult> ResumeAsync(Guid fightId, string user, CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            (fight, ct) =>
+            {
+                if (fight.Status != Paused || fight.StartedAtUtc is null || fight.PausedAtUtc is null)
+                    return Task.FromResult(MatchActionResult.InvalidState);
 
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
-    }
+                var elapsedBeforePause = fight.PausedAtUtc.Value - fight.StartedAtUtc.Value;
+                var now = DateTimeOffset.UtcNow;
+                fight.Status = InProgress;
+                fight.StartedAtUtc = now - elapsedBeforePause;
+                fight.PausedAtUtc = null;
+                fight.OsaeKomiSide = null;
+                fight.OsaeKomiStartedAtUtc = null;
+                fight.OsaeKomiPausedAtUtc = null;
+                fight.OsaeKomiElapsedMilliseconds = 0;
+                fight.UpdatedAtUtc = now;
+                return Task.FromResult(MatchActionResult.Success);
+            },
+            fight => new FightAudit("FightResumed", null),
+            cancellationToken);
 
     /// <inheritdoc />
     public async Task<MatchActionResult> AdjustScoreAsync(
@@ -327,22 +313,25 @@ public sealed class MatchService : IMatchService
         if (delta is not 1 and not -1)
             return MatchActionResult.InvalidState;
 
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
+        return await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            (fight, ct) =>
+            {
+                if (fight.Status != InProgress && fight.Status != Paused)
+                    return Task.FromResult(MatchActionResult.InvalidState);
 
-        if (fight.Status != InProgress && fight.Status != Paused) return MatchActionResult.InvalidState;
+                if (!TryGetSide(side, out var whiteSide))
+                    return Task.FromResult(MatchActionResult.InvalidState);
 
-        if (!TryGetSide(side, out var whiteSide)) return MatchActionResult.InvalidState;
+                var result = ApplyScoreDelta(fight, whiteSide, scoreType, delta);
+                if (result != MatchActionResult.Success) return Task.FromResult(result);
 
-        var result = ApplyScoreDelta(fight, whiteSide, scoreType, delta);
-        if (result != MatchActionResult.Success) return result;
-
-        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
+                fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                return Task.FromResult(MatchActionResult.Success);
+            },
+            audit: null,
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -358,21 +347,23 @@ public sealed class MatchService : IMatchService
         if (whiteScore < 0 || blueScore < 0 || whitePenalties < 0 || bluePenalties < 0)
             return MatchActionResult.InvalidState;
 
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
+        return await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            (fight, ct) =>
+            {
+                if (fight.Status != InProgress && fight.Status != Paused)
+                    return Task.FromResult(MatchActionResult.InvalidState);
 
-        if (fight.Status != InProgress && fight.Status != Paused) return MatchActionResult.InvalidState;
-
-        fight.WhiteScore = whiteScore;
-        fight.BlueScore = blueScore;
-        fight.WhitePenalties = whitePenalties;
-        fight.BluePenalties = bluePenalties;
-        fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
+                fight.WhiteScore = whiteScore;
+                fight.BlueScore = blueScore;
+                fight.WhitePenalties = whitePenalties;
+                fight.BluePenalties = bluePenalties;
+                fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
+                return Task.FromResult(MatchActionResult.Success);
+            },
+            audit: null,
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -380,183 +371,150 @@ public sealed class MatchService : IMatchService
         Guid fightId,
         string side,
         string user,
-        CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
-
-        if (fight.Status != InProgress
-            || fight.OsaeKomiSide is not null
-            || fight.OsaeKomiStartedAtUtc is not null
-            || fight.OsaeKomiPausedAtUtc is not null)
-        {
-            return MatchActionResult.InvalidState;
-        }
-        if (!TryGetSide(side, out var whiteSide)) return MatchActionResult.InvalidState;
-
-        var now = DateTimeOffset.UtcNow;
-        fight.OsaeKomiSide = whiteSide ? "White" : "Blue";
-        fight.OsaeKomiStartedAtUtc = now;
-        fight.OsaeKomiPausedAtUtc = null;
-        fight.OsaeKomiElapsedMilliseconds = 0;
-        fight.UpdatedAtUtc = now;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
-    }
-
-    /// <inheritdoc />
-    public async Task<MatchActionResult> PauseOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
-
-        if (fight.Status != InProgress
-            || fight.OsaeKomiSide is null
-            || fight.OsaeKomiStartedAtUtc is null
-            || fight.OsaeKomiPausedAtUtc is not null)
-        {
-            return MatchActionResult.InvalidState;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var activeHoldStartedAt = fight.OsaeKomiStartedAtUtc.Value;
-        fight.OsaeKomiElapsedMilliseconds += Math.Max(0, (long)(now - activeHoldStartedAt).TotalMilliseconds);
-        fight.OsaeKomiStartedAtUtc = null;
-        fight.OsaeKomiPausedAtUtc = now;
-        fight.UpdatedAtUtc = now;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await _auditLog.LogAsync(
-            fight.TournamentId, user, "OsaeKomiPaused", "Fight", fight.Id,
-            $"Side={fight.OsaeKomiSide};ElapsedMilliseconds={fight.OsaeKomiElapsedMilliseconds}",
-            cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
-    }
-
-    /// <inheritdoc />
-    public async Task<MatchActionResult> ResumeOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
-
-        if (fight.Status != InProgress
-            || fight.OsaeKomiSide is null
-            || fight.OsaeKomiStartedAtUtc is not null
-            || fight.OsaeKomiPausedAtUtc is null)
-        {
-            return MatchActionResult.InvalidState;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var osaeKomiPauseDuration = now - fight.OsaeKomiPausedAtUtc.Value;
-        fight.StartedAtUtc = fight.StartedAtUtc?.Add(osaeKomiPauseDuration);
-        fight.OsaeKomiStartedAtUtc = now;
-        fight.OsaeKomiPausedAtUtc = null;
-        fight.UpdatedAtUtc = now;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await _auditLog.LogAsync(
-            fight.TournamentId, user, "OsaeKomiResumed", "Fight", fight.Id,
-            $"Side={fight.OsaeKomiSide};ElapsedMilliseconds={fight.OsaeKomiElapsedMilliseconds}",
-            cancellationToken);
-
-        await BroadcastFightUpdatedAsync(fight);
-
-        return MatchActionResult.Success;
-    }
-
-    /// <inheritdoc />
-    public async Task<MatchActionResult> StopOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken)
-    {
-        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
-        if (fight is null) return MatchActionResult.FightNotFound;
-
-        if (fight.OsaeKomiSide is null
-            || (fight.OsaeKomiStartedAtUtc is null && fight.OsaeKomiPausedAtUtc is null))
-        {
-            return MatchActionResult.InvalidState;
-        }
-
-        // Capture hold duration and side before clearing the timer fields.
-        var now = DateTimeOffset.UtcNow;
-        var elapsedMilliseconds = fight.OsaeKomiElapsedMilliseconds;
-        if (fight.OsaeKomiStartedAtUtc is not null)
-        {
-            elapsedMilliseconds += Math.Max(0, (long)(now - fight.OsaeKomiStartedAtUtc.Value).TotalMilliseconds);
-        }
-
-        if (fight.OsaeKomiPausedAtUtc is not null)
-        {
-            fight.StartedAtUtc = fight.StartedAtUtc?.Add(now - fight.OsaeKomiPausedAtUtc.Value);
-        }
-
-        var holdSeconds = (int)Math.Ceiling(elapsedMilliseconds / 1000d);
-        var holderIsWhite = fight.OsaeKomiSide == "White";
-
-        // Load tournament Osae-komi rule settings.
-        var tournament = await _dbContext.Tournaments
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == fight.TournamentId, cancellationToken);
-
-        var ipponSeconds    = tournament?.OsaeKomiIpponSeconds    ?? 20;
-        var wazaAriSeconds  = tournament?.OsaeKomiWazaAriSeconds  ?? 10;
-        var yukoSeconds     = tournament?.OsaeKomiYukoSeconds     ?? 5;
-        var yukoEnabled     = tournament?.OsaeKomiYukoEnabled     ?? true;
-
-        var holderHasWazaAri = holderIsWhite
-            ? fight.WhiteWazaAriCount > 0
-            : fight.BlueWazaAriCount > 0;
-
-        // Determine which score to award based on DJB hold-down rules.
-        ScoreType? scoreToAward = null;
-        if (holdSeconds >= ipponSeconds)
-        {
-            scoreToAward = ScoreType.Ippon;
-        }
-        else if (holderHasWazaAri && holdSeconds >= wazaAriSeconds)
-        {
-            // Second Waza-ari converts to Ippon per DJB rules.
-            scoreToAward = ScoreType.Ippon;
-        }
-        else if (holdSeconds >= wazaAriSeconds)
-        {
-            scoreToAward = ScoreType.WazaAri;
-        }
-        else if (yukoEnabled && holdSeconds >= yukoSeconds)
-        {
-            scoreToAward = ScoreType.Yuko;
-        }
-
-        fight.OsaeKomiSide = null;
-        fight.OsaeKomiStartedAtUtc = null;
-        fight.OsaeKomiPausedAtUtc = null;
-        fight.OsaeKomiElapsedMilliseconds = 0;
-        fight.UpdatedAtUtc = now;
-
-        if (scoreToAward is not null)
-        {
-            ApplyScoreDelta(fight, holderIsWhite, scoreToAward.Value, 1);
-
-            // A hold-down that results in Ippon must immediately stop the match clock.
-            if (scoreToAward == ScoreType.Ippon)
+        CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            (fight, ct) =>
             {
-                fight.Status = Paused;
-                fight.PausedAtUtc = now;
-            }
-        }
+                if (fight.Status != InProgress
+                    || fight.OsaeKomiSide is not null
+                    || fight.OsaeKomiStartedAtUtc is not null
+                    || fight.OsaeKomiPausedAtUtc is not null)
+                {
+                    return Task.FromResult(MatchActionResult.InvalidState);
+                }
+                if (!TryGetSide(side, out var whiteSide)) return Task.FromResult(MatchActionResult.InvalidState);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+                var now = DateTimeOffset.UtcNow;
+                fight.OsaeKomiSide = whiteSide ? "White" : "Blue";
+                fight.OsaeKomiStartedAtUtc = now;
+                fight.OsaeKomiPausedAtUtc = null;
+                fight.OsaeKomiElapsedMilliseconds = 0;
+                fight.UpdatedAtUtc = now;
+                return Task.FromResult(MatchActionResult.Success);
+            },
+            audit: null,
+            cancellationToken);
 
-        await BroadcastFightUpdatedAsync(fight);
+    /// <inheritdoc />
+    public async Task<MatchActionResult> PauseOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            (fight, ct) =>
+            {
+                if (fight.Status != InProgress
+                    || fight.OsaeKomiSide is null
+                    || fight.OsaeKomiStartedAtUtc is null
+                    || fight.OsaeKomiPausedAtUtc is not null)
+                {
+                    return Task.FromResult(MatchActionResult.InvalidState);
+                }
 
-        return MatchActionResult.Success;
-    }
+                var now = DateTimeOffset.UtcNow;
+                var activeHoldStartedAt = fight.OsaeKomiStartedAtUtc.Value;
+                fight.OsaeKomiElapsedMilliseconds += Math.Max(0, (long)(now - activeHoldStartedAt).TotalMilliseconds);
+                fight.OsaeKomiStartedAtUtc = null;
+                fight.OsaeKomiPausedAtUtc = now;
+                fight.UpdatedAtUtc = now;
+                return Task.FromResult(MatchActionResult.Success);
+            },
+            fight => new FightAudit(
+                "OsaeKomiPaused",
+                $"Side={fight.OsaeKomiSide};ElapsedMilliseconds={fight.OsaeKomiElapsedMilliseconds}"),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<MatchActionResult> ResumeOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            (fight, ct) =>
+            {
+                if (fight.Status != InProgress
+                    || fight.OsaeKomiSide is null
+                    || fight.OsaeKomiStartedAtUtc is not null
+                    || fight.OsaeKomiPausedAtUtc is null)
+                {
+                    return Task.FromResult(MatchActionResult.InvalidState);
+                }
+
+                var now = DateTimeOffset.UtcNow;
+                var osaeKomiPauseDuration = now - fight.OsaeKomiPausedAtUtc.Value;
+                fight.StartedAtUtc = fight.StartedAtUtc?.Add(osaeKomiPauseDuration);
+                fight.OsaeKomiStartedAtUtc = now;
+                fight.OsaeKomiPausedAtUtc = null;
+                fight.UpdatedAtUtc = now;
+                return Task.FromResult(MatchActionResult.Success);
+            },
+            fight => new FightAudit(
+                "OsaeKomiResumed",
+                $"Side={fight.OsaeKomiSide};ElapsedMilliseconds={fight.OsaeKomiElapsedMilliseconds}"),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<MatchActionResult> StopOsaeKomiAsync(Guid fightId, string user, CancellationToken cancellationToken) =>
+        await ExecuteFightOperationAsync(
+            fightId,
+            user,
+            async (fight, ct) =>
+            {
+                if (fight.OsaeKomiSide is null
+                    || (fight.OsaeKomiStartedAtUtc is null && fight.OsaeKomiPausedAtUtc is null))
+                {
+                    return MatchActionResult.InvalidState;
+                }
+
+                // Capture hold duration and side before clearing the timer fields.
+                var now = DateTimeOffset.UtcNow;
+                var elapsedMilliseconds = fight.OsaeKomiElapsedMilliseconds;
+                if (fight.OsaeKomiStartedAtUtc is not null)
+                {
+                    elapsedMilliseconds += Math.Max(0, (long)(now - fight.OsaeKomiStartedAtUtc.Value).TotalMilliseconds);
+                }
+
+                if (fight.OsaeKomiPausedAtUtc is not null)
+                {
+                    fight.StartedAtUtc = fight.StartedAtUtc?.Add(now - fight.OsaeKomiPausedAtUtc.Value);
+                }
+
+                var holdSeconds = (int)Math.Ceiling(elapsedMilliseconds / 1000d);
+                var holderIsWhite = fight.OsaeKomiSide == "White";
+
+                var tournament = await _dbContext.Tournaments
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == fight.TournamentId, ct);
+
+                var settings = OsaeKomiSettings.FromTournament(tournament);
+                var holderHasWazaAri = holderIsWhite
+                    ? fight.WhiteWazaAriCount > 0
+                    : fight.BlueWazaAriCount > 0;
+
+                var outcome = OsaeKomiRules.EvaluateHold(holdSeconds, holderHasWazaAri, settings);
+
+                fight.OsaeKomiSide = null;
+                fight.OsaeKomiStartedAtUtc = null;
+                fight.OsaeKomiPausedAtUtc = null;
+                fight.OsaeKomiElapsedMilliseconds = 0;
+                fight.UpdatedAtUtc = now;
+
+                if (outcome.ScoreToAward is not null)
+                {
+                    ApplyScoreDelta(fight, holderIsWhite, outcome.ScoreToAward.Value, 1);
+
+                    // A hold-down that results in Ippon must immediately stop the match clock.
+                    if (outcome.ForcesIppon)
+                    {
+                        fight.Status = Paused;
+                        fight.PausedAtUtc = now;
+                    }
+                }
+
+                return MatchActionResult.Success;
+            },
+            audit: null,
+            cancellationToken);
 
     /// <inheritdoc />
     public async Task<MatchActionResult> ConfirmResultAsync(
@@ -1086,6 +1044,39 @@ public sealed class MatchService : IMatchService
             "FightUpdated",
             new FightUpdatedMessage(MapToFight(fight), DateTimeOffset.UtcNow),
             CancellationToken.None);
+
+    /// <summary>Describes the audit entry a fight operation should record after it succeeds.</summary>
+    private readonly record struct FightAudit(string Action, string? Details);
+
+    /// <summary>
+    /// Runs the shared fight-lifecycle pipeline: load the fight, apply the guarded mutation, persist,
+    /// write an optional audit entry, and broadcast the update. This concentrates the "load → guard →
+    /// mutate → save → audit → broadcast" pattern so a change to it is made in one place (locality).
+    /// </summary>
+    private async Task<MatchActionResult> ExecuteFightOperationAsync(
+        Guid fightId,
+        string user,
+        Func<FightRecord, CancellationToken, Task<MatchActionResult>> apply,
+        Func<FightRecord, FightAudit?>? audit,
+        CancellationToken cancellationToken)
+    {
+        var fight = await _dbContext.Fights.FirstOrDefaultAsync(f => f.Id == fightId, cancellationToken);
+        if (fight is null) return MatchActionResult.FightNotFound;
+
+        var result = await apply(fight, cancellationToken);
+        if (result != MatchActionResult.Success) return result;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (audit?.Invoke(fight) is { } entry)
+        {
+            await _auditLog.LogAsync(
+                fight.TournamentId, user, entry.Action, "Fight", fight.Id, entry.Details, cancellationToken);
+        }
+
+        await BroadcastFightUpdatedAsync(fight);
+        return MatchActionResult.Success;
+    }
 
     private static Fight MapToFight(FightRecord r) => new(
         r.Id, r.TournamentId, r.CategoryId,

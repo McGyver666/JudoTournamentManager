@@ -9,9 +9,9 @@ public sealed class DmfAthleteImportParserTests
     private readonly DmfAthleteImportParser _parser = new();
 
     [Theory]
-    [InlineData("BEM-200202U18 (m).dmf", 1, "DJK Sportfreunde Dülmen", "Ciunta", "Raul Emanuel", 2003, 60)]
-    [InlineData("DJK-Duelmen-220129U13 (m).dmf", 3, "DJK Sportfreunde Dülmen", "Klapper", "Henri", 2011, 35)]
-    [InlineData("DJK-Duelmen-220129U15 (m).dmf", 1, "DJK Sportfreunde Dülmen", "Oechtering", "Jonas", 2009, 50)]
+    [InlineData("dmf-fixture-01 (m).dmf", 1, "Judo Testverein Nord", "Muster", "Test Person", 2005, 66)]
+    [InlineData("dmf-fixture-02 (m).dmf", 3, "Judo Testverein Nord", "Muster", "Anna", 2012, 32)]
+    [InlineData("dmf-fixture-03 (m).dmf", 1, "Judo Testverein Nord", "Testname", "Lena", 2011, 48)]
     public void Parse_WithKnownDmfSamples_ReturnsAthletes(
         string fileName,
         int expectedCount,
@@ -21,7 +21,7 @@ public sealed class DmfAthleteImportParserTests
         int firstBirthYear,
         decimal firstWeight)
     {
-        var filePath = Path.Combine(FindRepositoryRoot(), fileName);
+        var filePath = GetFixturePath(fileName);
         var bytes = File.ReadAllBytes(filePath);
 
         var result = _parser.Parse(bytes, fileName);
@@ -40,13 +40,16 @@ public sealed class DmfAthleteImportParserTests
     [Fact]
     public void Parse_WithoutGenderMarker_Throws()
     {
-        var filePath = Path.Combine(FindRepositoryRoot(), "BEM-200202U18 (m).dmf");
+        var filePath = GetFixturePath("dmf-fixture-01 (m).dmf");
         var bytes = File.ReadAllBytes(filePath);
 
-        var ex = Assert.Throws<DmfImportParseException>(() => _parser.Parse(bytes, "BEM-200202U18.dmf"));
+        var ex = Assert.Throws<DmfImportParseException>(() => _parser.Parse(bytes, "dmf-fixture-01.dmf"));
 
         Assert.Contains("Geschlecht", ex.Message);
     }
+
+    private static string GetFixturePath(string fileName) =>
+        Path.Combine(FindRepositoryRoot(), "ShiaiManager.Api.Tests", "TestData", "Dmf", fileName);
 
     [Fact]
     public void Parse_WithInvalidHeader_Throws()
