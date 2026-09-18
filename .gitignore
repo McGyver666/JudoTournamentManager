@@ -75,6 +75,8 @@ Thumbs.db
 Desktop.ini
 *.dm4
 *.dmf
+!ShiaiManager.Api.Tests/TestData/Dmf/*.dm4
+!ShiaiManager.Api.Tests/TestData/Dmf/*.dmf
 artifacts/*
 release/
 release.zip

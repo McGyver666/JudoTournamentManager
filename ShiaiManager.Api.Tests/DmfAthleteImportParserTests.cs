@@ -21,7 +21,7 @@ public sealed class DmfAthleteImportParserTests
         int firstBirthYear,
         decimal firstWeight)
     {
-        var filePath = Path.Combine(FindRepositoryRoot(), fileName);
+        var filePath = GetFixturePath(fileName);
         var bytes = File.ReadAllBytes(filePath);
 
         var result = _parser.Parse(bytes, fileName);
@@ -40,13 +40,16 @@ public sealed class DmfAthleteImportParserTests
     [Fact]
     public void Parse_WithoutGenderMarker_Throws()
     {
-        var filePath = Path.Combine(FindRepositoryRoot(), "BEM-200202U18 (m).dmf");
+        var filePath = GetFixturePath("BEM-200202U18 (m).dmf");
         var bytes = File.ReadAllBytes(filePath);
 
         var ex = Assert.Throws<DmfImportParseException>(() => _parser.Parse(bytes, "BEM-200202U18.dmf"));
 
         Assert.Contains("Geschlecht", ex.Message);
     }
+
+    private static string GetFixturePath(string fileName) =>
+        Path.Combine(FindRepositoryRoot(), "ShiaiManager.Api.Tests", "TestData", "Dmf", fileName);
 
     [Fact]
     public void Parse_WithInvalidHeader_Throws()
