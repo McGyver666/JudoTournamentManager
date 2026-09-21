@@ -1,7 +1,9 @@
 import { signal } from '@angular/core';
+import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { AuthStateService } from '../../core/auth-state.service';
 import { I18nService } from '../../core/i18n.service';
 import {
   AgeGroupClubScoringResponse,
@@ -25,6 +27,7 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
     getMedalTable: jasmine.Spy;
     getAgeGroupClubScoring: jasmine.Spy;
     getGlobalClubScoring: jasmine.Spy;
+    downloadResultsCsv: jasmine.Spy;
   };
 
   function clubEntry(overrides: Partial<ClubScoringEntry> = {}): ClubScoringEntry {
@@ -104,12 +107,21 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
       getGlobalClubScoring: jasmine
         .createSpy('getGlobalClubScoring')
         .and.returnValue(of(globalResponse())),
+      downloadResultsCsv: jasmine
+        .createSpy('downloadResultsCsv')
+        .and.returnValue(of(new HttpResponse<Blob>({
+          body: new Blob(['csv'], { type: 'text/csv' }),
+          headers: new HttpHeaders({
+            'Content-Disposition': 'attachment; filename="ergebnisse-test.csv"',
+          }),
+        }))),
     };
 
     TestBed.configureTestingModule({
       imports: [ResultsComponent],
       providers: [
         { provide: ApiService, useValue: apiSpies },
+        { provide: AuthStateService, useValue: { canOperate: signal(true) } },
         {
           provide: TournamentContextService,
           useValue: { tournamentId },
@@ -212,6 +224,36 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
 
     expect(apiSpies.getAgeGroupClubScoring).toHaveBeenCalledTimes(2);
     expect(apiSpies.getGlobalClubScoring).toHaveBeenCalledTimes(2);
+
+    fixture.destroy();
+  });
+
+  it('starts the CSV download for the active tournament', () => {
+    const createObjectUrl = spyOn(URL, 'createObjectURL').and.returnValue('blob:results');
+    const revokeObjectUrl = spyOn(URL, 'revokeObjectURL');
+    const click = spyOn(HTMLAnchorElement.prototype, 'click');
+    const fixture = TestBed.createComponent(ResultsComponent);
+    fixture.detectChanges();
+
+    (fixture.componentInstance as unknown as { exportResultsCsv: () => void }).exportResultsCsv();
+
+    expect(apiSpies.downloadResultsCsv).toHaveBeenCalledOnceWith('tournament-1');
+    expect(createObjectUrl).toHaveBeenCalledOnceWith(jasmine.any(Blob));
+    expect(click).toHaveBeenCalled();
+    expect(revokeObjectUrl).toHaveBeenCalledOnceWith('blob:results');
+
+    fixture.destroy();
+  });
+
+  it('shows a localized error when the CSV download fails', () => {
+    apiSpies.downloadResultsCsv.and.returnValue(throwError(() => new Error('download failed')));
+    const fixture = TestBed.createComponent(ResultsComponent);
+    fixture.detectChanges();
+
+    (fixture.componentInstance as unknown as { exportResultsCsv: () => void }).exportResultsCsv();
+
+    const component = fixture.componentInstance as unknown as { exportError: () => string | null };
+    expect(component.exportError()).toBe('results.exportError');
 
     fixture.destroy();
   });

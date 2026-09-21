@@ -4,6 +4,13 @@
   border-bottom: 1px solid var(--c-border);
 }
 
+.results-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .tab-btn {
   padding: 0.6rem 1rem;
   border: 1px solid transparent;

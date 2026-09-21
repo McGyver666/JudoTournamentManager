@@ -6,6 +6,9 @@ import {
   signal,
 } from '@angular/core';
 import { ApiService } from '../../core/api.service';
+import { AuthStateService } from '../../core/auth-state.service';
+import { extractApiError } from '../../core/http-error';
+import { I18nService } from '../../core/i18n.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -34,10 +37,15 @@ interface CategoryRanking {
 })
 export class ResultsComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthStateService);
+  private readonly i18n = inject(I18nService);
   protected readonly context = inject(TournamentContextService);
   private readonly hub = inject(TournamentHubService);
 
   protected readonly activeTab = signal<'rankings' | 'medals' | 'clubs'>('rankings');
+  protected readonly canExport = this.auth.canOperate;
+  protected readonly exportLoading = signal(false);
+  protected readonly exportError = signal<string | null>(null);
   protected readonly rankings = signal<CategoryRanking[]>([]);
   protected readonly medalTable = signal<MedalEntry[]>([]);
   protected readonly medalLoading = signal(false);
@@ -82,6 +90,38 @@ export class ResultsComponent implements OnInit, OnDestroy {
     window.print();
   }
 
+  protected exportResultsCsv(): void {
+    const tournamentId = this.context.tournamentId();
+    if (!tournamentId || this.exportLoading()) {
+      return;
+    }
+
+    this.exportLoading.set(true);
+    this.exportError.set(null);
+    this.api.downloadResultsCsv(tournamentId).subscribe({
+      next: response => {
+        if (!response.body) {
+          this.exportError.set(this.i18n.translate('results.exportError'));
+          this.exportLoading.set(false);
+          return;
+        }
+
+        const url = URL.createObjectURL(response.body);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = this.fileName(response.headers.get('content-disposition'));
+        anchor.click();
+        URL.revokeObjectURL(url);
+        this.exportLoading.set(false);
+      },
+      error: error => {
+        this.exportError.set(
+          extractApiError(error, this.i18n.translate('results.exportError')));
+        this.exportLoading.set(false);
+      },
+    });
+  }
+
   protected placeLabel(place: number): string {
     if (place === 1) return '🥇';
     if (place === 2) return '🥈';
@@ -99,6 +139,20 @@ export class ResultsComponent implements OnInit, OnDestroy {
 
   protected scoreValue(entry: ClubScoringEntry): string {
     return entry.scoreDisplay.toFixed(2);
+  }
+
+  private fileName(contentDisposition: string | null): string {
+    const encodedName = contentDisposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+    if (encodedName) {
+      try {
+        return decodeURIComponent(encodedName);
+      } catch {
+        return encodedName;
+      }
+    }
+
+    const quotedName = contentDisposition?.match(/filename="([^"]+)"/i)?.[1];
+    return quotedName ?? 'ergebnisse.csv';
   }
 
   private refreshClubScoring(): void {
