@@ -142,6 +142,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<ITatamiQueueService, TatamiQueueService>();
 builder.Services.AddScoped<IRankingService, RankingService>();
+builder.Services.AddScoped<IResultsCsvExportService, ResultsCsvExportService>();
 builder.Services.AddScoped<ICompletedFightsService, CompletedFightsService>();
 builder.Services.AddScoped<IOverviewStatsService, TournamentOverviewStatsService>();
 builder.Services.AddHostedService<MatchClockEvaluator>();

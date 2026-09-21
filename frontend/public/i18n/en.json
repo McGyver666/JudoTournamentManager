@@ -632,6 +632,10 @@
 
   "results.title": "Results",
   "results.print": "Print",
+  "results.exportCsv": "Export results as CSV",
+  "results.exportLoading": "Creating CSV ...",
+  "results.exportError": "The result CSV could not be downloaded.",
+  "results.exportProvisional": "The export contains the current provisional result status.",
   "results.provisional": "Provisional results",
   "results.tab.rankings": "Rankings",
   "results.tab.medals": "Medal table",
