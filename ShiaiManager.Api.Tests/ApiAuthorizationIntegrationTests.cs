@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using ShiaiManager.Api.Contracts;
 using ShiaiManager.Api.Data;
+using ShiaiManager.Api.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -416,6 +418,93 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
         var response = await client.GetAsync($"/api/tournaments/{tournamentId}/registrations/export");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExportResultsCsv_WithoutToken_Returns401()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/tournaments/{Guid.NewGuid()}/results/export");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExportResultsCsv_WithDisplayRole_Returns403()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "display-results-export", "Display");
+
+        var displayToken = await LoginAndGetTokenAsync(client, "display-results-export", "Display!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", displayToken);
+
+        var response = await client.GetAsync($"/api/tournaments/{Guid.NewGuid()}/results/export");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExportResultsCsv_WithAdminAndEmptyTournament_ReturnsHeaderAndBom()
+    {
+        using var client = _factory.CreateClient();
+        var bootstrapResponse = await client.PostAsJsonAsync("/api/auth/bootstrap-admin", new BootstrapAdminRequest
+        {
+            UserName = "admin",
+            Password = "Admin!123456"
+        });
+
+        Assert.True(
+            bootstrapResponse.StatusCode is HttpStatusCode.Created or HttpStatusCode.Conflict,
+            $"Unexpected bootstrap status: {bootstrapResponse.StatusCode}");
+
+        var token = await LoginAndGetTokenAsync(client, "admin", "Admin!123456");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var createResponse = await client.PostAsJsonAsync("/api/tournaments", new CreateTournamentRequest
+        {
+            Name = "Leeres CSV-Turnier",
+            Date = new DateOnly(2026, 9, 21),
+            Venue = "Halle",
+            Organizer = "Judo Verein"
+        });
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        var tournament = await createResponse.Content.ReadFromJsonAsync<Tournament>();
+        Assert.NotNull(tournament);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament!.Id}/results/export");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/csv", response.Content.Headers.ContentType?.MediaType);
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+        Assert.Contains("ergebnisse-", fileName);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal(0xEF, bytes[0]);
+        Assert.Equal(0xBB, bytes[1]);
+        Assert.Equal(0xBF, bytes[2]);
+        Assert.Equal(
+            "Turniername;Turnierdatum;Veranstaltungsort;Veranstalter;Vorname;Nachname;Verein;Altersklasse;Kategorie;Geschlecht;Gewichtsklasse;Platzierung;Ergebnisstatus\r\n",
+            Encoding.UTF8.GetString(bytes[3..]));
+    }
+
+    [Theory]
+    [InlineData("Admin", "Admin!123456")]
+    [InlineData("Operator", "Operator!1234")]
+    public async Task ExportResultsCsv_WithAuthorizedRole_ReachesEndpoint(string role, string password)
+    {
+        using var client = _factory.CreateClient();
+        var userName = $"results-export-{role.ToLowerInvariant()}-{Guid.NewGuid():N}";
+        await BootstrapAdminAndCreateUserAsync(client, userName, role);
+
+        var token = await LoginAndGetTokenAsync(client, userName, password);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync($"/api/tournaments/{Guid.NewGuid()}/results/export");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

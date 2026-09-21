@@ -634,6 +634,10 @@
 
   "results.title": "Ergebnisse",
   "results.print": "Drucken",
+  "results.exportCsv": "Ergebnisse als CSV exportieren",
+  "results.exportLoading": "CSV wird erstellt ...",
+  "results.exportError": "Ergebnis-CSV konnte nicht heruntergeladen werden.",
+  "results.exportProvisional": "Der Export enthält den aktuellen vorläufigen Ergebnisstand.",
   "results.provisional": "Vorläufige Ergebnisse",
   "results.tab.rankings": "Ranglisten",
   "results.tab.medals": "Medaillenspiegel",

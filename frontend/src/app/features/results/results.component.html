@@ -7,8 +7,20 @@
   </section>
 
   <section class="page-header">
+    <div class="results-actions no-print">
+      @if (canExport() && context.tournamentId()) {
+        <button class="btn btn--secondary" (click)="exportResultsCsv()" [disabled]="exportLoading()">
+          {{ (exportLoading() ? 'results.exportLoading' : 'results.exportCsv') | t }}
+        </button>
+        <span class="provisional-hint">{{ 'results.exportProvisional' | t }}</span>
+      }
+    </div>
     <button class="btn btn--secondary no-print" (click)="printPage()">{{ 'results.print' | t }}</button>
   </section>
+
+  @if (exportError(); as error) {
+    <p class="error-banner no-print" role="alert">{{ error }}</p>
+  }
 
   @if (!context.tournamentId()) {
     <section class="card card-pad">

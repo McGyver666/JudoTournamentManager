@@ -14,14 +14,20 @@ public sealed class ResultsController : ControllerBase
 {
     private readonly IRankingService _rankingService;
     private readonly ITournamentStore _tournamentStore;
+    private readonly IResultsCsvExportService _resultsCsvExportService;
 
     /// <summary>Initializes a new controller instance.</summary>
-    public ResultsController(IRankingService rankingService, ITournamentStore tournamentStore)
+    public ResultsController(
+        IRankingService rankingService,
+        ITournamentStore tournamentStore,
+        IResultsCsvExportService resultsCsvExportService)
     {
         ArgumentNullException.ThrowIfNull(rankingService);
         ArgumentNullException.ThrowIfNull(tournamentStore);
+        ArgumentNullException.ThrowIfNull(resultsCsvExportService);
         _rankingService = rankingService;
         _tournamentStore = tournamentStore;
+        _resultsCsvExportService = resultsCsvExportService;
     }
 
     /// <summary>
@@ -43,6 +49,28 @@ public sealed class ResultsController : ControllerBase
 
         var table = await _rankingService.GetMedalTableAsync(tournamentId, cancellationToken);
         return Ok(table);
+    }
+
+    /// <summary>
+    /// Exports all currently determined individual category placements as a CSV file.
+    /// </summary>
+    [Authorize(Roles = "Admin,Operator")]
+    [HttpGet("results/export")]
+    [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ExportCsvAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken)
+    {
+        var tournament = await _tournamentStore.GetByIdAsync(tournamentId, cancellationToken);
+        if (tournament is null)
+        {
+            return NotFound();
+        }
+
+        var export = await _resultsCsvExportService.CreateAsync(tournament, cancellationToken);
+        return File(export.Content, "text/csv", export.FileName);
     }
 
     /// <summary>
