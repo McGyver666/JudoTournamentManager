@@ -528,6 +528,13 @@ export class ApiService {
       `api/tournaments/${tournamentId}/club-scoring/global`);
   }
 
+  downloadResultsCsv(tournamentId: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(`api/tournaments/${tournamentId}/results/export`, {
+      observe: 'response',
+      responseType: 'blob',
+    });
+  }
+
   // Public / guest access --------------------------------------------------
   // Privacy-reduced projections shared by the public match-lists view for both
   // Display clients and anonymous guests (single code path).

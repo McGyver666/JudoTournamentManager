@@ -54,6 +54,7 @@ The API is served by the ASP.NET Core application under `/api`.
 - `GET /api/tournaments/{tournamentId}/medal-table`
 - `GET /api/tournaments/{tournamentId}/club-scoring/age-groups`
 - `GET /api/tournaments/{tournamentId}/club-scoring/global`
+- `GET /api/tournaments/{tournamentId}/results/export` (Admin/Operator; UTF-8 mit BOM, Semikolon, vorläufige Einzelplatzierungen)
 - `GET /api/tournaments/{tournamentId}/audit-log`
 - `GET /api/tournaments/{tournamentId}/backup` (Admin; JSON download)
 - `POST /api/tournaments/restore` (Admin; JSON restore)
@@ -93,6 +94,24 @@ The API is served by the ASP.NET Core application under `/api`.
 - `PATCH /api/auth/users/{userId}/active`
 - `POST /api/auth/users/{userId}/reset-password`
 - `GET /api/version` (anonymous; deployed application version)
+
+### Result CSV export
+
+`GET /api/tournaments/{tournamentId}/results/export` requires an authenticated
+`Admin` or `Operator` role and returns `text/csv` with a UTF-8 BOM. The response
+uses a semicolon delimiter and a download filename in the form
+`ergebnisse-{bereinigter-turniername}.csv`.
+
+The stable column order is:
+
+`Turniername;Turnierdatum;Veranstaltungsort;Veranstalter;Vorname;Nachname;Verein;Altersklasse;Kategorie;Geschlecht;Gewichtsklasse;Platzierung;Ergebnisstatus`
+
+Rows contain only currently determined individual category placements. They are
+ordered by the existing category order, placement, and athlete name. The
+result status is `Vorläufig`; values containing a semicolon, quote, or line
+break are quoted and quotes are doubled according to CSV rules. An existing
+tournament with no placements still returns the header row; an unknown
+tournament returns `404 Not Found`.
 
 ## Frontend routes
 
