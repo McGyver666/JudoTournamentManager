@@ -84,6 +84,10 @@ export class ConfigComponent implements OnInit {
   protected readonly categories = signal<Category[]>([]);
   protected readonly clubs = signal<Club[]>([]);
   protected readonly athletes = signal<Athlete[]>([]);
+  protected readonly selectedAthleteBirthYearFrom = signal<number | null>(null);
+  protected readonly selectedAthleteBirthYearTo = signal<number | null>(null);
+  protected readonly selectedAthleteGender = signal<'All' | 'Male' | 'Female'>('All');
+  protected readonly selectedAthleteClubId = signal('');
   protected readonly registrations = signal<RegistrationDetail[]>([]);
   protected readonly presets = signal<CategoryPreset[]>([]);
   protected readonly teamMatchday = signal<TeamMatchday | null>(null);
@@ -95,6 +99,41 @@ export class ConfigComponent implements OnInit {
   protected readonly clubName = computed(() => {
     const map = new Map(this.clubs().map((c) => [c.id, c.name]));
     return (id: string) => map.get(id) ?? '';
+  });
+
+  protected readonly athleteBirthYears = computed(() =>
+    [...new Set(this.athletes().map((athlete) => athlete.birthYear))].sort((left, right) => left - right),
+  );
+
+  protected readonly athleteFilterClubs = computed(() =>
+    [...this.clubs()].sort((left, right) => left.name.localeCompare(right.name, 'de')),
+  );
+
+  protected readonly hasAthleteFilters = computed(() =>
+    this.selectedAthleteBirthYearFrom() !== null
+    || this.selectedAthleteBirthYearTo() !== null
+    || this.selectedAthleteGender() !== 'All'
+    || this.selectedAthleteClubId() !== '',
+  );
+
+  protected readonly filteredAthletes = computed(() => {
+    const from = this.selectedAthleteBirthYearFrom();
+    const to = this.selectedAthleteBirthYearTo();
+    let minBirthYear = from;
+    let maxBirthYear = to;
+    if (from !== null && to !== null && from > to) {
+      minBirthYear = to;
+      maxBirthYear = from;
+    }
+    const gender = this.selectedAthleteGender();
+    const clubId = this.selectedAthleteClubId();
+
+    return this.athletes().filter((athlete) =>
+      (minBirthYear === null || athlete.birthYear >= minBirthYear)
+      && (maxBirthYear === null || athlete.birthYear <= maxBirthYear)
+      && (gender === 'All' || athlete.gender === gender)
+      && (!clubId || athlete.clubId === clubId),
+    );
   });
 
   protected readonly gradeOptions = ATHLETE_GRADE_OPTIONS;
@@ -118,8 +157,23 @@ export class ConfigComponent implements OnInit {
     return this.i18n.translate(athleteGradeLabelKey(grade));
   }
 
+  protected onAthleteBirthYearFromChanged(value: string): void {
+    this.selectedAthleteBirthYearFrom.set(value === '' ? null : Number(value));
+  }
+
+  protected onAthleteBirthYearToChanged(value: string): void {
+    this.selectedAthleteBirthYearTo.set(value === '' ? null : Number(value));
+  }
+
+  protected resetAthleteFilters(): void {
+    this.selectedAthleteBirthYearFrom.set(null);
+    this.selectedAthleteBirthYearTo.set(null);
+    this.selectedAthleteGender.set('All');
+    this.selectedAthleteClubId.set('');
+  }
+
   protected exportAthletesCsv(): void {
-    const athletes = this.athletes();
+    const athletes = this.filteredAthletes();
     const tournamentName = this.context.tournament()?.name ?? 'athleten';
     const sep = ';';
     const header = ['Nachname', 'Vorname', 'Jahrgang', 'Geschlecht', 'Verein', 'Graduierung', 'Gewicht'].join(sep);
@@ -218,8 +272,8 @@ export class ConfigComponent implements OnInit {
     }
     this.api.getTatamis(id).subscribe({ next: (x) => this.tatamis.set(x), error: this.onLoadError });
     this.api.getCategories(id).subscribe({ next: (x) => this.categories.set(x), error: this.onLoadError });
-    this.api.getClubs(id).subscribe({ next: (x) => this.clubs.set(x), error: this.onLoadError });
-    this.api.getAthletes(id).subscribe({ next: (x) => this.athletes.set(x), error: this.onLoadError });
+    this.api.getClubs(id).subscribe({ next: (x) => this.setClubs(x), error: this.onLoadError });
+    this.api.getAthletes(id).subscribe({ next: (x) => this.setAthletes(x), error: this.onLoadError });
     this.api.getRegistrations(id).subscribe({ next: (x) => this.registrations.set(x), error: this.onLoadError });
     this.api.getCategoryPresets(id).subscribe({ next: (x) => this.presets.set(x), error: this.onLoadError });
     if (this.context.tournament()?.competitionMode === 'TeamMatchday') {
@@ -232,6 +286,27 @@ export class ConfigComponent implements OnInit {
         },
         error: this.onLoadError,
       });
+    }
+  }
+
+  private setAthletes(athletes: Athlete[]): void {
+    this.athletes.set(athletes);
+    const availableBirthYears = new Set(athletes.map((athlete) => athlete.birthYear));
+    const selectedFrom = this.selectedAthleteBirthYearFrom();
+    const selectedTo = this.selectedAthleteBirthYearTo();
+    if (selectedFrom !== null && !availableBirthYears.has(selectedFrom)) {
+      this.selectedAthleteBirthYearFrom.set(null);
+    }
+    if (selectedTo !== null && !availableBirthYears.has(selectedTo)) {
+      this.selectedAthleteBirthYearTo.set(null);
+    }
+  }
+
+  private setClubs(clubs: Club[]): void {
+    this.clubs.set(clubs);
+    const selectedClubId = this.selectedAthleteClubId();
+    if (selectedClubId && !clubs.some((club) => club.id === selectedClubId)) {
+      this.selectedAthleteClubId.set('');
     }
   }
 
@@ -672,7 +747,7 @@ export class ConfigComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.showClubForm.set(false);
-        this.api.getClubs(id).subscribe({ next: (x) => this.clubs.set(x) });
+        this.api.getClubs(id).subscribe({ next: (x) => this.setClubs(x) });
       },
       error: this.onSaveError,
     });
@@ -687,7 +762,7 @@ export class ConfigComponent implements OnInit {
       return;
     }
     this.api.deleteClub(id, c.id).subscribe({
-      next: () => this.clubs.update((list) => list.filter((x) => x.id !== c.id)),
+      next: () => this.setClubs(this.clubs().filter((x) => x.id !== c.id)),
       error: (err) => this.handleDeleteClubError(err),
     });
   }
@@ -757,7 +832,7 @@ export class ConfigComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.showAthleteForm.set(false);
-        this.api.getAthletes(id).subscribe({ next: (x) => this.athletes.set(x) });
+        this.api.getAthletes(id).subscribe({ next: (x) => this.setAthletes(x) });
       },
       error: (err: unknown) => {
         // A duplicate (409) on create offers an override.
@@ -783,7 +858,7 @@ export class ConfigComponent implements OnInit {
       return;
     }
     this.api.deleteAthlete(id, a.id).subscribe({
-      next: () => this.athletes.update((list) => list.filter((x) => x.id !== a.id)),
+      next: () => this.setAthletes(this.athletes().filter((x) => x.id !== a.id)),
       error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.delete'))),
     });
   }
@@ -834,8 +909,8 @@ export class ConfigComponent implements OnInit {
           this.i18n.translate('athletes.importSuccess', { count: created.length }),
         );
         input.value = '';
-        this.api.getAthletes(id).subscribe({ next: (x) => this.athletes.set(x) });
-        this.api.getClubs(id).subscribe({ next: (x) => this.clubs.set(x) });
+        this.api.getAthletes(id).subscribe({ next: (x) => this.setAthletes(x) });
+        this.api.getClubs(id).subscribe({ next: (x) => this.setClubs(x) });
       },
       error: (err: unknown) => {
         if (this.isConflict(err)) {
@@ -865,7 +940,7 @@ export class ConfigComponent implements OnInit {
       .then((count) => {
         this.athleteImportInfo.set(this.i18n.translate('athletes.importSuccess', { count }));
         input.value = '';
-        this.api.getAthletes(tournamentId).subscribe({ next: (x) => this.athletes.set(x) });
+        this.api.getAthletes(tournamentId).subscribe({ next: (x) => this.setAthletes(x) });
       })
       .catch((err: unknown) => {
         input.value = '';
@@ -904,12 +979,12 @@ export class ConfigComponent implements OnInit {
         const req: CreateClubRequest = { name, contactName: null, contactEmail: null, contactPhone: null };
         try {
           const club = await firstValueFrom(this.api.createClub(tournamentId, req));
-          this.clubs.update((list) => [...list, club]);
+          this.setClubs([...this.clubs(), club]);
         } catch (err) {
           if (this.isConflict(err)) {
             // Created concurrently; reload to get the id
             const clubs = await firstValueFrom(this.api.getClubs(tournamentId));
-            this.clubs.set(clubs);
+            this.setClubs(clubs);
           } else {
             throw err;
           }
