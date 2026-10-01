@@ -511,7 +511,7 @@
           accept=".dm4,.dmf,.csv"
           style="display: none;"
           (change)="importAthletesFromFile($event)" />
-        <button (click)="exportAthletesCsv()" [disabled]="athletes().length === 0">{{ 'athletes.exportCsv' | t }}</button>
+        <button (click)="exportAthletesCsv()" [disabled]="filteredAthletes().length === 0">{{ 'athletes.exportCsv' | t }}</button>
         <button (click)="openAthleteImportDialog(dm4Input)" [disabled]="!canOperate()">{{ 'athletes.importFile' | t }}</button>
         <button class="primary" (click)="newAthlete()" [disabled]="!canOperate() || clubs().length === 0">{{ 'athletes.new' | t }}</button>
       </div>
@@ -582,6 +582,68 @@
     @if (athletes().length === 0) {
       <div class="empty">{{ 'athletes.empty' | t }}</div>
     } @else {
+      <div class="athlete-filters row">
+        <div>
+          <label for="athlete-filter-year-from">{{ 'athletes.filterBirthYearFrom' | t }}</label>
+          <select
+            id="athlete-filter-year-from"
+            name="athleteFilterBirthYearFrom"
+            [ngModel]="selectedAthleteBirthYearFrom() ?? ''"
+            (ngModelChange)="onAthleteBirthYearFromChanged($event)">
+            <option value="">–</option>
+            @for (year of athleteBirthYears(); track year) {
+              <option [value]="year">{{ year }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="athlete-filter-year-to">{{ 'athletes.filterBirthYearTo' | t }}</label>
+          <select
+            id="athlete-filter-year-to"
+            name="athleteFilterBirthYearTo"
+            [ngModel]="selectedAthleteBirthYearTo() ?? ''"
+            (ngModelChange)="onAthleteBirthYearToChanged($event)">
+            <option value="">–</option>
+            @for (year of athleteBirthYears(); track year) {
+              <option [value]="year">{{ year }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="athlete-filter-gender">{{ 'athletes.gender' | t }}</label>
+          <select
+            id="athlete-filter-gender"
+            name="athleteFilterGender"
+            [ngModel]="selectedAthleteGender()"
+            (ngModelChange)="selectedAthleteGender.set($event)">
+            <option value="All">{{ 'athletes.filterAllGenders' | t }}</option>
+            <option value="Male">{{ 'gender.male' | t }}</option>
+            <option value="Female">{{ 'gender.female' | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="athlete-filter-club">{{ 'athletes.club' | t }}</label>
+          <select
+            id="athlete-filter-club"
+            name="athleteFilterClub"
+            [ngModel]="selectedAthleteClubId()"
+            (ngModelChange)="selectedAthleteClubId.set($event)">
+            <option value="">{{ 'athletes.filterAllClubs' | t }}</option>
+            @for (club of athleteFilterClubs(); track club.id) {
+              <option [value]="club.id">{{ club.name }}</option>
+            }
+          </select>
+        </div>
+        <button type="button" (click)="resetAthleteFilters()" [disabled]="!hasAthleteFilters()">
+          {{ 'athletes.resetFilters' | t }}
+        </button>
+      </div>
+      @if (hasAthleteFilters()) {
+        <p class="muted">{{ 'athletes.filteredCount' | t: { visible: filteredAthletes().length, total: athletes().length } }}</p>
+      }
+      @if (filteredAthletes().length === 0) {
+        <div class="empty">{{ 'athletes.noFilterResults' | t }}</div>
+      } @else {
       <div class="table-wrap">
       <table>
         <thead>
@@ -598,7 +660,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (a of athletes(); track a.id) {
+          @for (a of filteredAthletes(); track a.id) {
             <tr>
               <td>{{ a.lastName }}</td>
               <td>{{ a.firstName }}</td>
@@ -619,6 +681,7 @@
         </tbody>
       </table>
       </div>
+      }
     }
   }
 

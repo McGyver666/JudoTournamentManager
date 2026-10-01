@@ -85,6 +85,12 @@
   gap: 1rem;
 }
 
+.athlete-filters {
+  align-items: end;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+
 .row > div,
 .card > div {
   margin-bottom: 0.25rem;
