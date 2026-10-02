@@ -196,6 +196,11 @@ verwenden die kanonische `GuestShare__PublicBaseUrl` statt des eingehenden `Host
 Das Installationsskript setzt beide Werte aus `--hostname`; bei manuellen Bereitstellungen
 muessen sie in der systemd-Umgebungsdatei konfiguriert werden.
 
+nginx begrenzt Request-Bodies auf 20 MB. Die Backup-Wiederherstellung
+(`POST /api/tournaments/restore`) hat eine eigene nginx-Location mit bis zu 50 MB,
+passend zum API-Limit; groessere Backups werden mit `413` abgelehnt und die Oberflaeche zeigt
+einen lokalisierten Hinweis zur Groesse. Ein erneuter Installer-Lauf uebernimmt das Limit auf bestehenden Hosts.
+
 ### Optionaler CrowdSec-Schutz
 
 Mit `--with-crowdsec` am Bootstrap- oder Installer-Befehl wird zusaetzlich CrowdSec

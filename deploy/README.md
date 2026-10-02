@@ -119,6 +119,7 @@ sudo nginx -t && sudo systemctl reload nginx
 - The application is deployed under `/opt/shiai-manager`
 - The API will listen on `127.0.0.1:5080`
 - nginx terminates TLS and forwards requests to the app
+- nginx limits request bodies to 20 MB, except backup restore (`POST /api/tournaments/restore`), which allows up to 50 MB to match the API limit. Re-running the installer applies this to existing hosts.
 - The public hostname is provided at deploy time via the `DOMAIN` variable (the nginx config ships with a `__SERVER_NAME__` placeholder)
 - Production host validation uses `AllowedHosts`; the installer sets it to the supplied hostname.
 - Guest-share URLs use the canonical `GuestShare__PublicBaseUrl` configured by the installer instead of the incoming `Host` header.

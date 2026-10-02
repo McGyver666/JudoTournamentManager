@@ -67,7 +67,7 @@ is written only when the grade or license number actually changes.
 - `GET /api/tournaments/{tournamentId}/results/export` (Admin/Operator; UTF-8 mit BOM, Semikolon, vorläufige Einzelplatzierungen)
 - `GET /api/tournaments/{tournamentId}/audit-log`
 - `GET /api/tournaments/{tournamentId}/backup` (Admin; JSON download)
-- `POST /api/tournaments/restore` (Admin; JSON restore)
+- `POST /api/tournaments/restore` (Admin; JSON restore, max. 50 MB; larger bodies return `413`)
 
 - `GET /api/tournaments/{tournamentId}/team-matchday`
 - `POST /api/tournaments/{tournamentId}/team-matchday/teams`

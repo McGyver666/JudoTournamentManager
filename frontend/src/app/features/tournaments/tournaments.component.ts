@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { HttpResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
@@ -14,6 +14,9 @@ import { AccentSideColor, CompetitionMode, CreateTournamentRequest, GuestShareRe
 
 /** Auto-off presets offered when enabling or rotating a guest share link. */
 type GuestShareTtl = 'midnight' | '4h' | '8h' | 'none';
+
+/** Mirrors [RequestSizeLimit] on BackupController.RestoreAsync and the nginx restore location. */
+const MAX_RESTORE_MB = 50;
 
 /** Tournament administration: list, create, edit, delete and select the active tournament. */
 @Component({
@@ -226,7 +229,9 @@ export class TournamentsComponent implements OnInit {
         this.load();
       },
       error: (err) => {
-        this.error.set(extractApiError(err, this.i18n.translate('tournaments.restoreFailed')));
+        this.error.set(err instanceof HttpErrorResponse && err.status === 413
+          ? this.i18n.translate('tournaments.restoreTooLarge', { maxMb: MAX_RESTORE_MB })
+          : extractApiError(err, this.i18n.translate('tournaments.restoreFailed')));
         this.restoring.set(false);
         input.value = '';
       },
