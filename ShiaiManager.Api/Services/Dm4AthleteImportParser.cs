@@ -142,11 +142,18 @@ public sealed class Dm4AthleteImportParser : IDm4AthleteImportParser
                     $"Teilnehmer-Zeile {participantLine.LineNumber}: Vorname/Nachname darf nicht leer sein.");
             }
 
-            if (!int.TryParse(fields[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var grade)
-                || grade is < 1 or > 14)
+            int? grade = null;
+            var gradeValue = fields[3].Trim();
+            if (!string.IsNullOrEmpty(gradeValue))
             {
-                throw new Dm4ImportParseException(
-                    $"Teilnehmer-Zeile {participantLine.LineNumber}: Ungueltiger Guertelgrad im 4. Feld.");
+                if (!int.TryParse(gradeValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedGrade)
+                    || parsedGrade is < 1 or > 14)
+                {
+                    throw new Dm4ImportParseException(
+                        $"Teilnehmer-Zeile {participantLine.LineNumber}: Ungueltiger Guertelgrad im 4. Feld.");
+                }
+
+                grade = parsedGrade;
             }
 
             decimal? weight = null;

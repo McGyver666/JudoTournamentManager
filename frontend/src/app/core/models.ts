@@ -274,7 +274,7 @@ export interface Athlete {
   gender: Gender;
   licenseId: string | null;
   weightKg: number | null;
-  grade: number;
+  grade: number | null;
   lastFightDurationSeconds: number | null;
   lastFightEndedAtUtc: string | null;
   createdAtUtc: string;
@@ -321,7 +321,7 @@ export interface CreateAthleteRequest {
   gender: Gender;
   licenseId: string | null;
   weightKg: number | null;
-  grade: number;
+  grade: number | null;
 }
 
 export type UpdateAthleteRequest = CreateAthleteRequest;

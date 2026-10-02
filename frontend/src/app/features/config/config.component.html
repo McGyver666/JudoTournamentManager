@@ -567,6 +567,7 @@
           <div>
             <label>{{ 'athletes.grade' | t }}</label>
             <select [(ngModel)]="athleteForm.grade" name="agrade">
+              <option [ngValue]="null">{{ 'athletes.gradeNotSpecified' | t }}</option>
               @for (g of gradeOptions; track g.value) {
                 <option [ngValue]="g.value">{{ g.labelKey | t }}</option>
               }

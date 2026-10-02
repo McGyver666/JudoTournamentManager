@@ -27,7 +27,7 @@ public sealed record Athlete(
     Gender Gender,
     string? LicenseId,
     decimal? WeightKg,
-    int Grade,
+    int? Grade,
     int? LastFightDurationSeconds,
     DateTimeOffset? LastFightEndedAtUtc,
     DateTimeOffset CreatedAtUtc,

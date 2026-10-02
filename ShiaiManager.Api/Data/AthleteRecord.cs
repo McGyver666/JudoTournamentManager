@@ -35,7 +35,7 @@ public sealed class AthleteRecord
     public decimal? WeightKg { get; set; }
 
     /// <summary>Belt grade as numeric scale (1=9. Kyu ... 9=1. Kyu, 10=1. Dan ... 14=5. Dan).</summary>
-    public int Grade { get; set; }
+    public int? Grade { get; set; }
 
     /// <summary>Duration in seconds of the athlete's most recent completed fight.</summary>
     public int? LastFightDurationSeconds { get; set; }

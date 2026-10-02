@@ -20,6 +20,10 @@ The API is served by the ASP.NET Core application under `/api`.
 - `POST /api/tournaments/{tournamentId}/athletes/import/file` (DM4/DMF upload, auto-detect)
 - `POST /api/tournaments/{tournamentId}/athletes/import/dm4` (DM4-specific compatibility route)
 
+### Athlete belt grades
+
+The `grade` field on athlete create/update requests is optional and nullable. When supplied, it must be an integer from 1 through 14; `null` means no grade was provided. DM4/DMF and CSV imports preserve missing grades as `null`. CSV imports accept German and English belt-grade labels (including labels with color descriptions), reject numeric grade values, and report an invalid grade with its source line. CSV export writes a blank field for athletes without a grade.
+
 - `GET/POST/DELETE /api/tournaments/{tournamentId}/registrations`
 - `POST /api/tournaments/{tournamentId}/registrations/auto-assign`
 - `POST /api/tournaments/{tournamentId}/registrations/{registrationId}/category`
