@@ -29,6 +29,12 @@ The `grade` field on athlete create/update requests is optional and nullable. Wh
 - `POST /api/tournaments/{tournamentId}/registrations/{registrationId}/category`
 - `GET /api/tournaments/{tournamentId}/registrations/export`
 
+Registration creation accepts optional `grade` (integer 1-14) and `licenseId` fields in addition
+to weight and license confirmation. A null grade preserves the athlete's stored grade; a null
+license ID preserves the stored license number, while an empty string clears it. Supplied athlete
+corrections are saved atomically with the registration. An `AthleteCorrectedAtWeighIn` audit entry
+is written only when the grade or license number actually changes.
+
 - `POST /api/tournaments/{tournamentId}/categories/{categoryId}/draw`
 - `GET /api/tournaments/{tournamentId}/categories/{categoryId}/fights`
 - `POST /api/tournaments/{tournamentId}/categories/{categoryId}/swap`

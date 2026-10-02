@@ -56,6 +56,11 @@ public sealed record RegistrationDetail(
     public string? AthleteLicenseId { get; init; }
 
     /// <summary>
+    /// Athlete belt grade on the numeric scale from 1 to 14.
+    /// </summary>
+    public int? AthleteGrade { get; init; }
+
+    /// <summary>
     /// Backward-compatible constructor supporting the historical parameter order
     /// that included athlete license id before category fields.
     /// </summary>
