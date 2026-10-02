@@ -196,6 +196,24 @@ verwenden die kanonische `GuestShare__PublicBaseUrl` statt des eingehenden `Host
 Das Installationsskript setzt beide Werte aus `--hostname`; bei manuellen Bereitstellungen
 muessen sie in der systemd-Umgebungsdatei konfiguriert werden.
 
+### Optionaler CrowdSec-Schutz
+
+Mit `--with-crowdsec` am Bootstrap- oder Installer-Befehl wird zusaetzlich CrowdSec
+installiert: Security Engine, nginx-Bouncer und AppSec-Virtual-Patching fuer bekannte CVEs.
+Die volumenbasierten Szenarien bleiben aussen vor, damit Geraete hinter einer gemeinsamen
+Hallen-IP nicht gesperrt werden.
+
+- Nur unter Debian 12+ und Ubuntu 24.04+ unterstuetzt.
+- **Voraussetzung:** nginx muss die Internet-Edge sein (kein CDN, Tunnel oder vorgelagerter
+  Reverse Proxy). Andernfalls tragen alle Anfragen die IP des Proxys, und eine einzige Sperre
+  sperrt alle Nutzer aus.
+- Die Central API von CrowdSec bleibt aktiv (Community-Blocklist; IPs erkannter Angreifer
+  werden an CrowdSec uebermittelt).
+- Notfall-Entsperrung: `sudo cscli decisions delete --ip <IP>`.
+
+Details, Opt-out der Central API und Deinstallation siehe
+[`deploy/README.md`](deploy/README.md#optional-crowdsec-protection).
+
 ## Bootstrap des Administratorpassworts
 
 Server-Installationen mit `deploy/install_release.sh` (oder dem Ein-Befehl-Bootstrap) legen den initialen Admin automatisch an und geben die Zugangsdaten einmalig aus — siehe [Schnellinstallationsanleitung](#schnellinstallationsanleitung). Die folgenden Schritte gelten fuer lokale/manuelle Laeufe.

@@ -197,6 +197,23 @@ Unlike the offline/LAN mode, this mode is public-facing and does not rely on a t
 local network — keep TLS enforced, send the CSRF header for state-changing cookie-authenticated
 requests, and inject secrets (e.g. `Security:AuthTokenHmacSecret`) via configuration rather than hardcoding them.
 
+### Optional CrowdSec protection
+
+Add `--with-crowdsec` to the bootstrap or installer command to install CrowdSec: the
+Security Engine, the nginx bouncer and AppSec virtual patching for known CVEs. The
+volume-based scenarios are left out so that devices sharing one venue IP are not banned.
+
+- Supported on Debian 12+ and Ubuntu 24.04+ only.
+- **Prerequisite:** nginx must be the internet-facing edge (no CDN, tunnel or upstream
+  reverse proxy). Otherwise every request carries the proxy's IP and one ban locks out
+  all users.
+- The CrowdSec Central API stays enabled (community blocklist; detected attacker IPs are
+  shared with CrowdSec).
+- Emergency unban: `sudo cscli decisions delete --ip <IP>`.
+
+See [`deploy/README.md`](deploy/README.md#optional-crowdsec-protection) for details,
+the Central API opt-out and uninstall steps.
+
 ## Admin password bootstrap
 
 Server installs done with `deploy/install_release.sh` (or the one-command bootstrap) create the initial admin automatically and print the credentials once — see [Quick installation guide](#quick-installation-guide). The steps below are for local/manual runs.
