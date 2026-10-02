@@ -278,6 +278,8 @@
   "athletes.filteredCount": "{visible} of {total} athletes",
   "athletes.noFilterResults": "No athletes match the filters.",
   "athletes.grade": "Belt grade",
+  "athletes.gradeNotSpecified": "– not specified –",
+  "athletes.gradeNotSpecifiedShort": "–",
   "athletes.gradeOption1": "9th Kyu (white belt)",
   "athletes.gradeOption2": "8th Kyu (white-yellow belt)",
   "athletes.gradeOption3": "7th Kyu (yellow belt)",
@@ -301,6 +303,7 @@
   "athletes.importSuccess": "Imported {count} athletes from file.",
   "athletes.importInvalidExtension": "Please select a file with the .dm4, .dmf or .csv extension.",
   "athletes.importCsvInvalidFormat": "The CSV file has an invalid format. Please only import CSV files exported by this system.",
+  "athletes.importCsvInvalidGrade": "Line {line}: Unknown belt grade “{value}”. Allowed examples are “9th Kyu” … “5th Dan”, or leave the field empty.",
   "athletes.importDuplicateConfirm": "At least one athlete may already exist. Continue import anyway?",
 
   "registrations.title": "Weigh-in",

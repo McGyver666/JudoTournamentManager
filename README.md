@@ -47,6 +47,7 @@ Initial admin credentials (save these now):
 
 - Offline-capable tournament operation on a single laptop or local LAN, with optional internet-hosted deployment behind nginx.
 - Tournament setup, clubs, athletes, registrations, category presets and assisted category generation.
+- Athlete belt grades are optional; blank CSV grades remain blank when exported and re-imported.
 - Individual tournament draws, brackets, tatami assignment, live fight control and server-authoritative timing.
 - NWJV team-matchday workflows for senior and U16 profiles, including weigh-ins, lineups and encounters.
 - Athlete imports from DM4/DMF files, public displays, match lists, rankings, medal tables and club scoring.

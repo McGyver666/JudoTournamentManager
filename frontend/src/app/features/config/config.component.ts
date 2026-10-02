@@ -3,7 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable, firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api.service';
-import { ATHLETE_GRADE_OPTIONS, athleteGradeLabelKey } from '../../core/athlete-grade';
+import { ATHLETE_GRADE_OPTIONS, athleteGradeCsvLabelMap, athleteGradeLabelKey } from '../../core/athlete-grade';
 import { AuthStateService } from '../../core/auth-state.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
@@ -153,7 +153,7 @@ export class ConfigComponent implements OnInit {
     return (categoryId: string) => grouped.get(categoryId) ?? 0;
   });
 
-  protected gradeLabel(grade: number): string {
+  protected gradeLabel(grade: number | null): string {
     return this.i18n.translate(athleteGradeLabelKey(grade));
   }
 
@@ -181,7 +181,7 @@ export class ConfigComponent implements OnInit {
       const gender = a.gender === 'Male' ? 'm' : a.gender === 'Female' ? 'w' : '';
       const club = this.clubName()(a.clubId);
       // Strip parenthetical color description, e.g. "9. Kyu (weißer Gürtel)" → "9. Kyu"
-      const grade = this.gradeLabel(a.grade).split(' (')[0];
+      const grade = a.grade === null ? '' : this.gradeLabel(a.grade).split(' (')[0];
       const weight = a.weightKg != null ? String(a.weightKg) : '';
       return [a.lastName, a.firstName, String(a.birthYear), gender, club, grade, weight].join(sep);
     });
@@ -824,7 +824,7 @@ export class ConfigComponent implements OnInit {
       gender: f.gender,
       licenseId: f.licenseId || null,
       weightKg: f.weightKg === null || (f.weightKg as unknown) === '' ? null : Number(f.weightKg),
-      grade: Number(f.grade),
+      grade: f.grade === null ? null : Number(f.grade),
     };
     const req: Observable<unknown> = f.id
       ? this.api.updateAthlete(id, f.id, body)
@@ -944,6 +944,14 @@ export class ConfigComponent implements OnInit {
       })
       .catch((err: unknown) => {
         input.value = '';
+        if ((err as { isCsvGradeError?: boolean }).isCsvGradeError) {
+          const gradeError = err as { lineNumber: number; value: string };
+          this.error.set(this.i18n.translate('athletes.importCsvInvalidGrade', {
+            line: gradeError.lineNumber,
+            value: gradeError.value,
+          }));
+          return;
+        }
         if ((err as { isCsvFormatError?: boolean }).isCsvFormatError) {
           this.error.set(this.i18n.translate('athletes.importCsvInvalidFormat'));
           return;
@@ -1019,7 +1027,7 @@ export class ConfigComponent implements OnInit {
     birthYear: number;
     gender: Gender;
     club: string;
-    grade: number;
+    grade: number | null;
     weightKg: number | null;
   }> | null {
     // Remove UTF-8 BOM if present
@@ -1028,20 +1036,33 @@ export class ConfigComponent implements OnInit {
     }
     const lines = text
       .split('\n')
-      .map((l) => l.replace(/\r$/, '').trim())
-      .filter(Boolean);
+      .map((content, index) => ({ content: content.replace(/\r$/, '').trim(), lineNumber: index + 1 }))
+      .filter((line) => line.content.length > 0);
     if (lines.length < 2) return null;
 
     const gradeMap = this.buildGradeReverseMap();
     const rows = [];
-    for (const line of lines.slice(1)) {
-      const parts = line.split(';');
+    for (const { content, lineNumber } of lines.slice(1)) {
+      const parts = content.split(';');
       if (parts.length < 7) return null;
       const [lastName, firstName, birthYearStr, genderStr, club, gradeStr, weightStr] = parts;
       const birthYear = parseInt(birthYearStr, 10);
       if (isNaN(birthYear)) return null;
       const gender: Gender = genderStr === 'm' ? 'Male' : genderStr === 'w' ? 'Female' : 'Mixed';
-      const grade = gradeMap.get(gradeStr.trim()) ?? 1;
+      const gradeValue = gradeStr.trim();
+      let grade: number | null = null;
+      if (gradeValue !== '') {
+        const normalizedGrade = gradeValue.split('(')[0].trim().toLocaleLowerCase().replace(/\s+/g, '');
+        const parsedGrade = gradeMap.get(normalizedGrade);
+        if (parsedGrade === undefined) {
+          throw Object.assign(new Error('invalid-csv-grade'), {
+            isCsvGradeError: true,
+            lineNumber,
+            value: gradeValue,
+          });
+        }
+        grade = parsedGrade;
+      }
       const weightKg = weightStr?.trim() ? parseFloat(weightStr) : null;
       rows.push({ lastName, firstName, birthYear, gender, club: club.trim(), grade, weightKg });
     }
@@ -1049,12 +1070,7 @@ export class ConfigComponent implements OnInit {
   }
 
   private buildGradeReverseMap(): Map<string, number> {
-    const map = new Map<string, number>();
-    for (const opt of ATHLETE_GRADE_OPTIONS) {
-      const fullLabel = this.i18n.translate(opt.labelKey);
-      map.set(fullLabel.split(' (')[0], opt.value);
-    }
-    return map;
+    return athleteGradeCsvLabelMap();
   }
 
   private isConflict(err: unknown): boolean {
@@ -1160,7 +1176,7 @@ export class ConfigComponent implements OnInit {
       gender: 'Male',
       licenseId: null,
       weightKg: null,
-      grade: 1,
+      grade: null,
     };
   }
 

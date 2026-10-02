@@ -56,7 +56,7 @@ public sealed class SqliteAthletesStore : IAthletesStore
         Gender gender,
         string? licenseId,
         decimal? weightKg,
-        int grade,
+        int? grade,
         bool allowDuplicate,
         CancellationToken cancellationToken)
     {
@@ -211,7 +211,7 @@ public sealed class SqliteAthletesStore : IAthletesStore
         Gender gender,
         string? licenseId,
         decimal? weightKg,
-        int grade,
+        int? grade,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(firstName);

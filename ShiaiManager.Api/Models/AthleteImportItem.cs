@@ -11,4 +11,4 @@ public sealed record AthleteImportItem(
     Gender Gender,
     string? LicenseId,
     decimal? WeightKg,
-    int Grade);
+    int? Grade);
