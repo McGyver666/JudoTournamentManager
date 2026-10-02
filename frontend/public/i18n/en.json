@@ -162,6 +162,7 @@
   "tournaments.backupFailed": "Backup could not be created.",
   "tournaments.restoreDone": "Backup restored successfully.",
   "tournaments.restoreFailed": "Backup could not be restored.",
+  "tournaments.restoreTooLarge": "The backup file is too large (maximum {maxMb} MB).",
   "tournaments.restoreInvalidFile": "The selected file is not a valid JSON backup.",
   "tournaments.confirmDelete": "Delete this tournament and all its data?",
   "tournaments.selected": "Active tournament",
