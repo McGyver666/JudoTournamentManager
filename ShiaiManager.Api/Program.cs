@@ -255,6 +255,7 @@ static async Task InitializeDatabaseAsync(WebApplication application)
     var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("DatabaseInitialization");
     await AdoptLegacySchemaForMigrationsAsync(dbContext, logger);
+    await AdoptAthleteLastFightMetadataMigrationAsync(dbContext, logger);
     await dbContext.Database.MigrateAsync();
 
     await EnsureLegacyFightTatamiColumnAsync(dbContext, logger);
@@ -345,6 +346,33 @@ static async Task AdoptLegacySchemaForMigrationsAsync(AppDbContext dbContext, IL
 
         logger.LogWarning("Legacy migration baseline applied for {MigrationId}.", migrationId);
     }
+
+static async Task AdoptAthleteLastFightMetadataMigrationAsync(AppDbContext dbContext, ILogger logger)
+{
+    const string migrationId = "20260724103000_AddAthleteLastFightMetadata";
+
+    if (!await TableExistsAsync(dbContext, "Athletes")
+        || !await TableExistsAsync(dbContext, "__EFMigrationsHistory"))
+    {
+        return;
+    }
+
+    // Older builds could not discover this migration and added the columns via schema patch instead.
+    await EnsureAthleteLastFightColumnsAsync(dbContext, logger);
+
+    var appliedMigrations = await dbContext.Database.GetAppliedMigrationsAsync();
+    if (appliedMigrations.Contains(migrationId))
+    {
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync(
+        "INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ({0}, {1});",
+        migrationId,
+        ResolveEfProductVersion());
+
+    logger.LogWarning("Legacy migration baseline applied for {MigrationId}.", migrationId);
+}
 
 static async Task<IReadOnlyList<string>> ResolveBaselineMigrationsAsync(
     AppDbContext dbContext,
