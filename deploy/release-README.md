@@ -43,7 +43,7 @@ curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deplo
 ```
 
 Every option other than `--version` (for example `--hostname`, `--email`,
-`--skip-certbot`, `--install-dir`) is forwarded unchanged to the installer.
+`--skip-certbot`, `--install-dir`, `--with-crowdsec`) is forwarded unchanged to the installer.
 Re-running the same command (default latest, or a newer `--version`) upgrades in
 place; the installer preserves the SQLite database under `app/App_Data/`.
 
@@ -58,6 +58,30 @@ curl -fsSL -o bootstrap_install.sh \
 less bootstrap_install.sh
 sudo bash bootstrap_install.sh --hostname tournament.example.com --email admin@example.com
 ```
+
+### Optional: CrowdSec protection
+
+Add `--with-crowdsec` to install CrowdSec: the Security Engine, the nginx
+bouncer, and the AppSec component with virtual-patching rules for known CVEs on
+`127.0.0.1:7422`. The installer also sets a German ban page
+(`deploy/crowdsec-ban.html`). The volume-based scenarios
+`crowdsecurity/http-crawl-non_statics` and `crowdsecurity/http-probing` are
+removed so that devices sharing one venue IP are not banned.
+
+- Supported on Debian 12+ and Ubuntu 24.04+ only; elsewhere the installer stops
+  before installing anything.
+- nginx must be the internet-facing edge (no CDN, tunnel or upstream reverse
+  proxy), otherwise a single ban blocks every user.
+- The CrowdSec Central API stays enabled: signals about detected attackers are
+  shared with CrowdSec in exchange for the community blocklist. To opt out,
+  comment out `api.server.online_client` in `/etc/crowdsec/config.yaml` and
+  restart `crowdsec`.
+- Re-running without the flag leaves an existing CrowdSec installation unchanged.
+- Emergency unban: `sudo cscli decisions delete --ip <IP>`; list bans with
+  `sudo cscli decisions list`.
+- Uninstall: `sudo apt-get purge -y crowdsec-nginx-bouncer crowdsec`, then
+  remove `/etc/crowdsec`, `/etc/apt/sources.list.d/crowdsec_crowdsec.list` and
+  `/etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg`, and reload nginx.
 
 ## Manual install on Debian/Ubuntu or RHEL-compatible LXC
 

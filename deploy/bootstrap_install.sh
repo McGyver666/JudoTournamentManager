@@ -48,6 +48,8 @@ All other options are forwarded unchanged to deploy/install_release.sh, for exam
   --email ADDRESS    Email address used for Let's Encrypt notifications.
   --skip-certbot     Configure HTTP only; do not request a TLS certificate.
   --install-dir PATH Installation directory (default: /opt/shiai-manager).
+  --with-crowdsec    Also install CrowdSec (engine, nginx bouncer, AppSec virtual patching).
+                     Debian 12+ and Ubuntu 24.04+ only; nginx must be the internet-facing edge.
 EOF
 }
 
