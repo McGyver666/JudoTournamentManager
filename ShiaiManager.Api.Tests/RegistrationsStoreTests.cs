@@ -64,6 +64,55 @@ public sealed class RegistrationsStoreTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task CreateAtWeighInAsync_WhenGradeAndLicenseChange_PersistsCorrectionsAndAuditEntry()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tournamentId, athleteId, _) = await SeedAsync(ctx);
+        var athlete = await ctx.Athletes.SingleAsync(a => a.Id == athleteId);
+        athlete.LicenseId = "OLD-123";
+        await ctx.SaveChangesAsync();
+        var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+
+        var created = await store.CreateAtWeighInAsync(
+            tournamentId, athleteId, 65m, "NEW-456", 5, true, "operator", CancellationToken.None);
+
+        await ctx.Entry(athlete).ReloadAsync();
+        var audit = await ctx.AuditLogs.SingleAsync();
+        Assert.NotNull(created);
+        Assert.Equal(65m, athlete.WeightKg);
+        Assert.Equal("NEW-456", athlete.LicenseId);
+        Assert.Equal(5, athlete.Grade);
+        Assert.Equal("AthleteCorrectedAtWeighIn", audit.Action);
+        Assert.Equal("Athlete", audit.EntityType);
+        Assert.Equal(athleteId, audit.EntityId);
+        Assert.Equal("operator", audit.User);
+        Assert.Equal("grade 1->5; licenseId changed", audit.Details);
+        Assert.DoesNotContain("OLD-123", audit.Details);
+        Assert.DoesNotContain("NEW-456", audit.Details);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task CreateAtWeighInAsync_WhenGradeIsNull_PreservesGradeAndDoesNotAuditUnchangedLicense()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tournamentId, athleteId, _) = await SeedAsync(ctx);
+        var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+
+        await store.CreateAtWeighInAsync(
+            tournamentId, athleteId, 65m, null, null, true, "operator", CancellationToken.None);
+
+        var athlete = await ctx.Athletes.SingleAsync(a => a.Id == athleteId);
+        Assert.Equal(1, athlete.Grade);
+        Assert.Empty(await ctx.AuditLogs.ToListAsync());
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task CreateAsync_WhenAthleteAlreadyRegistered_ReturnsNull()
     {
         var db = CreateDatabasePath();

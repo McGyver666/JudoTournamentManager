@@ -102,6 +102,21 @@
             max="300"
             required />
 
+          <label>{{ 'registrations.licenseNumber' | t }}</label>
+          <input
+            type="text"
+            [(ngModel)]="form.licenseId"
+            name="licenseId"
+            maxlength="40" />
+
+          <label>{{ 'registrations.grade' | t }}</label>
+          <select [(ngModel)]="form.grade" name="grade">
+            <option [ngValue]="null">{{ 'athletes.gradeNotSpecified' | t }}</option>
+            @for (grade of gradeOptions; track grade.value) {
+              <option [ngValue]="grade.value">{{ grade.labelKey | t }}</option>
+            }
+          </select>
+
           <label class="checkbox-inline">
             <input type="checkbox" [(ngModel)]="form.licenseConfirmed" name="rlc" />
             {{ 'registrations.licenseConfirmed' | t }}
@@ -158,6 +173,7 @@
             <th>{{ 'athletes.firstName' | t }}</th>
             <th>{{ 'registrations.birthYear' | t }}</th>
             <th>{{ 'registrations.weight' | t }}</th>
+            <th>{{ 'registrations.grade' | t }}</th>
             <th>{{ 'registrations.licenseConfirmed' | t }}</th>
             <th>{{ 'registrations.licenseNumber' | t }}</th>
             <th>{{ 'registrations.licenseExpiry' | t }}</th>
@@ -178,6 +194,7 @@
               <td>{{ r.athleteFirstName }}</td>
               <td>{{ r.athleteBirthYear }}</td>
               <td>{{ r.athleteWeightKg !== null ? (r.athleteWeightKg + ' kg') : '–' }}</td>
+              <td>{{ gradeLabel(r.athleteGrade) }}</td>
               <td>{{ r.licenseConfirmed ? '✓' : '–' }}</td>
               <td>
                 @if (r.licenseNumber) {

@@ -33,6 +33,19 @@ public interface IRegistrationsStore
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Registers an athlete while applying weight-in corrections to the athlete atomically.
+    /// </summary>
+    Task<Registration?> CreateAtWeighInAsync(
+        Guid tournamentId,
+        Guid athleteId,
+        decimal weightKg,
+        string? licenseId,
+        int? grade,
+        bool licenseConfirmed,
+        string operatorName,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Registers an athlete with optional DokuMe license verification.
     /// If dokumeQrUrl is provided, parses and validates the QR code against athlete data.
     /// If validation fails and no override reason is provided, returns null with validation error logged.
@@ -49,7 +62,8 @@ public interface IRegistrationsStore
         IDokumePassParser dokumePassParser,
         DateOnly tournamentDate,
         string operatorName,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        int? grade = null);
 
     /// <summary>
     /// Deletes a registration. Returns <c>false</c> if the registration was not found.

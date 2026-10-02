@@ -195,14 +195,15 @@ public sealed class RegistrationsController : ControllerBase
                 tournamentId,
                 request.AthleteId,
                 request.WeightKg,
-                athlete.LicenseId,
+                request.LicenseId,
                 request.LicenseConfirmed,
                 request.DokumeQrUrl,
                 request.LicenseCheckOverrideReason,
                 _dokumePassParser,
                 tournament.Date,
                 User.Identity?.Name ?? "system",
-                cancellationToken);
+                cancellationToken,
+                request.Grade);
 
             if (created is null)
             {
@@ -229,11 +230,14 @@ public sealed class RegistrationsController : ControllerBase
         }
 
         // No QR URL: use standard registration flow
-        var registration = await _registrationsStore.CreateAsync(
+        var registration = await _registrationsStore.CreateAtWeighInAsync(
             tournamentId,
             request.AthleteId,
             request.WeightKg,
+            request.LicenseId,
+            request.Grade,
             request.LicenseConfirmed,
+            User.Identity?.Name ?? "system",
             cancellationToken);
 
         if (registration is null)
