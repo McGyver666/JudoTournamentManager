@@ -62,6 +62,21 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         bool licenseConfirmed,
         CancellationToken cancellationToken)
     {
+        return await CreateAtWeighInAsync(
+            tournamentId, athleteId, weightKg, null, null, licenseConfirmed, "system", cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Registration?> CreateAtWeighInAsync(
+        Guid tournamentId,
+        Guid athleteId,
+        decimal weightKg,
+        string? licenseId,
+        int? grade,
+        bool licenseConfirmed,
+        string operatorName,
+        CancellationToken cancellationToken)
+    {
         var alreadyRegistered = await _dbContext.Registrations.AnyAsync(
             x => x.AthleteId == athleteId && x.TournamentId == tournamentId,
             cancellationToken);
@@ -85,8 +100,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             return null;
         }
 
-        // Update athlete with captured weight.
-        athlete.WeightKg = weightKg;
+        ApplyWeighInCorrections(athlete, tournamentId, weightKg, licenseId, grade, operatorName);
 
         var record = new RegistrationRecord
         {
@@ -117,18 +131,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         bool licenseConfirmed,
         CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(licenseId))
-        {
-            var athlete = await _dbContext.Athletes
-                .FirstOrDefaultAsync(a => a.Id == athleteId && a.TournamentId == tournamentId, cancellationToken);
-
-            if (athlete is not null)
-            {
-                athlete.LicenseId = licenseId;
-            }
-        }
-
-        return await CreateAsync(tournamentId, athleteId, weightKg, licenseConfirmed, cancellationToken);
+        return await CreateAtWeighInAsync(
+            tournamentId, athleteId, weightKg, licenseId, null, licenseConfirmed, "system", cancellationToken);
     }
 
     /// <inheritdoc />
@@ -143,7 +147,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         IDokumePassParser dokumePassParser,
         DateOnly tournamentDate,
         string operatorName,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? grade = null)
     {
         var alreadyRegistered = await _dbContext.Registrations
             .AnyAsync(x => x.AthleteId == athleteId && x.TournamentId == tournamentId, cancellationToken);
@@ -164,10 +169,6 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
                 athleteId, tournamentId);
             return null;
         }
-
-        athlete.WeightKg = weightKg;
-        if (!string.IsNullOrEmpty(licenseId))
-            athlete.LicenseId = licenseId;
 
         bool licenseCheckPassed = false;
         DateOnly? passExpiryDate = null;
@@ -196,6 +197,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
                 passExpiryDate = pass.ExpiryDate;
             }
         }
+
+        ApplyWeighInCorrections(athlete, tournamentId, weightKg, licenseId, grade, operatorName);
 
         var record = new RegistrationRecord
         {
@@ -434,7 +437,61 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             r.LicenseVerifiedByUser)
         {
 #pragma warning disable CS8602 // Athlete and Club are loaded via Include() in calling queries.
-            AthleteLicenseId = r.Athlete!.LicenseId
+            AthleteLicenseId = r.Athlete!.LicenseId,
+            AthleteGrade = r.Athlete!.Grade
 #pragma warning restore CS8602
         };
+
+    private void ApplyWeighInCorrections(
+        AthleteRecord athlete,
+        Guid tournamentId,
+        decimal weightKg,
+        string? licenseId,
+        int? grade,
+        string operatorName)
+    {
+        var previousGrade = athlete.Grade;
+        var previousLicenseId = athlete.LicenseId;
+
+        athlete.WeightKg = weightKg;
+        if (grade.HasValue)
+        {
+            athlete.Grade = grade.Value;
+        }
+
+        if (licenseId is not null)
+        {
+            athlete.LicenseId = string.IsNullOrWhiteSpace(licenseId) ? null : licenseId.Trim();
+        }
+
+        var gradeChanged = athlete.Grade != previousGrade;
+        var licenseChanged = !StringComparer.Ordinal.Equals(athlete.LicenseId, previousLicenseId);
+        if (!gradeChanged && !licenseChanged)
+        {
+            return;
+        }
+
+        var changes = new List<string>();
+        if (gradeChanged)
+        {
+            changes.Add($"grade {previousGrade?.ToString() ?? "null"}->{athlete.Grade?.ToString() ?? "null"}");
+        }
+
+        if (licenseChanged)
+        {
+            changes.Add("licenseId changed");
+        }
+
+        _dbContext.AuditLogs.Add(new AuditLogRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tournamentId,
+            TimestampUtc = DateTimeOffset.UtcNow,
+            User = string.IsNullOrWhiteSpace(operatorName) ? "unbekannt" : operatorName.Trim(),
+            Action = "AthleteCorrectedAtWeighIn",
+            EntityType = "Athlete",
+            EntityId = athlete.Id,
+            Details = string.Join("; ", changes)
+        });
+    }
 }

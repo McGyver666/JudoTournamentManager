@@ -677,6 +677,7 @@
   "registrations.cameraNotAvailable": "Kamera nicht verfügbar. Bitte über HTTPS oder localhost zugreifen.",
   "registrations.licenseCheckResult": "Lizenzenprüfung",
   "registrations.licenseNumber": "Lizenznummer",
+  "registrations.grade": "Gürtelgrad",
   "registrations.licenseExpiry": "Gültig bis",
   "registrations.licenseValid": "Lizenz gültig",
   "registrations.licenseExpired": "Lizenz abgelaufen",

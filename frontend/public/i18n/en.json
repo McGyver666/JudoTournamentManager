@@ -675,6 +675,7 @@
   "registrations.cameraNotAvailable": "Camera not available. Please access via HTTPS or localhost.",
   "registrations.licenseCheckResult": "License verification",
   "registrations.licenseNumber": "License number",
+  "registrations.grade": "Belt grade",
   "registrations.licenseExpiry": "Valid until",
   "registrations.licenseValid": "License valid",
   "registrations.licenseExpired": "License expired",

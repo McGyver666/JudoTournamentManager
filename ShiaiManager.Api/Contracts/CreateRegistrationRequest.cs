@@ -23,6 +23,18 @@ public sealed record CreateRegistrationRequest
     public decimal WeightKg { get; init; }
 
     /// <summary>
+    /// Optional athlete belt grade confirmed at weight-in, on the scale from 1 to 14.
+    /// </summary>
+    [Range(1, 14, ErrorMessage = "Der Gürtelgrad muss zwischen 1 und 14 liegen.")]
+    public int? Grade { get; init; }
+
+    /// <summary>
+    /// Optional athlete license identifier confirmed at weight-in.
+    /// </summary>
+    [StringLength(40, ErrorMessage = "Die Lizenznummer darf maximal 40 Zeichen lang sein.")]
+    public string? LicenseId { get; init; }
+
+    /// <summary>
     /// Whether the athlete's license was confirmed/verified at registration.
     /// Derived from DokuMe QR code validation result on the server side.
     /// </summary>

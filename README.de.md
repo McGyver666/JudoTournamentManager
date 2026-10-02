@@ -48,6 +48,7 @@ Initial admin credentials (save these now):
 - Offline-faehiger Turnierbetrieb auf einem Laptop oder im lokalen LAN, optional internet-gehostet hinter nginx.
 - Turnierverwaltung, Vereine, Athleten, Meldungen, Kategorien, Voreinstellungen und assistierte Klassengenerierung.
 - Guertelgrade bei Athleten sind optional; leere CSV-Grade bleiben beim Export und Re-Import leer.
+- Waagenmeldungen akzeptieren optionale `grade`-Korrekturen (1-14) und `licenseId`-Aenderungen, die atomar mit der Meldung gespeichert werden.
 - Einzelturnier-Auslosungen, Brackets, Tatami-Zuordnung, Kampfbetrieb und serverautorisierte Zeitmessung.
 - NWJV-Mannschafts-Kampftage fuer Senioren- und U16-Profile mit Tageswaage, Aufstellungen und Begegnungen.
 - DM4/DMF-Athletenimport, oeffentliche Anzeigen, Wettkampflisten, Ranglisten, Medaillenspiegel und Vereinswertung.
