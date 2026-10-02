@@ -11,7 +11,6 @@ public sealed class DmfAthleteImportParser : IDmfAthleteImportParser
 {
     private const int MinimumBirthYear = 1940;
     private const int MaximumBirthYear = 2035;
-    private const int DefaultGrade = 1;
     private const string HeaderMagic = "DiskMelderDataFile";
 
     /// <inheritdoc />
@@ -205,7 +204,7 @@ public sealed class DmfAthleteImportParser : IDmfAthleteImportParser
             athletes.Add(new Dm4AthleteImportRow(
                 lastName,
                 firstName,
-                DefaultGrade,
+                null,
                 weightKg,
                 birthYear));
 

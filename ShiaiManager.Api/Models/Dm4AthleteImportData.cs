@@ -17,6 +17,6 @@ public sealed record Dm4AthleteImportData(
 public sealed record Dm4AthleteImportRow(
     string LastName,
     string FirstName,
-    int Grade,
+    int? Grade,
     decimal? WeightKg,
     int BirthYear);

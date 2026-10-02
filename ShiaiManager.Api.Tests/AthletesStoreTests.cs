@@ -62,6 +62,24 @@ public sealed class AthletesStoreTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task CreateAsync_WhenGradeIsNull_PersistsAthleteWithoutGrade()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
+        var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
+
+        var created = await store.CreateAsync(
+            tid, cid, "Anna", "Schmidt", 2005, Gender.Female, null, null, null, false, CancellationToken.None);
+
+        Assert.NotNull(created);
+        Assert.Null(created.Grade);
+        Assert.Null((await store.GetByIdAsync(created.Id, CancellationToken.None))?.Grade);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task CreateAsync_WhenDuplicateAndAllowDuplicateFalse_ReturnsNull()
     {
         var db = CreateDatabasePath();
@@ -213,6 +231,24 @@ public sealed class AthletesStoreTests
         Assert.Equal(Gender.Female, loaded.Gender);
         Assert.Equal("X99", loaded.LicenseId);
         Assert.Equal(2, loaded.Grade);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task UpdateAsync_WhenGradeIsNull_RemovesExistingGrade()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tid, cid) = await SeedTournamentAndClubAsync(ctx);
+        var store = new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance);
+        var created = await store.CreateAsync(tid, cid, "Anna", "Schmidt", 2005, Gender.Female, null, null, 3, false, CancellationToken.None);
+
+        var updated = await store.UpdateAsync(
+            created!.Id, cid, "Anna", "Schmidt", 2005, Gender.Female, null, null, null, CancellationToken.None);
+
+        Assert.True(updated);
+        Assert.Null((await store.GetByIdAsync(created.Id, CancellationToken.None))?.Grade);
     }
 
     [Fact]
