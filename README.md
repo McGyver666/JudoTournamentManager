@@ -193,6 +193,11 @@ the canonical `GuestShare__PublicBaseUrl` rather than the incoming `Host` header
 sets both values from `--hostname`; manual deployments must configure them in the systemd
 environment file.
 
+nginx limits request bodies to 20 MB. Backup restore (`POST /api/tournaments/restore`) has
+its own nginx location that allows up to 50 MB, matching the API limit; larger backups are
+rejected with `413` and the UI shows a localized size hint. Re-running the installer applies the limit
+to existing hosts.
+
 Unlike the offline/LAN mode, this mode is public-facing and does not rely on a trusted
 local network — keep TLS enforced, send the CSRF header for state-changing cookie-authenticated
 requests, and inject secrets (e.g. `Security:AuthTokenHmacSecret`) via configuration rather than hardcoding them.
