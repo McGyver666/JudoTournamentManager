@@ -5,6 +5,13 @@ INSTALL_DIR="/opt/shiai-manager"
 HOSTNAME=""
 EMAIL=""
 RUN_CERTBOT=true
+WITH_CROWDSEC=false
+
+CROWDSEC_KEYRING="/etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg"
+CROWDSEC_SOURCE_LIST="/etc/apt/sources.list.d/crowdsec_crowdsec.list"
+CROWDSEC_BOUNCER_LOCAL_CONF="/etc/crowdsec/bouncers/crowdsec-nginx-bouncer.conf.local"
+CROWDSEC_BAN_TEMPLATE="/etc/crowdsec/bouncers/shiai-manager-ban.html"
+CROWDSEC_APPSEC_URL="http://127.0.0.1:7422"
 
 usage() {
   cat <<'EOF'
@@ -19,6 +26,9 @@ Options:
   --source DIRECTORY    Extracted release folder (default: parent of deploy/).
   --install-dir PATH    Installation directory (default: /opt/shiai-manager).
   --skip-certbot        Configure HTTP only; do not request a TLS certificate.
+  --with-crowdsec       Also install CrowdSec (engine, nginx bouncer, AppSec virtual
+                        patching). Debian 12+ and Ubuntu 24.04+ only; nginx must be
+                        the internet-facing edge (no upstream proxy).
   -h, --help            Show this help.
 EOF
 }
@@ -90,6 +100,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-certbot)
       RUN_CERTBOT=false
+      shift
+      ;;
+    --with-crowdsec)
+      WITH_CROWDSEC=true
       shift
       ;;
     -h|--help)
@@ -197,6 +211,117 @@ install_packages() {
   fi
 }
 
+# The CrowdSec nginx bouncer needs the nginx Lua module, which is only packaged
+# (and supported by CrowdSec) on Debian/Ubuntu; Ubuntu 22.04 ships a broken one.
+validate_crowdsec_platform() {
+  local supported=false
+  if [[ "$OS_VERSION_MAJOR" =~ ^[0-9]+$ ]]; then
+    if [[ "$OS_ID" == "debian" && "$OS_VERSION_MAJOR" -ge 12 ]]; then
+      supported=true
+    elif [[ "$OS_ID" == "ubuntu" && "$OS_VERSION_MAJOR" -ge 24 ]]; then
+      supported=true
+    fi
+  fi
+
+  if [[ "$supported" != true ]]; then
+    echo "--with-crowdsec is supported on Debian 12+ and Ubuntu 24.04+ only (detected: ${OS_ID:-unknown} ${OS_VERSION_MAJOR:-unknown})." >&2
+    echo "Rerun without --with-crowdsec; nothing has been installed or changed." >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$SOURCE_DIR/deploy/crowdsec-ban.html" ]]; then
+    echo "The release package has no deploy/crowdsec-ban.html; it does not support --with-crowdsec." >&2
+    exit 1
+  fi
+}
+
+set_crowdsec_bouncer_option() {
+  local key="$1" value="$2"
+  touch "$CROWDSEC_BOUNCER_LOCAL_CONF"
+  if grep -q "^${key}=" "$CROWDSEC_BOUNCER_LOCAL_CONF"; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$CROWDSEC_BOUNCER_LOCAL_CONF"
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$CROWDSEC_BOUNCER_LOCAL_CONF"
+  fi
+}
+
+install_crowdsec() {
+  echo "Installing CrowdSec (Security Engine, nginx bouncer, AppSec virtual patching)..."
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get install -y gnupg
+
+  install -d -m 0755 "$(dirname "$CROWDSEC_KEYRING")"
+  curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey \
+    | gpg --batch --yes --dearmor -o "$CROWDSEC_KEYRING"
+  chmod 0644 "$CROWDSEC_KEYRING"
+  printf 'deb [signed-by=%s] https://packagecloud.io/crowdsec/crowdsec/any/ any main\n' \
+    "$CROWDSEC_KEYRING" > "$CROWDSEC_SOURCE_LIST"
+  apt-get update
+
+  # Engine first so the bouncer package registers itself against the local API.
+  # Keep existing conffiles on upgrades; our settings live in *.local files.
+  local apt_keep_conf=(-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+  apt-get install -y "${apt_keep_conf[@]}" crowdsec
+  apt-get install -y "${apt_keep_conf[@]}" libnginx-mod-http-lua crowdsec-nginx-bouncer
+
+  cscli hub update
+  cscli hub upgrade
+  cscli collections install \
+    crowdsecurity/nginx \
+    crowdsecurity/base-http-scenarios \
+    crowdsecurity/http-cve \
+    crowdsecurity/appsec-virtual-patching
+  cscli appsec-configs install crowdsecurity/appsec-default
+
+  # Volume-based scenarios would ban a whole venue sharing one public IP; the
+  # app already rate-limits per IP. Re-applied on every run because hub
+  # upgrades may reinstall them.
+  local scenario installed_scenarios
+  for scenario in crowdsecurity/http-crawl-non_statics crowdsecurity/http-probing; do
+    installed_scenarios="$(cscli scenarios list -o json)"
+    if [[ "$installed_scenarios" == *"\"${scenario}\""* ]]; then
+      cscli scenarios remove --force "$scenario"
+    fi
+  done
+
+  install -d -m 0755 /etc/crowdsec/acquis.d
+  if ! grep -rqs '/var/log/nginx' /etc/crowdsec/acquis.yaml /etc/crowdsec/acquis.d; then
+    cat > /etc/crowdsec/acquis.d/nginx.yaml <<'EOF'
+filenames:
+  - /var/log/nginx/*.log
+labels:
+  type: nginx
+EOF
+  fi
+  # The AppSec component must only listen on loopback.
+  cat > /etc/crowdsec/acquis.d/appsec.yaml <<'EOF'
+appsec_configs:
+  - crowdsecurity/appsec-default
+labels:
+  type: appsec
+listen_addr: 127.0.0.1:7422
+source: appsec
+EOF
+
+  install -m 0644 "$SOURCE_DIR/deploy/crowdsec-ban.html" "$CROWDSEC_BAN_TEMPLATE"
+  set_crowdsec_bouncer_option APPSEC_URL "$CROWDSEC_APPSEC_URL"
+  set_crowdsec_bouncer_option BAN_TEMPLATE_PATH "$CROWDSEC_BAN_TEMPLATE"
+
+  systemctl enable crowdsec
+  systemctl restart crowdsec
+
+  # Fail before the running app is touched if the bouncer broke the nginx config.
+  nginx -t
+
+  local bouncers
+  bouncers="$(cscli bouncers list -o raw)"
+  if [[ "$bouncers" != *crowdsec-nginx-bouncer* ]]; then
+    echo "The CrowdSec nginx bouncer is not registered with the local API (see 'cscli bouncers list')." >&2
+    exit 1
+  fi
+  echo "CrowdSec is active; the nginx bouncer is registered."
+}
+
 configure_selinux() {
   if [[ -z "$NGINX_LINK_PATH" ]] && command -v getenforce >/dev/null 2>&1; then
     if [[ "$(getenforce)" == "Enforcing" ]]; then
@@ -230,7 +355,15 @@ if ! command -v systemctl >/dev/null 2>&1; then
 fi
 
 detect_platform
+if [[ "$WITH_CROWDSEC" == true ]]; then
+  validate_crowdsec_platform
+fi
 install_packages
+if [[ "$WITH_CROWDSEC" == true ]]; then
+  install_crowdsec
+elif command -v cscli >/dev/null 2>&1; then
+  echo "CrowdSec is installed but --with-crowdsec was not given; leaving it unchanged."
+fi
 configure_selinux
 
 if ! id shiai >/dev/null 2>&1; then
@@ -328,6 +461,9 @@ echo
 echo "Deployment complete."
 echo "Application health: http://$HOSTNAME/health"
 echo "Service status:     systemctl status shiai-manager --no-pager"
+if [[ "$WITH_CROWDSEC" == true ]]; then
+  echo "CrowdSec:           cscli decisions list / cscli metrics"
+fi
 
 # --- Initial admin account ---------------------------------------------------
 # On a fresh install the database has no users, so the operator has no way to
