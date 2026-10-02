@@ -38,8 +38,9 @@ public sealed partial class NginxUploadLimitTests
     public void ServerBlock_KeepsGeneralBodySizeLimit(string relativePath)
     {
         var config = File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath));
+        var serverLevel = LocationBlockRegex().Replace(config, string.Empty);
 
-        var match = ServerLevelLimitRegex().Match(config);
+        var match = BodySizeRegex().Match(serverLevel);
 
         Assert.True(match.Success, $"{relativePath} has no server-level client_max_body_size.");
         Assert.Equal(GeneralLimitBytes, ParseSize(match.Groups["size"].Value));
@@ -71,9 +72,11 @@ public sealed partial class NginxUploadLimitTests
     [GeneratedRegex(@"location\s*=\s*/api/tournaments/restore\s*\{[^}]*?client_max_body_size\s+(?<size>\d+[kKmMgG]?)\s*;")]
     private static partial Regex RestoreLocationRegex();
 
-    // Matches the directive indented at server level (4 spaces), not inside a location block.
-    [GeneratedRegex(@"^ {4}client_max_body_size\s+(?<size>\d+[kKmMgG]?)\s*;", RegexOptions.Multiline)]
-    private static partial Regex ServerLevelLimitRegex();
+    [GeneratedRegex(@"location\s[^{]*\{[^}]*\}")]
+    private static partial Regex LocationBlockRegex();
+
+    [GeneratedRegex(@"client_max_body_size\s+(?<size>\d+[kKmMgG]?)\s*;")]
+    private static partial Regex BodySizeRegex();
 
     private static string FindRepositoryRoot()
     {

@@ -195,7 +195,7 @@ environment file.
 
 nginx limits request bodies to 20 MB. Backup restore (`POST /api/tournaments/restore`) has
 its own nginx location that allows up to 50 MB, matching the API limit; larger backups are
-rejected with `413` and the UI shows a German hint. Re-running the installer applies the limit
+rejected with `413` and the UI shows a localized size hint. Re-running the installer applies the limit
 to existing hosts.
 
 Unlike the offline/LAN mode, this mode is public-facing and does not rely on a trusted
