@@ -51,9 +51,69 @@ nothing.
 
 The manual steps below remain available for source-based or customised installs.
 
+## Optional: CrowdSec protection
+
+Append `--with-crowdsec` to the bootstrap (or `install_release.sh`) command to
+also install [CrowdSec](https://docs.crowdsec.net/):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/McGyver666/Shiai-Manager/main/deploy/bootstrap_install.sh \
+  | sudo bash -s -- --hostname tournament.example.com --email admin@example.com --with-crowdsec
+```
+
+What the installer sets up:
+- CrowdSec Security Engine and the Lua-based `crowdsec-nginx-bouncer` from the
+  official packagecloud repository (GPG key in `/etc/apt/keyrings/`, bound to
+  that repository via `signed-by`).
+- Collections `crowdsecurity/nginx`, `crowdsecurity/base-http-scenarios` and
+  `crowdsecurity/http-cve`. The volume-based scenarios
+  `crowdsecurity/http-crawl-non_statics` and `crowdsecurity/http-probing` are
+  removed so that a venue whose devices share one public IP is not banned
+  mid-tournament; the app already rate-limits login and public endpoints per IP.
+- The AppSec (WAF) component with `crowdsecurity/appsec-virtual-patching` only
+  (rules for known CVEs), listening on `127.0.0.1:7422`.
+- A German ban page (`deploy/crowdsec-ban.html`), configured through
+  `/etc/crowdsec/bouncers/crowdsec-nginx-bouncer.conf.local`.
+
+Requirements and limits:
+- **Debian 12+ or Ubuntu 24.04+ only.** The bouncer needs the nginx Lua module,
+  which is not available on RHEL-compatible hosts and broken on Ubuntu 22.04. On
+  unsupported hosts the installer stops before installing anything.
+- **nginx must be the internet-facing edge.** Do not put a CDN, tunnel or
+  another reverse proxy in front of it; plain NAT/port forwarding is fine.
+  Behind a proxy every request appears to come from the proxy's IP, so the first
+  ban would lock out all users.
+- The bouncer fails open: if CrowdSec is unavailable, requests are allowed.
+- CrowdSec's Central API stays enabled. The engine shares signals about detected
+  attackers (IP, scenario, timestamp) with CrowdSec and receives the community
+  blocklist in return; regular user traffic is not shared. To opt out, comment
+  out the `api.server.online_client` section in `/etc/crowdsec/config.yaml` and
+  run `sudo systemctl restart crowdsec`.
+- Re-running the installer with `--with-crowdsec` re-applies this setup.
+  Re-running without it leaves an existing CrowdSec installation unchanged.
+
+Day-to-day commands:
+
+```bash
+sudo cscli decisions list                        # active bans
+sudo cscli decisions delete --ip 203.0.113.10    # emergency unban, e.g. the venue's IP
+sudo cscli alerts list
+sudo cscli metrics
+```
+
+Uninstall:
+
+```bash
+sudo apt-get purge -y crowdsec-nginx-bouncer crowdsec
+sudo rm -rf /etc/crowdsec
+sudo rm -f /etc/apt/sources.list.d/crowdsec_crowdsec.list /etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg
+sudo nginx -t && sudo systemctl reload nginx
+```
+
 ## Files
 - `shiai-manager.service`: systemd unit for the ASP.NET Core API
 - `shiai-manager.nginx.conf`: nginx reverse proxy config for HTTP/HTTPS
+- `crowdsec-ban.html`: German ban page used by the optional CrowdSec nginx bouncer
 
 ## Assumptions
 - The application is deployed under `/opt/shiai-manager`

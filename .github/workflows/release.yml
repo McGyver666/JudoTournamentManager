@@ -110,6 +110,7 @@ jobs:
           cp deploy/shiai-manager-release.service "$release_dir/deploy/shiai-manager.service"
           cp deploy/shiai-manager.nginx.conf "$release_dir/deploy/shiai-manager.nginx.conf"
           cp deploy/install_release.sh "$release_dir/deploy/install_release.sh"
+          cp deploy/crowdsec-ban.html "$release_dir/deploy/crowdsec-ban.html"
           cp deploy/release-README.md "$release_dir/README.md"
           chmod +x "$release_dir/app/ShiaiManager.Api"
           chmod +x "$release_dir/deploy/install_release.sh"
