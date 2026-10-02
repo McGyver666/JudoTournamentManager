@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
+import { ATHLETE_GRADE_OPTIONS, athleteGradeLabelKey } from '../../core/athlete-grade';
 import { AuthStateService } from '../../core/auth-state.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
@@ -33,6 +34,7 @@ export class RegistrationsComponent implements OnInit {
   protected readonly athletes = signal<Athlete[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly clubs = signal<Club[]>([]);
+  protected readonly gradeOptions = ATHLETE_GRADE_OPTIONS;
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showQrScanner = signal(false);
@@ -54,6 +56,7 @@ export class RegistrationsComponent implements OnInit {
   protected form = {
     athleteId: '',
     weightKg: 0 as number,
+    grade: null as number | null,
     licenseId: '',
     licenseConfirmed: true,
     dokumeQrUrl: '',
@@ -243,6 +246,7 @@ export class RegistrationsComponent implements OnInit {
     this.activeAthleteId.set(selected.id);
     this.form.athleteId = selected.id;
     this.form.weightKg = selected.weightKg ?? 0;
+    this.form.grade = selected.grade;
     this.form.licenseId = selected.licenseId ?? '';
 
     if (moveFocusToWeight) {
@@ -318,40 +322,15 @@ export class RegistrationsComponent implements OnInit {
     const request = {
       athleteId: this.form.athleteId,
       weightKg: this.form.weightKg,
-      licenseId: this.form.licenseId || null,
+      licenseId: this.form.licenseId,
+      grade: this.form.grade,
       licenseConfirmed: this.form.licenseConfirmed,
       dokumeQrUrl: this.form.dokumeQrUrl || undefined,
       licenseCheckOverrideReason: this.form.licenseCheckOverrideReason || undefined
     };
 
     this.api.createRegistration(id, request).subscribe({
-      next: () => {
-        // Update athlete if weight or license changed during registration
-        const selected = this.athletes().find((a) => a.id === this.form.athleteId);
-        const weightChanged = selected && this.form.weightKg && selected.weightKg !== this.form.weightKg;
-        const licenseChanged = selected && this.form.licenseId && selected.licenseId !== this.form.licenseId;
-
-        if (weightChanged || licenseChanged) {
-          const updateRequest = {
-            clubId: selected!.clubId,
-            firstName: selected!.firstName,
-            lastName: selected!.lastName,
-            birthYear: selected!.birthYear,
-            gender: selected!.gender,
-            licenseId: selected!.licenseId,
-            weightKg: this.form.weightKg,
-            grade: selected!.grade,
-          };
-          this.api.updateAthlete(id, selected!.id, updateRequest).subscribe({
-            next: () => {
-              this.afterSuccessfulSave();
-            },
-            error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
-          });
-        } else {
-          this.afterSuccessfulSave();
-        }
-      },
+      next: () => this.afterSuccessfulSave(),
       error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
     });
   }
@@ -372,6 +351,10 @@ export class RegistrationsComponent implements OnInit {
 
   protected weightLabel(kg: number | null): string {
     return kg !== null ? `-${kg} kg` : this.i18n.translate('categories.weightOpen');
+  }
+
+  protected gradeLabel(grade: number | null): string {
+    return this.i18n.translate(athleteGradeLabelKey(grade));
   }
 
   /**

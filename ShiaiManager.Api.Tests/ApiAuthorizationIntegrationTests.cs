@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using ShiaiManager.Api.Contracts;
 using ShiaiManager.Api.Data;
 using ShiaiManager.Api.Models;
@@ -77,6 +78,95 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRegistration_InvalidGradeReturns400AndValidCorrectionsPersist()
+    {
+        using var client = _factory.CreateClient();
+        await BootstrapAdminAndCreateUserAsync(client, "operator-grade-validation", "Operator");
+        var token = await LoginAndGetTokenAsync(client, "operator-grade-validation", "Operator!1234");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var tournamentResponse = await client.PostAsJsonAsync("/api/tournaments", new CreateTournamentRequest
+        {
+            Name = "Gradvalidierung",
+            Date = new DateOnly(2026, 10, 2),
+            Venue = "Halle",
+            Organizer = "Judo Verein"
+        });
+        var tournament = await tournamentResponse.Content.ReadFromJsonAsync<Tournament>();
+        Assert.Equal(HttpStatusCode.Created, tournamentResponse.StatusCode);
+        Assert.NotNull(tournament);
+
+        var clubResponse = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament!.Id}/clubs",
+            new CreateClubRequest { Name = "Gradvalidierung JC" });
+        var club = await clubResponse.Content.ReadFromJsonAsync<Club>();
+        Assert.Equal(HttpStatusCode.Created, clubResponse.StatusCode);
+        Assert.NotNull(club);
+
+        var athleteResponse = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/athletes",
+            new CreateAthleteRequest
+            {
+                ClubId = club!.Id,
+                FirstName = "Max",
+                LastName = "Mustermann",
+                BirthYear = 2010,
+                Gender = Gender.Male,
+                Grade = 1
+            });
+        var athlete = await athleteResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.Created, athleteResponse.StatusCode);
+        var athleteId = athlete.GetProperty("id").GetGuid();
+
+        var registrationResponse = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/registrations",
+            new
+            {
+                athleteId,
+                weightKg = 65m,
+                licenseConfirmed = true,
+                grade = 15
+            });
+
+        var registrations = await client.GetFromJsonAsync<JsonElement>(
+            $"/api/tournaments/{tournament.Id}/registrations");
+
+        Assert.Equal(HttpStatusCode.BadRequest, registrationResponse.StatusCode);
+        Assert.Empty(registrations.EnumerateArray());
+
+        var validRegistrationResponse = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/registrations",
+            new
+            {
+                athleteId,
+                weightKg = 65m,
+                licenseConfirmed = true,
+                licenseId = "NEW-456",
+                grade = 5
+            });
+        Assert.Equal(HttpStatusCode.Created, validRegistrationResponse.StatusCode);
+
+        var athletes = await client.GetFromJsonAsync<JsonElement>(
+            $"/api/tournaments/{tournament.Id}/athletes");
+        var updatedAthlete = athletes.EnumerateArray()
+            .Single(item => item.GetProperty("id").GetGuid() == athleteId);
+        Assert.Equal("NEW-456", updatedAthlete.GetProperty("licenseId").GetString());
+        Assert.Equal(5, updatedAthlete.GetProperty("grade").GetInt32());
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var updatedAthleteRecord = await dbContext.Athletes.SingleAsync(item => item.Id == athleteId);
+        var correctionAudit = await dbContext.AuditLogs.SingleAsync(
+            item => item.Action == "AthleteCorrectedAtWeighIn" && item.EntityId == athleteId);
+        Assert.Equal("NEW-456", updatedAthleteRecord.LicenseId);
+        Assert.Equal(5, updatedAthleteRecord.Grade);
+        Assert.Equal("Athlete", correctionAudit.EntityType);
+        Assert.Equal("operator-grade-validation", correctionAudit.User);
+        Assert.Contains("grade 1->5", correctionAudit.Details);
+        Assert.Contains("licenseId changed", correctionAudit.Details);
     }
 
     [Fact]
