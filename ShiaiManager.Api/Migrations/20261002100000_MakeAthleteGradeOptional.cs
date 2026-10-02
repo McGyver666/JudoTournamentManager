@@ -10,18 +10,6 @@ public partial class MakeAthleteGradeOptional : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.AddColumn<int>(
-            name: "LastFightDurationSeconds",
-            table: "Athletes",
-            type: "INTEGER",
-            nullable: true);
-
-        migrationBuilder.AddColumn<DateTimeOffset>(
-            name: "LastFightEndedAtUtc",
-            table: "Athletes",
-            type: "TEXT",
-            nullable: true);
-
         migrationBuilder.AlterColumn<int>(
             name: "Grade",
             table: "Athletes",
