@@ -115,12 +115,6 @@ public sealed class AthletesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        if (request.Grade is null)
-        {
-            ModelState.AddModelError(nameof(request.Grade), "Der Gürtelgrad ist erforderlich.");
-            return ValidationProblem(ModelState);
-        }
-
         if (!await TournamentExistsAsync(tournamentId, cancellationToken))
         {
             return NotFound();
@@ -142,7 +136,7 @@ public sealed class AthletesController : ControllerBase
             request.Gender.Value,
             request.LicenseId,
             request.WeightKg,
-            request.Grade.Value,
+            request.Grade,
             allowDuplicate,
             cancellationToken);
 
@@ -201,10 +195,6 @@ public sealed class AthletesController : ControllerBase
                 ModelState.AddModelError($"Athletes[{i}].Gender", "Das Geschlecht ist erforderlich.");
             }
 
-            if (athlete.Grade is null)
-            {
-                ModelState.AddModelError($"Athletes[{i}].Grade", "Der Gürtelgrad ist erforderlich.");
-            }
         }
 
         if (!ModelState.IsValid)
@@ -237,7 +227,7 @@ public sealed class AthletesController : ControllerBase
                 x.Gender!.Value,
                 x.LicenseId,
                 x.WeightKg,
-                x.Grade!.Value))
+                x.Grade))
             .ToArray();
 
         var created = await _athletesStore.CreateBulkAsync(
@@ -506,12 +496,6 @@ public sealed class AthletesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        if (request.Grade is null)
-        {
-            ModelState.AddModelError(nameof(request.Grade), "Der Gürtelgrad ist erforderlich.");
-            return ValidationProblem(ModelState);
-        }
-
         if (!await TournamentExistsAsync(tournamentId, cancellationToken))
         {
             return NotFound();
@@ -539,7 +523,7 @@ public sealed class AthletesController : ControllerBase
             request.Gender.Value,
             request.LicenseId,
             request.WeightKg,
-            request.Grade.Value,
+            request.Grade,
             cancellationToken);
 
         return NoContent();

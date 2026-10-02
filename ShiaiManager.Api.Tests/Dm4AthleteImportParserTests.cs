@@ -49,6 +49,29 @@ public sealed class Dm4AthleteImportParserTests
     }
 
     [Fact]
+    public void Parse_WithEmptyGrade_ReturnsNullGrade()
+    {
+        var content = BuildValidContent("m")
+            .Replace("""Justus","4","34""", """Justus","","34""", StringComparison.Ordinal);
+
+        var result = _parser.Parse(Encoding.UTF8.GetBytes(content));
+
+        Assert.Equal((int?)null, result.Athletes[0].Grade);
+    }
+
+    [Fact]
+    public void Parse_WithInvalidNonEmptyGrade_ThrowsWithParticipantLineNumber()
+    {
+        var content = BuildValidContent("m")
+            .Replace("""Justus","4","34""", """Justus","not-a-grade","34""", StringComparison.Ordinal);
+
+        var exception = Assert.Throws<Dm4ImportParseException>(
+            () => _parser.Parse(Encoding.UTF8.GetBytes(content)));
+
+        Assert.Contains("Teilnehmer-Zeile 11", exception.Message);
+    }
+
+    [Fact]
     public void Parse_WithFemaleGenderMarker_ReturnsFemaleAthletes()
     {
         var content = BuildValidContent("w")

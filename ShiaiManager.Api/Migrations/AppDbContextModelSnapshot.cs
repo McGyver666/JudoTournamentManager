@@ -42,10 +42,8 @@ namespace ShiaiManager.Api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Grade")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
+                    b.Property<int?>("Grade")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("LastFightDurationSeconds")
                         .HasColumnType("INTEGER");

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using ShiaiManager.Api.Contracts;
 using ShiaiManager.Api.Controllers;
 using ShiaiManager.Api.Models;
@@ -411,6 +412,77 @@ public sealed class ControllerUnitTests
 
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task AthletesController_CreateAsync_WithNullGrade_PassesNullToStore()
+    {
+        var tournamentId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+        var athleteId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+        var mockAthletesStore = new Mock<IAthletesStore>();
+        var mockClubsStore = new Mock<IClubsStore>();
+        var mockDm4Parser = new Mock<IDm4AthleteImportParser>();
+        var mockDmfParser = new Mock<IDmfAthleteImportParser>();
+        var mockTournamentStore = new Mock<ITournamentStore>();
+
+        mockTournamentStore
+            .Setup(store => store.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", now, now));
+        mockClubsStore
+            .Setup(store => store.GetByIdAsync(clubId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Club(clubId, tournamentId, "Test Club", null, null, null, now, now));
+        mockAthletesStore
+            .Setup(store => store.CreateAsync(
+                tournamentId, clubId, "Anna", "Schmidt", 2005, Gender.Female, null, null, null, false,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Athlete(athleteId, tournamentId, clubId, "Anna", "Schmidt", 2005, Gender.Female,
+                null, null, null, null, null, now, now));
+
+        var controller = new AthletesController(
+            mockAthletesStore.Object,
+            mockClubsStore.Object,
+            mockDm4Parser.Object,
+            mockDmfParser.Object,
+            mockTournamentStore.Object);
+
+        var result = await controller.CreateAsync(tournamentId, new CreateAthleteRequest
+        {
+            ClubId = clubId,
+            FirstName = "Anna",
+            LastName = "Schmidt",
+            BirthYear = 2005,
+            Gender = Gender.Female,
+            Grade = null,
+        }, false, CancellationToken.None);
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        mockAthletesStore.Verify(store => store.CreateAsync(
+            tournamentId, clubId, "Anna", "Schmidt", 2005, Gender.Female, null, null, null, false,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void CreateAthleteRequest_AllowsNullGradeAndRejectsOutOfRangeGrade()
+    {
+        var request = new CreateAthleteRequest
+        {
+            ClubId = Guid.NewGuid(),
+            FirstName = "Anna",
+            LastName = "Schmidt",
+            BirthYear = 2005,
+            Gender = Gender.Female,
+            Grade = null,
+        };
+        var nullableResults = new List<ValidationResult>();
+
+        Assert.True(Validator.TryValidateObject(request, new ValidationContext(request), nullableResults, true));
+
+        var invalidRequest = request with { Grade = 15 };
+        var invalidResults = new List<ValidationResult>();
+        Assert.False(Validator.TryValidateObject(invalidRequest, new ValidationContext(invalidRequest), invalidResults, true));
+        Assert.Contains(invalidResults, result => result.MemberNames.Contains(nameof(CreateAthleteRequest.Grade)));
     }
 
     [Fact]

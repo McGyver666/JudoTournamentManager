@@ -35,6 +35,7 @@ public sealed class DmfAthleteImportParserTests
         Assert.Equal(firstFirstName, first.FirstName);
         Assert.Equal(firstBirthYear, first.BirthYear);
         Assert.Equal(firstWeight, first.WeightKg);
+        Assert.Null(first.Grade);
     }
 
     [Fact]

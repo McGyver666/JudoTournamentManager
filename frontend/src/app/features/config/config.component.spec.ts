@@ -31,6 +31,9 @@ class I18nServiceStub {
     'athletes.resetFilters': 'Filter zurücksetzen',
     'athletes.filteredCount': '{visible} von {total} Athleten',
     'athletes.noFilterResults': 'Keine Athleten entsprechen den Filtern.',
+    'athletes.gradeNotSpecified': '– nicht angegeben –',
+    'athletes.gradeNotSpecifiedShort': '–',
+    'athletes.gradeOption2': '8. Kyu (weiß-gelber Gürtel)',
   };
 
   translate(key: string, params?: Record<string, string | number>): string {
@@ -248,6 +251,23 @@ describe('ConfigComponent', () => {
     expect(fixture.nativeElement.querySelector('.toolbar-actions button').disabled).toBeTrue();
   });
 
+  it('starts new athlete forms without a grade and shows a dash for missing grades', () => {
+    context.tournamentId.set('t-1');
+    const testComponent = component as any;
+    testComponent.tab.set('athletes');
+    testComponent.clubs.set([club]);
+    testComponent.athletes.set([
+      { ...createAthlete('athlete-1', 'club-1', 'Anna'), grade: null },
+    ]);
+    testComponent.newAthlete();
+    fixture.detectChanges();
+
+    expect(testComponent.athleteForm.grade).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('– nicht angegeben –');
+    const athleteRow = fixture.nativeElement.querySelector('tbody tr');
+    expect(athleteRow.cells[7].textContent.trim()).toBe('–');
+  });
+
   it('shows the filtered count and clears it when filters are reset', () => {
     fixture.detectChanges();
     context.tournamentId.set('t-1');
@@ -297,6 +317,59 @@ describe('ConfigComponent', () => {
     const csv = await (createObjectUrl.calls.first().args[0] as Blob).text();
     expect(csv).toContain('Anna');
     expect(csv).not.toContain('Berta');
+  });
+
+  it('parses empty, German, and English CSV belt grades independently of the UI language', () => {
+    const rows = (component as any).parseCsvRows([
+      'Nachname;Vorname;Jahrgang;Geschlecht;Verein;Graduierung;Gewicht',
+      'Leer;Grad;2012;w;DJK Test;;',
+      'Deutsch;Grad;2012;w;DJK Test;8.kyu;',
+      'English;Grade;2012;w;DJK Test;8th Kyu (white-yellow belt);',
+    ].join('\n'));
+
+    expect(rows.map((row: { grade: number | null }) => row.grade)).toEqual([null, 2, 2]);
+  });
+
+  it('reports invalid CSV belt grades with the physical line and value', () => {
+    let parseError: any;
+    try {
+      (component as any).parseCsvRows([
+        'Nachname;Vorname;Jahrgang;Geschlecht;Verein;Graduierung;Gewicht',
+        '',
+        'Leer;Grad;2012;w;DJK Test;Yellow;',
+      ].join('\n'));
+    } catch (error) {
+      parseError = error;
+    }
+
+    expect(parseError?.isCsvGradeError).toBeTrue();
+    expect(parseError?.lineNumber).toBe(3);
+    expect(parseError?.value).toBe('Yellow');
+
+    let numericGradeError: any;
+    try {
+      (component as any).parseCsvRows([
+        'Nachname;Vorname;Jahrgang;Geschlecht;Verein;Graduierung;Gewicht',
+        'Zahl;Grad;2012;w;DJK Test;3;',
+      ].join('\n'));
+    } catch (error) {
+      numericGradeError = error;
+    }
+    expect(numericGradeError?.value).toBe('3');
+  });
+
+  it('exports an athlete without a belt grade as an empty CSV field', async () => {
+    const createObjectUrl = spyOn(URL, 'createObjectURL').and.returnValue('blob:athletes');
+    spyOn(URL, 'revokeObjectURL');
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    (component as any).athletes.set([
+      { ...createAthlete('athlete-1', 'club-1', 'Anna'), grade: null },
+    ]);
+
+    (component as any).exportAthletesCsv();
+
+    const csv = await (createObjectUrl.calls.first().args[0] as Blob).text();
+    expect(csv).toContain('Test;Anna;2012;w;;;');
   });
 
   function createAthlete(
