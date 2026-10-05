@@ -824,6 +824,10 @@ export class MatchComponent implements OnInit, OnDestroy {
     return [0, 1, 2];
   }
 
+  protected isHansokuMake(fight: Fight, side: FightSide): boolean {
+    return this.scoreCount(fight, side, 'Shido') >= 3;
+  }
+
   protected scoreLabel(scoreType: ScoreType): string {
     switch (scoreType) {
       case 'Ippon': return 'match.ippon';

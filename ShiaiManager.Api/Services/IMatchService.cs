@@ -86,6 +86,7 @@ public interface IMatchService
 
     /// <summary>
     /// Adjusts a single score bucket for an in-progress fight.
+    /// Shido is capped at 3; the 3rd shido (Hansoku-make) awards the opponent an Ippon and removing it revokes that Ippon.
     /// </summary>
     Task<MatchActionResult> AdjustScoreAsync(
         Guid fightId,

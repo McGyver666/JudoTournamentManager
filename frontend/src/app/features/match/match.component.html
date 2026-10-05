@@ -113,11 +113,15 @@
               </div>
               <div class="athlete-card__shido-row">
                 <span>{{ 'match.shido' | t }}</span>
-                <span class="shido-bubbles">
-                  @for (slot of shidoSlots(); track slot) {
-                    <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'white', 'Shido')"></span>
-                  }
-                </span>
+                @if (isHansokuMake(fight, 'white')) {
+                  <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                } @else {
+                  <span class="shido-bubbles">
+                    @for (slot of shidoSlots(); track slot) {
+                      <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'white', 'Shido')"></span>
+                    }
+                  </span>
+                }
               </div>
 
               <div class="score-stack">
@@ -126,11 +130,15 @@
                     <div class="score-row__label">
                       <span>{{ scoreLabel(scoreType) | t }}</span>
                       @if (scoreType === 'Shido') {
-                        <span class="shido-bubbles">
-                          @for (slot of shidoSlots(); track slot) {
-                            <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'white', scoreType)"></span>
-                          }
-                        </span>
+                        @if (isHansokuMake(fight, 'white')) {
+                          <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                        } @else {
+                          <span class="shido-bubbles">
+                            @for (slot of shidoSlots(); track slot) {
+                              <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'white', scoreType)"></span>
+                            }
+                          </span>
+                        }
                       }
                     </div>
                     <div class="score-row__actions">
@@ -218,11 +226,15 @@
               </div>
               <div class="athlete-card__shido-row">
                 <span>{{ 'match.shido' | t }}</span>
-                <span class="shido-bubbles">
-                  @for (slot of shidoSlots(); track slot) {
-                    <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'blue', 'Shido')"></span>
-                  }
-                </span>
+                @if (isHansokuMake(fight, 'blue')) {
+                  <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                } @else {
+                  <span class="shido-bubbles">
+                    @for (slot of shidoSlots(); track slot) {
+                      <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'blue', 'Shido')"></span>
+                    }
+                  </span>
+                }
               </div>
 
               <div class="score-stack">
@@ -231,11 +243,15 @@
                     <div class="score-row__label">
                       <span>{{ scoreLabel(scoreType) | t }}</span>
                       @if (scoreType === 'Shido') {
-                        <span class="shido-bubbles">
-                          @for (slot of shidoSlots(); track slot) {
-                            <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'blue', scoreType)"></span>
-                          }
-                        </span>
+                        @if (isHansokuMake(fight, 'blue')) {
+                          <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                        } @else {
+                          <span class="shido-bubbles">
+                            @for (slot of shidoSlots(); track slot) {
+                              <span class="shido-bubble" [class.shido-bubble--active]="slot < scoreCount(fight, 'blue', scoreType)"></span>
+                            }
+                          </span>
+                        }
                       }
                     </div>
                     <div class="score-row__actions">

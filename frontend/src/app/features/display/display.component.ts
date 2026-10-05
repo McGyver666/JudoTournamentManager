@@ -528,6 +528,10 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return [0, 1, 2];
   }
 
+  protected isHansokuMake(fight: Fight, side: FightSide): boolean {
+    return this.scoreCount(fight, side, 'shido') >= 3;
+  }
+
   protected timerForFight(fight: Fight): string {
     // Bind to the ticking signal to force refresh every second.
     const now = this.nowEpochMs();

@@ -306,6 +306,10 @@ export class TournamentOverviewComponent implements OnDestroy {
     return [0, 1, 2];
   }
 
+  protected isHansokuMake(fight: Fight, side: FightSide): boolean {
+    return this.scoreCount(fight, side, 'shido') >= 3;
+  }
+
   protected formatAverageDuration(seconds: number | null): string {
     if (seconds === null) {
       return this.i18n.translate('tournamentOverview.noData');
