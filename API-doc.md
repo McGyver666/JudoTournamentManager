@@ -51,7 +51,7 @@ is written only when the grade or license number actually changes.
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/resume`
-- `POST /api/tournaments/{tournamentId}/fights/{fightId}/score/adjust`
+- `POST /api/tournaments/{tournamentId}/fights/{fightId}/score/adjust` (max. 3 Shido per side, a 4th returns `409`; the 3rd Shido = Hansoku-make awards the opponent an Ippon, removing it revokes that Ippon; fight status and osae-komi stay unchanged)
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/start`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/stop`
 - `POST /api/tournaments/{tournamentId}/fights/{fightId}/osae-komi/pause`

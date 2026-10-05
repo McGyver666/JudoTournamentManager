@@ -723,6 +723,19 @@ tr:last-child td {
   border-color: var(--shido);
 }
 
+.hansoku-make-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--c-danger);
+  color: #fff;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
 app-display .tatami-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}
 
 app-display .tatami-card {
