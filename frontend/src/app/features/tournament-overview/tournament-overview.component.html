@@ -196,8 +196,8 @@
     <section class="stats-strip" [attr.aria-label]="'tournamentOverview.statsTitle' | t">
       @if (stats(); as overviewStats) {
         <article class="stat-card">
-          <span class="stat-label">{{ 'tournamentOverview.registeredAthletes' | t }}</span>
-          <strong class="stat-value">{{ overviewStats.registeredAthletes }}</strong>
+          <span class="stat-label">{{ 'tournamentOverview.athleteCount' | t }}</span>
+          <strong class="stat-value">{{ overviewStats.athleteCount }}</strong>
           <span class="stat-meta">{{ 'tournamentOverview.athleteMeta' | t: { clubs: overviewStats.clubCount, categories: overviewStats.categoryCount } }}</span>
         </article>
         <article class="stat-card stat-card--completion">
