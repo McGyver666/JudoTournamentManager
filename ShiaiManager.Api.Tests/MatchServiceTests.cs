@@ -514,6 +514,8 @@ public sealed class MatchServiceTests
         Assert.Equal(2, fight.BluePenalties);
         Assert.Equal(0, fight.WhiteIpponCount);
         Assert.Equal(0, fight.WhiteScore);
+        Assert.Equal(FightStatus.InProgress.ToString(), fight.Status);
+        Assert.Null(fight.PausedAtUtc);
     }
 
     [Fact]
@@ -576,6 +578,7 @@ public sealed class MatchServiceTests
             {
                 Assert.Equal("HansokuMakeRevoked", revoked.Action);
                 Assert.Equal("Side=White", revoked.Details);
+                Assert.Equal("Tisch1", revoked.User);
             });
     }
 
