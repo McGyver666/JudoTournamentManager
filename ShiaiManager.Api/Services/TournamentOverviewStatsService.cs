@@ -24,9 +24,9 @@ public sealed class TournamentOverviewStatsService : IOverviewStatsService
         Guid tournamentId,
         CancellationToken cancellationToken)
     {
-        var registeredAthletes = await _dbContext.Registrations
+        var athleteCount = await _dbContext.Athletes
             .AsNoTracking()
-            .CountAsync(r => r.TournamentId == tournamentId, cancellationToken);
+            .CountAsync(a => a.TournamentId == tournamentId, cancellationToken);
         var clubCount = await _dbContext.Clubs
             .AsNoTracking()
             .CountAsync(c => c.TournamentId == tournamentId, cancellationToken);
@@ -54,7 +54,7 @@ public sealed class TournamentOverviewStatsService : IOverviewStatsService
 
         return new TournamentOverviewStats(
             tournamentId,
-            registeredAthletes,
+            athleteCount,
             clubCount,
             categoryCount,
             completedFights.Length,

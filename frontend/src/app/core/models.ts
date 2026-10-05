@@ -555,7 +555,7 @@ export interface TatamiQueue {
 /** Whole-tournament aggregate data for the live control-stand overview. */
 export interface TournamentOverviewStats {
   tournamentId: string;
-  registeredAthletes: number;
+  athleteCount: number;
   clubCount: number;
   categoryCount: number;
   fightsCompleted: number;
