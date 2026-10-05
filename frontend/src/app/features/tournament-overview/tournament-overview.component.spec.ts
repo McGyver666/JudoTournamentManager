@@ -98,7 +98,7 @@ describe('TournamentOverviewComponent', () => {
     };
     const stats: TournamentOverviewStats = {
       tournamentId: 'tournament-1',
-      registeredAthletes: 2,
+      athleteCount: 2,
       clubCount: 1,
       categoryCount: 1,
       fightsCompleted: 0,

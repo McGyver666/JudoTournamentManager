@@ -5,7 +5,7 @@ namespace ShiaiManager.Api.Models;
 /// </summary>
 public sealed record TournamentOverviewStats(
     Guid TournamentId,
-    int RegisteredAthletes,
+    int AthleteCount,
     int ClubCount,
     int CategoryCount,
     int FightsCompleted,

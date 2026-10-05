@@ -106,7 +106,7 @@
   "tournamentOverview.freeMat": "Keine laufende Paarung",
   "tournamentOverview.noActiveTatamis": "Keine aktive Matte konfiguriert.",
   "tournamentOverview.statsTitle": "Turnierstatistik",
-  "tournamentOverview.registeredAthletes": "Gemeldete Athleten",
+  "tournamentOverview.athleteCount": "Athleten",
   "tournamentOverview.athleteMeta": "{clubs} Vereine · {categories} Klassen",
   "tournamentOverview.completedFights": "Kämpfe abgeschlossen",
   "tournamentOverview.ofTournament": "des Turniers",
