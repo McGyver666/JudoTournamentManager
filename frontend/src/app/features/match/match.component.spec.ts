@@ -382,6 +382,29 @@ describe('MatchComponent', () => {
     fixture.destroy();
   });
 
+  it('replaces the shido bubbles with a Hansoku-make badge after the third shido', () => {
+    getTatamiQueueSpy.and.returnValue(of({
+      current: createFight({ status: 'InProgress', whitePenalties: 3, blueIpponCount: 1, whiteIpponCount: 0 }),
+      next: null,
+      onDeck: null,
+      upcoming: [],
+    } as TatamiQueue));
+
+    const fixture = TestBed.createComponent(MatchComponent);
+    fixture.detectChanges();
+
+    const white = fixture.nativeElement.querySelector('.athlete-card--white') as HTMLElement;
+    const blue = fixture.nativeElement.querySelector('.athlete-card--blue') as HTMLElement;
+    const badges = white.querySelectorAll('.hansoku-make-badge');
+    expect(badges.length).toBeGreaterThan(0);
+    badges.forEach((badge) => expect(badge.textContent).toContain('match.hansokuMake'));
+    expect(white.querySelectorAll('.shido-bubble').length).toBe(0);
+    expect(blue.querySelectorAll('.hansoku-make-badge').length).toBe(0);
+    expect(blue.querySelectorAll('.shido-bubble').length).toBeGreaterThan(0);
+
+    fixture.destroy();
+  });
+
   it('renders the keyboard shortcut help in the match header', () => {
     const fixture = TestBed.createComponent(MatchComponent);
     fixture.detectChanges();

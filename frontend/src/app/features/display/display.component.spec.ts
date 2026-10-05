@@ -292,6 +292,46 @@ describe('DisplayComponent', () => {
     fixture.destroy();
   });
 
+  function renderWithHansokuMake(paramMap: Record<string, string>): HTMLElement {
+    apiCalls.getTatamis.and.returnValue(of([createTatami()]));
+    apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight({ bluePenalties: 3, whiteIpponCount: 1 }), upcoming: [] }));
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: {
+        paramMap: of(convertToParamMap(paramMap)),
+        queryParamMap: of(convertToParamMap({ tournamentId: 'tournament-1' })),
+      },
+    });
+    TestBed.overrideProvider(SideThemeService, {
+      useValue: { applyTheme: () => undefined, accentSideLabelKey: () => 'match.blueSide' },
+    });
+
+    const fixture = TestBed.createComponent(DisplayComponent);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('replaces the shido bubbles with a Hansoku-make badge on the tatami screen', () => {
+    const root = renderWithHansokuMake({ tatamiId: 'tatami-1' });
+
+    const blue = root.querySelector('.tatami-athlete--blue') as HTMLElement;
+    const white = root.querySelector('.tatami-athlete--white') as HTMLElement;
+    expect(blue.querySelector('.hansoku-make-badge')?.textContent).toContain('match.hansokuMake');
+    expect(blue.querySelectorAll('.shido-bubble').length).toBe(0);
+    expect(white.querySelector('.hansoku-make-badge')).toBeNull();
+    expect(white.querySelectorAll('.shido-bubble').length).toBe(3);
+  });
+
+  it('replaces the shido bubbles with a Hansoku-make badge on the overview grid', () => {
+    const root = renderWithHansokuMake({});
+
+    const blue = root.querySelector('.athlete-col--blue-left') as HTMLElement;
+    const white = root.querySelector('.athlete-col--white-right') as HTMLElement;
+    expect(blue.querySelector('.hansoku-make-badge')?.textContent).toContain('match.hansokuMake');
+    expect(blue.querySelectorAll('.shido-bubble').length).toBe(0);
+    expect(white.querySelector('.hansoku-make-badge')).toBeNull();
+    expect(white.querySelectorAll('.shido-bubble').length).toBe(3);
+  });
+
   it('refreshes the tournament view when a fight is completed', () => {
     apiCalls.getTatamis.and.returnValue(of([createTatami()]));
     apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight(), upcoming: [] }));

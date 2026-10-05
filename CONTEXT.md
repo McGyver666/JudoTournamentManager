@@ -97,6 +97,10 @@ Use these terms as-is (German primary) in issues, tests, and code names; don't d
 - **Tatami** — a mat/fight area. Fights are queued and assigned per tatami.
 - **Kampf** (Fight) — a single bout. **Freilos** = a bye (does not count as a fight).
 - **Osae-komi** — hold-down; server-authoritative timing with Sono-mama/Yoshi pause and resume that freezes both hold and fight clocks.
+- **Hansoku-make** — disqualification from the bout. Currently derived from the 3rd **Shido** (penalty):
+  the opponent automatically receives an Ippon; fight status and osae-komi are not changed and the
+  winner is still confirmed manually. Direct Hansoku-make and the IJF double-Hansoku-make rule are not
+  modelled yet.
 - **Golden Score** — sudden-death extension.
 - **Vereinswertung** (Club scoring) — team ranking per age group and globally. See
   [ADR-0007](docs/adr/0007-club-scoring-rules.md) for the exact rules.

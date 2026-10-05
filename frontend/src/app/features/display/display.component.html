@@ -71,11 +71,15 @@
 
               <div class="tatami-shido-row">
                 <span>{{ 'match.shido' | t }}</span>
-                <span class="shido-bubbles shido-bubbles--xl">
-                  @for (slot of shidoSlots(); track slot) {
-                    <span class="shido-bubble shido-bubble--xl" [class.active]="slot < scoreCount(d.current, 'blue', 'shido')"></span>
-                  }
-                </span>
+                @if (isHansokuMake(d.current, 'blue')) {
+                  <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                } @else {
+                  <span class="shido-bubbles shido-bubbles--xl">
+                    @for (slot of shidoSlots(); track slot) {
+                      <span class="shido-bubble shido-bubble--xl" [class.active]="slot < scoreCount(d.current, 'blue', 'shido')"></span>
+                    }
+                  </span>
+                }
               </div>
             </article>
 
@@ -101,11 +105,15 @@
 
               <div class="tatami-shido-row">
                 <span>{{ 'match.shido' | t }}</span>
-                <span class="shido-bubbles shido-bubbles--xl">
-                  @for (slot of shidoSlots(); track slot) {
-                    <span class="shido-bubble shido-bubble--xl" [class.active]="slot < scoreCount(d.current, 'white', 'shido')"></span>
-                  }
-                </span>
+                @if (isHansokuMake(d.current, 'white')) {
+                  <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                } @else {
+                  <span class="shido-bubbles shido-bubbles--xl">
+                    @for (slot of shidoSlots(); track slot) {
+                      <span class="shido-bubble shido-bubble--xl" [class.active]="slot < scoreCount(d.current, 'white', 'shido')"></span>
+                    }
+                  </span>
+                }
               </div>
             </article>
           </div>
@@ -166,11 +174,15 @@
                     <div class="score-row"><span>{{ 'match.yuko' | t }}</span><strong>{{ scoreCount(d.current, 'blue', 'yuko') }}</strong></div>
                     <div class="score-row shido-row">
                       <span>{{ 'match.shido' | t }}</span>
-                      <span class="shido-bubbles">
-                        @for (slot of shidoSlots(); track slot) {
-                          <span class="shido-bubble" [class.active]="slot < scoreCount(d.current, 'blue', 'shido')"></span>
-                        }
-                      </span>
+                      @if (isHansokuMake(d.current, 'blue')) {
+                        <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                      } @else {
+                        <span class="shido-bubbles">
+                          @for (slot of shidoSlots(); track slot) {
+                            <span class="shido-bubble" [class.active]="slot < scoreCount(d.current, 'blue', 'shido')"></span>
+                          }
+                        </span>
+                      }
                     </div>
                   </div>
                 </div>
@@ -184,11 +196,15 @@
                     <div class="score-row"><span>{{ 'match.yuko' | t }}</span><strong>{{ scoreCount(d.current, 'white', 'yuko') }}</strong></div>
                     <div class="score-row shido-row">
                       <span>{{ 'match.shido' | t }}</span>
-                      <span class="shido-bubbles">
-                        @for (slot of shidoSlots(); track slot) {
-                          <span class="shido-bubble" [class.active]="slot < scoreCount(d.current, 'white', 'shido')"></span>
-                        }
-                      </span>
+                      @if (isHansokuMake(d.current, 'white')) {
+                        <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                      } @else {
+                        <span class="shido-bubbles">
+                          @for (slot of shidoSlots(); track slot) {
+                            <span class="shido-bubble" [class.active]="slot < scoreCount(d.current, 'white', 'shido')"></span>
+                          }
+                        </span>
+                      }
                     </div>
                   </div>
                 </div>
