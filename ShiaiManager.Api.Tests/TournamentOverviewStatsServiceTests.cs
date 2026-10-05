@@ -63,7 +63,9 @@ public sealed class TournamentOverviewStatsServiceTests
         context.Athletes.AddRange(
             Athlete(athleteOneId, tournamentId, clubOneId, "Ada", "Eins", now),
             Athlete(athleteTwoId, tournamentId, clubTwoId, "Ben", "Zwei", now),
-            Athlete(athleteThreeId, tournamentId, clubOneId, "Cem", "Drei", now));
+            Athlete(athleteThreeId, tournamentId, clubOneId, "Cem", "Drei", now),
+            Athlete(Guid.NewGuid(), tournamentId, clubTwoId, "Dana", "Vier", now),
+            Athlete(Guid.NewGuid(), otherTournamentId, clubOneId, "Emil", "Fremd", now));
         context.Registrations.AddRange(
             Registration(tournamentId, athleteOneId, categoryId, now),
             Registration(tournamentId, athleteTwoId, categoryId, now),
@@ -81,7 +83,7 @@ public sealed class TournamentOverviewStatsServiceTests
 
         var result = await service.GetAsync(tournamentId, CancellationToken.None);
 
-        Assert.Equal(3, result.RegisteredAthletes);
+        Assert.Equal(4, result.AthleteCount);
         Assert.Equal(2, result.ClubCount);
         Assert.Equal(1, result.CategoryCount);
         Assert.Equal(2, result.FightsCompleted);
