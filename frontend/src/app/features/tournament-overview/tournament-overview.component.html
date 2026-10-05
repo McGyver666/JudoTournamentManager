@@ -76,11 +76,15 @@
               <div class="hero-shido-row">
                 <div class="fighter-score">
                   <span>{{ 'match.shido' | t }}</span>
-                  <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
-                    @for (slot of shidoSlots(); track slot) {
-                      <span class="shido-bubble" [class.active]="slot < scoreCount(hero.fight, 'blue', 'shido')"></span>
-                    }
-                  </span>
+                  @if (isHansokuMake(hero.fight, 'blue')) {
+                    <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                  } @else {
+                    <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
+                      @for (slot of shidoSlots(); track slot) {
+                        <span class="shido-bubble" [class.active]="slot < scoreCount(hero.fight, 'blue', 'shido')"></span>
+                      }
+                    </span>
+                  }
                 </div>
               </div>
             </article>
@@ -125,11 +129,15 @@
               <div class="hero-shido-row">
                 <div class="fighter-score">
                   <span>{{ 'match.shido' | t }}</span>
-                  <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
-                    @for (slot of shidoSlots(); track slot) {
-                      <span class="shido-bubble" [class.active]="slot < scoreCount(hero.fight, 'white', 'shido')"></span>
-                    }
-                  </span>
+                  @if (isHansokuMake(hero.fight, 'white')) {
+                    <span class="hansoku-make-badge">{{ 'match.hansokuMake' | t }}</span>
+                  } @else {
+                    <span class="shido-bubbles" [attr.aria-label]="'match.shido' | t">
+                      @for (slot of shidoSlots(); track slot) {
+                        <span class="shido-bubble" [class.active]="slot < scoreCount(hero.fight, 'white', 'shido')"></span>
+                      }
+                    </span>
+                  }
                 </div>
               </div>
             </article>

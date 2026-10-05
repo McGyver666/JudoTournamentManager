@@ -27,6 +27,7 @@ public sealed class MatchService : IMatchService
     private static readonly string InProgress = FightStatus.InProgress.ToString();
     private static readonly string Paused = FightStatus.Paused.ToString();
     private static readonly string Completed = FightStatus.Completed.ToString();
+    private const int HansokuMakeShidoCount = 3;
 
     /// <summary>Initializes a new service instance.</summary>
     public MatchService(
@@ -306,6 +307,7 @@ public sealed class MatchService : IMatchService
         if (delta is not 1 and not -1)
             return MatchActionResult.InvalidState;
 
+        FightAudit? hansokuMakeAudit = null;
         return await ExecuteFightOperationAsync(
             fightId,
             user,
@@ -317,13 +319,17 @@ public sealed class MatchService : IMatchService
                 if (!TryGetSide(side, out var whiteSide))
                     return Task.FromResult(MatchActionResult.InvalidState);
 
+                var penaltiesBefore = Penalties(fight, whiteSide);
                 var result = ApplyScoreDelta(fight, whiteSide, scoreType, delta);
                 if (result != MatchActionResult.Success) return Task.FromResult(result);
+
+                if (scoreType == ScoreType.Shido)
+                    hansokuMakeAudit = ApplyHansokuMakeTransition(fight, whiteSide, penaltiesBefore);
 
                 fight.UpdatedAtUtc = DateTimeOffset.UtcNow;
                 return Task.FromResult(MatchActionResult.Success);
             },
-            audit: null,
+            _ => hansokuMakeAudit,
             cancellationToken);
     }
 
@@ -1172,13 +1178,13 @@ public sealed class MatchService : IMatchService
                 if (targetIsWhite)
                 {
                     var newCount = fight.WhitePenalties + delta;
-                    if (newCount < 0) return MatchActionResult.InvalidState;
+                    if (newCount is < 0 or > HansokuMakeShidoCount) return MatchActionResult.InvalidState;
                     fight.WhitePenalties = newCount;
                 }
                 else
                 {
                     var newCount = fight.BluePenalties + delta;
-                    if (newCount < 0) return MatchActionResult.InvalidState;
+                    if (newCount is < 0 or > HansokuMakeShidoCount) return MatchActionResult.InvalidState;
                     fight.BluePenalties = newCount;
                 }
                 return MatchActionResult.Success;
@@ -1189,6 +1195,34 @@ public sealed class MatchService : IMatchService
 
     private static int ScoreValue(int ipponCount, int wazaAriCount, int yukoCount) =>
         (ipponCount * 10) + (wazaAriCount * 7) + yukoCount;
+
+    private static int Penalties(FightRecord fight, bool whiteSide) =>
+        whiteSide ? fight.WhitePenalties : fight.BluePenalties;
+
+    /// <summary>
+    /// Awards (2 → 3 shido) or revokes (3 → 2 shido) the opponent's Ippon for Hansoku-make
+    /// without touching the fight status or a running osae-komi.
+    /// </summary>
+    /// <returns>The audit entry for the transition, or <see langword="null"/> when none occurred.</returns>
+    private static FightAudit? ApplyHansokuMakeTransition(FightRecord fight, bool penalizedIsWhite, int penaltiesBefore)
+    {
+        var penaltiesAfter = Penalties(fight, penalizedIsWhite);
+        var details = $"Side={(penalizedIsWhite ? "White" : "Blue")}";
+        if (penaltiesBefore < HansokuMakeShidoCount && penaltiesAfter == HansokuMakeShidoCount)
+        {
+            ApplyScoreDelta(fight, !penalizedIsWhite, ScoreType.Ippon, 1);
+            return new FightAudit("HansokuMakeAwarded", details);
+        }
+
+        if (penaltiesBefore == HansokuMakeShidoCount && penaltiesAfter < HansokuMakeShidoCount)
+        {
+            // Returns InvalidState (no-op) when the table already removed the Ippon manually.
+            ApplyScoreDelta(fight, !penalizedIsWhite, ScoreType.Ippon, -1);
+            return new FightAudit("HansokuMakeRevoked", details);
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Checks whether all group-stage fights for a RoundRobinWithKnockout category are done

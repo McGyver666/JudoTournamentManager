@@ -449,6 +449,136 @@ public sealed class MatchServiceTests
         Assert.Equal(MatchActionResult.InvalidState, result);
     }
 
+    // ─── Hansoku-make (3 Shido) ───────────────────────────────────────────────
+
+    private static async Task<(string Db, Guid FightId)> SeedStartedFightAsync()
+    {
+        var db = CreateDatabasePath();
+        Guid cid;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            (_, cid, _) = await SeedBracketAsync(ctx, 2);
+        }
+
+        var fightId = (await ReadFightsAsync(db, cid)).Single().Id;
+        await using (var ctx = CreateDbContext(db))
+        {
+            await CreateService(ctx).StartAsync(fightId, "Tisch1", CancellationToken.None);
+        }
+
+        return (db, fightId);
+    }
+
+    private static async Task<MatchActionResult> AdjustAsync(string db, Guid fightId, string side, ScoreType type, int delta)
+    {
+        await using var ctx = CreateDbContext(db);
+        return await CreateService(ctx).AdjustScoreAsync(fightId, side, type, delta, "Tisch1", CancellationToken.None);
+    }
+
+    private static async Task<FightRecord> ReadFightAsync(string db, Guid fightId)
+    {
+        await using var ctx = CreateDbContext(db);
+        return await ctx.Fights.AsNoTracking().SingleAsync(f => f.Id == fightId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task AdjustScore_ThirdShido_AwardsIpponToOpponent()
+    {
+        var (db, fightId) = await SeedStartedFightAsync();
+        await AdjustAsync(db, fightId, "white", ScoreType.Shido, 1);
+        await AdjustAsync(db, fightId, "white", ScoreType.Shido, 1);
+
+        var result = await AdjustAsync(db, fightId, "white", ScoreType.Shido, 1);
+
+        Assert.Equal(MatchActionResult.Success, result);
+        var fight = await ReadFightAsync(db, fightId);
+        Assert.Equal(3, fight.WhitePenalties);
+        Assert.Equal(1, fight.BlueIpponCount);
+        Assert.Equal(10, fight.BlueScore);
+        Assert.Equal(0, fight.WhiteIpponCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task AdjustScore_RemoveThirdShido_RevokesOpponentIppon()
+    {
+        var (db, fightId) = await SeedStartedFightAsync();
+        for (var i = 0; i < 3; i++) await AdjustAsync(db, fightId, "blue", ScoreType.Shido, 1);
+
+        var result = await AdjustAsync(db, fightId, "blue", ScoreType.Shido, -1);
+
+        Assert.Equal(MatchActionResult.Success, result);
+        var fight = await ReadFightAsync(db, fightId);
+        Assert.Equal(2, fight.BluePenalties);
+        Assert.Equal(0, fight.WhiteIpponCount);
+        Assert.Equal(0, fight.WhiteScore);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task AdjustScore_FourthShido_ReturnsInvalidStateWithoutSecondIppon()
+    {
+        var (db, fightId) = await SeedStartedFightAsync();
+        for (var i = 0; i < 3; i++) await AdjustAsync(db, fightId, "white", ScoreType.Shido, 1);
+
+        var result = await AdjustAsync(db, fightId, "white", ScoreType.Shido, 1);
+
+        Assert.Equal(MatchActionResult.InvalidState, result);
+        var fight = await ReadFightAsync(db, fightId);
+        Assert.Equal(3, fight.WhitePenalties);
+        Assert.Equal(1, fight.BlueIpponCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task AdjustScore_ThirdShido_KeepsFightRunningAndOsaeKomiActive()
+    {
+        var (db, fightId) = await SeedStartedFightAsync();
+        await using (var ctx = CreateDbContext(db))
+        {
+            await CreateService(ctx).StartOsaeKomiAsync(fightId, "blue", "Tisch1", CancellationToken.None);
+        }
+
+        for (var i = 0; i < 3; i++) await AdjustAsync(db, fightId, "white", ScoreType.Shido, 1);
+
+        var fight = await ReadFightAsync(db, fightId);
+        Assert.Equal(FightStatus.InProgress.ToString(), fight.Status);
+        Assert.Null(fight.PausedAtUtc);
+        Assert.Equal("Blue", fight.OsaeKomiSide);
+        Assert.NotNull(fight.OsaeKomiStartedAtUtc);
+        Assert.Equal(1, fight.BlueIpponCount);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task AdjustScore_HansokuMakeTransitions_WriteAuditEntries()
+    {
+        var (db, fightId) = await SeedStartedFightAsync();
+        for (var i = 0; i < 3; i++) await AdjustAsync(db, fightId, "white", ScoreType.Shido, 1);
+        await AdjustAsync(db, fightId, "white", ScoreType.Shido, -1);
+
+        await using var ctx = CreateDbContext(db);
+        var entries = (await ctx.AuditLogs.AsNoTracking()
+                .Where(a => a.EntityId == fightId && a.Action.StartsWith("HansokuMake"))
+                .ToListAsync())
+            .OrderBy(a => a.TimestampUtc)
+            .ToList();
+        Assert.Collection(entries,
+            awarded =>
+            {
+                Assert.Equal("HansokuMakeAwarded", awarded.Action);
+                Assert.Equal("Side=White", awarded.Details);
+                Assert.Equal("Tisch1", awarded.User);
+            },
+            revoked =>
+            {
+                Assert.Equal("HansokuMakeRevoked", revoked.Action);
+                Assert.Equal("Side=White", revoked.Details);
+            });
+    }
+
     [Fact]
     [Trait("Category", "UnitTest")]
     public async Task StartOsaeKomi_InProgressFight_SetsActiveHold()

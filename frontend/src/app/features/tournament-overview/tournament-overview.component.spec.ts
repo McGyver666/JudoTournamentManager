@@ -34,7 +34,7 @@ describe('TournamentOverviewComponent', () => {
     };
   }
 
-  function createFight(id: string, tatamiId: string): Fight {
+  function createFight(id: string, tatamiId: string, overrides: Partial<Fight> = {}): Fight {
     return {
       id,
       tournamentId: 'tournament-1',
@@ -74,6 +74,7 @@ describe('TournamentOverviewComponent', () => {
       isGoldenScore: false,
       createdAtUtc: now.toISOString(),
       updatedAtUtc: now.toISOString(),
+      ...overrides,
     };
   }
 
@@ -89,7 +90,7 @@ describe('TournamentOverviewComponent', () => {
     };
   }
 
-  function configure(activeTournament: Tournament | null): { fightUpdates: Subject<Fight>; context: { tournamentId: ReturnType<typeof signal<string | null>>; tournament: ReturnType<typeof signal<Tournament | null>> } } {
+  function configure(activeTournament: Tournament | null, currentOverrides: Partial<Fight> = {}): { fightUpdates: Subject<Fight>; context: { tournamentId: ReturnType<typeof signal<string | null>>; tournament: ReturnType<typeof signal<Tournament | null>> } } {
     const fightUpdates = new Subject<Fight>();
     const context = {
       tournamentId: signal(activeTournament?.id ?? null),
@@ -137,10 +138,10 @@ describe('TournamentOverviewComponent', () => {
     }];
     const tatamis = [createTatami('tatami-1', 'Matte 1'), createTatami('tatami-2', 'Matte 2')];
     const queues = tatamis.map((tatami) => ({
-      current: createFight(`fight-${tatami.id}`, tatami.id),
+      current: createFight(`fight-${tatami.id}`, tatami.id, currentOverrides),
       next: null,
       onDeck: null,
-      upcoming: [createFight(`fight-${tatami.id}`, tatami.id)],
+      upcoming: [createFight(`fight-${tatami.id}`, tatami.id, currentOverrides)],
     }));
 
     TestBed.configureTestingModule({
@@ -226,6 +227,24 @@ describe('TournamentOverviewComponent', () => {
     expect(element.textContent).toContain('match.yuko');
     expect(element.querySelector('.hero-fighter--accent h3')?.textContent).toContain('Blau, Ben');
     expect(element.querySelector('.hero-fighter--shiro h3')?.textContent).toContain('Weiß, Ada');
+
+    fixture.destroy();
+  });
+
+  it('replaces the hero shido bubbles with a Hansoku-make badge after the third shido', () => {
+    configure(createTournament(), { whitePenalties: 3, blueIpponCount: 1 });
+
+    const fixture = TestBed.createComponent(TournamentOverviewComponent);
+    fixture.detectChanges();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const shiro = element.querySelector('.hero-fighter--shiro') as HTMLElement;
+    const accent = element.querySelector('.hero-fighter--accent') as HTMLElement;
+    expect(shiro.querySelector('.hansoku-make-badge')?.textContent).toContain('match.hansokuMake');
+    expect(shiro.querySelectorAll('.shido-bubble').length).toBe(0);
+    expect(accent.querySelector('.hansoku-make-badge')).toBeNull();
+    expect(accent.querySelectorAll('.shido-bubble').length).toBe(3);
 
     fixture.destroy();
   });
