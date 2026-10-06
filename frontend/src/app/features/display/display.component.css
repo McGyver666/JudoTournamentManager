@@ -17,6 +17,7 @@
 	--display-text-muted: #cbd8e6;
 	--display-shido: #ffc72e;
 	--display-stopped: #ff4b3e;
+	--display-hansoku: #e3261a;
 	--c-text: var(--display-text);
 	--c-muted: var(--display-text-muted);
 	--c-border: var(--display-border);
@@ -173,7 +174,6 @@
 	color: var(--display-text-muted);
 	font-weight: 800;
 	letter-spacing: .04em;
-	min-width: 20rem;
 }
 
 .hold-timer--blue {
@@ -200,9 +200,13 @@
 }
 
 .hold-timer-value {
+	font-family: var(--ff-mono);
 	font-size: clamp(3.1rem, 9.6vw, 7.2rem);
 	font-weight: 900;
-	letter-spacing: .04em;
+	font-variant-numeric: tabular-nums;
+	/* Reserve the widest label ("20.0s") so the box doesn't jitter while counting. */
+	min-width: 5ch;
+	text-align: right;
 }
 
 .hold-timer--blue .hold-timer-value {
@@ -214,10 +218,13 @@
 }
 
 .hold-timer-target {
+	font-family: var(--ff-mono);
 	font-size: clamp(1.4rem, 2.8vw, 2.1rem);
 	font-weight: 700;
+	font-variant-numeric: tabular-nums;
 	opacity: .9;
-	min-width: 5.1rem;
+	min-width: 5ch;
+	text-align: left;
 }
 
 .tatami-scoreboard {
@@ -324,6 +331,8 @@
 }
 
 .tatami-shido-row {
+	--shido-size: clamp(2.25rem, 3.4vw, 3.5rem);
+	--shido-gap: clamp(0.5rem, 0.9vw, 0.9rem);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -336,12 +345,12 @@
 }
 
 .shido-bubbles--xl {
-	gap: clamp(0.5rem, 0.9vw, 0.9rem);
+	gap: var(--shido-gap);
 }
 
 .shido-bubble--xl {
-	width: clamp(2.25rem, 3.4vw, 3.5rem);
-	height: clamp(2.25rem, 3.4vw, 3.5rem);
+	width: var(--shido-size);
+	height: var(--shido-size);
 	border: 4px solid color-mix(in srgb, var(--display-text) 55%, transparent);
 	background: color-mix(in srgb, var(--display-text) 6%, transparent);
 }
@@ -350,6 +359,23 @@
 	background: var(--display-shido);
 	border-color: var(--display-shido);
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--display-shido) 30%, transparent), 0 0 18px color-mix(in srgb, var(--display-shido) 55%, transparent);
+}
+
+/* At least as wide as the three shido bubbles it replaces, so the row doesn't shift. */
+.tatami-shido-row .hansoku-make-badge {
+	box-sizing: border-box;
+	height: var(--shido-size);
+	min-width: calc(3 * var(--shido-size) + 2 * var(--shido-gap));
+	justify-content: center;
+	padding: 0 1rem;
+	border: 4px solid var(--display-hansoku);
+	border-radius: 999px;
+	background: var(--display-hansoku);
+	color: #fff;
+	font-size: clamp(1.1rem, 1.7vw, 1.7rem);
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--display-hansoku) 30%, transparent), 0 0 18px color-mix(in srgb, var(--display-hansoku) 55%, transparent);
 }
 
 .next-section--xl {
@@ -402,40 +428,6 @@
 	font-size: clamp(1.95rem, 3.6vw, 3rem);
 	padding: 1rem 0;
 	color: var(--display-text);
-}
-
-.active-categories-section {margin-top:1.25rem;border-top:1px solid var(--c-border);padding-top:1rem}
-.active-categories-title {margin:0 0 .75rem;font-size:1.1rem;letter-spacing:.02em;color:var(--txt)}
-.active-categories-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}
-
-.active-categories-card {
-	background: var(--c-surface);
-	border: 1px solid var(--c-border);
-	border-radius: var(--radius);
-	padding: 1rem;
-	box-shadow: var(--shadow);
-}
-
-.active-categories-card-header {display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem}
-.active-categories-tatami {
-	font-size: 1rem;
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: .08em;
-	margin: 0;
-	color: var(--txt);
-}
-.active-categories-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--c-muted);white-space:nowrap}
-.active-categories-list {list-style:decimal;margin:0;padding-left:1.4rem;display:flex;flex-direction:column;gap:.4rem}
-.active-categories-item {font-size:.92rem;color:var(--txt);font-weight:600}
-.active-categories-empty {
-	color: var(--c-muted);
-	font-style: italic;
-	background: var(--surface-muted);
-	border: 1px dashed var(--c-border);
-	border-radius: var(--radius);
-	padding: .6rem .75rem;
-	margin: 0;
 }
 
 .qr-share-card {
@@ -583,9 +575,5 @@
 
 	.tatami-shido-row {
 		font-size: clamp(1.15rem, 2.5vw, 1.6rem);
-	}
-
-	.next-section--xl {
-		padding-top: 0.5rem;
 	}
 }
