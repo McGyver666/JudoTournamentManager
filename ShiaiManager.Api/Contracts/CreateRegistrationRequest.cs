@@ -23,6 +23,12 @@ public sealed record CreateRegistrationRequest
     public decimal WeightKg { get; init; }
 
     /// <summary>
+    /// Optional tournament preset age group for higher starting; null uses the natural age group.
+    /// </summary>
+    [MaxLength(40, ErrorMessage = "Die Startaltersklasse darf maximal 40 Zeichen lang sein.")]
+    public string? StartAgeGroup { get; init; }
+
+    /// <summary>
     /// Optional athlete belt grade confirmed at weight-in, on the scale from 1 to 14.
     /// </summary>
     [Range(1, 14, ErrorMessage = "Der Gürtelgrad muss zwischen 1 und 14 liegen.")]

@@ -113,6 +113,110 @@ public sealed class RegistrationsStoreTests
 
     [Fact]
     [Trait("Category", "UnitTest")]
+    public async Task UpdateStartAgeGroupAsync_StoresOverrideUnassignsCategoryAndAuditsChange()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tournamentId, athleteId, categoryId) = await SeedAsync(ctx);
+        var store = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        var registration = await store.CreateAsync(tournamentId, athleteId, 65m, true, CancellationToken.None);
+        await store.AssignCategoryAsync(registration!.Id, categoryId, CancellationToken.None);
+
+        var updated = await store.UpdateStartAgeGroupAsync(
+            registration.Id,
+            " U13 ",
+            null,
+            "operator",
+            CancellationToken.None);
+
+        var details = Assert.Single(await store.GetDetailedAsync(tournamentId, CancellationToken.None));
+        var audit = Assert.Single(await ctx.AuditLogs.ToListAsync());
+        Assert.Equal("U13", updated!.StartAgeGroup);
+        Assert.Equal("U13", details.StartAgeGroup);
+        Assert.Null(details.CategoryId);
+        Assert.Equal("RegistrationStartAgeGroupChanged", audit.Action);
+        Assert.Equal("Registration", audit.EntityType);
+        Assert.Equal(registration.Id, audit.EntityId);
+        Assert.Equal("operator", audit.User);
+        Assert.Equal("natürlich->U13", audit.Details);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task SeedDefaultsAsync_IncludesWeightlessU9PresetsForBothGenders()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tournamentId, _, _) = await SeedAsync(ctx);
+        var store = new SqliteCategoryPresetsStore(ctx);
+
+        await store.SeedDefaultsAsync(tournamentId, 2026, CancellationToken.None);
+
+        var u9Presets = (await store.GetAllAsync(tournamentId, CancellationToken.None))
+            .Where(preset => preset.AgeGroup == "U9")
+            .ToList();
+        Assert.Equal(2, u9Presets.Count);
+        Assert.All(u9Presets, preset =>
+        {
+            Assert.Equal(8, preset.MaxAgeYears);
+            Assert.Equal(6, preset.MinAgeYears);
+            Assert.Equal(120, preset.DefaultMatchDurationSeconds);
+            Assert.Empty(preset.WeightClassLimitsKg);
+        });
+        Assert.Contains(u9Presets, preset => preset.Gender == Gender.Male);
+        Assert.Contains(u9Presets, preset => preset.Gender == Gender.Female);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task Migration_AddsNullableStartAgeGroupToSqliteRegistrations()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+
+        await ctx.Database.MigrateAsync("20261002100000_MakeAthleteGradeOptional");
+        var tournamentId = Guid.NewGuid();
+        var athleteId = Guid.NewGuid();
+        var registrationId = Guid.NewGuid();
+        await ctx.Database.OpenConnectionAsync();
+        await ctx.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF");
+        await ctx.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO Registrations (Id, TournamentId, AthleteId, CategoryId, LicenseConfirmed, CreatedAtUtc) VALUES ({registrationId}, {tournamentId}, {athleteId}, NULL, {true}, {DateTimeOffset.UtcNow})");
+
+        await ctx.Database.MigrateAsync();
+
+        var appliedMigrations = await ctx.Database.GetAppliedMigrationsAsync();
+        Assert.Contains("20261006120000_AddRegistrationStartAgeGroup", appliedMigrations);
+        var restoredRegistration = await ctx.Registrations.AsNoTracking().SingleAsync();
+        Assert.Equal(registrationId, restoredRegistration.Id);
+        Assert.Null(restoredRegistration.StartAgeGroup);
+
+        await ctx.Database.OpenConnectionAsync();
+        await using var command = ctx.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "PRAGMA table_info('Registrations')";
+        await using var reader = await command.ExecuteReaderAsync();
+        var startAgeGroupFound = false;
+        var startAgeGroupIsNullable = false;
+        while (await reader.ReadAsync())
+        {
+            if (reader.GetString(1) != "StartAgeGroup")
+            {
+                continue;
+            }
+
+            startAgeGroupFound = true;
+            startAgeGroupIsNullable = reader.GetInt32(3) == 0;
+            break;
+        }
+
+        Assert.True(startAgeGroupFound);
+        Assert.True(startAgeGroupIsNullable);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
     public async Task CreateAsync_WhenAthleteAlreadyRegistered_ReturnsNull()
     {
         var db = CreateDatabasePath();
@@ -205,6 +309,66 @@ public sealed class RegistrationsStoreTests
 
         Assert.Single(result);
         Assert.Equal(tid1, result[0].TournamentId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task AutoAssignAsync_UsesNaturalAndSelectedAgeGroupsBeforeWeightFit()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var (tournamentId, athleteId, seededCategoryId) = await SeedAsync(ctx);
+        await new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance)
+            .DeleteAsync(seededCategoryId, CancellationToken.None);
+
+        var athlete = await ctx.Athletes.SingleAsync(x => x.Id == athleteId);
+        athlete.BirthYear = 2016;
+        athlete.WeightKg = 65m;
+        await ctx.SaveChangesAsync();
+        var higherStarter = await new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance)
+            .CreateAsync(tournamentId, athlete.ClubId, "Lina", "Higher", 2016, Gender.Male, null, 65m, null, false,
+                CancellationToken.None);
+
+        ctx.CategoryPresets.AddRange(
+            new CategoryPresetRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tournamentId, AgeGroup = "U13", Gender = "Male",
+                MaxAgeYears = 12, MinAgeYears = 10, DefaultMatchDurationSeconds = 180,
+                WeightClassLimitsJson = "[73,null]", SortOrder = 0
+            },
+            new CategoryPresetRecord
+            {
+                Id = Guid.NewGuid(), TournamentId = tournamentId, AgeGroup = "U11", Gender = "Male",
+                MaxAgeYears = 10, MinAgeYears = 8, DefaultMatchDurationSeconds = 120,
+                WeightClassLimitsJson = "[90,null]", SortOrder = 1
+            });
+        await ctx.SaveChangesAsync();
+
+        var categoriesStore = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var u13 = await categoriesStore.CreateAsync(
+            tournamentId, "U13 M -73 kg", "U13", Gender.Male, 73m, 2014, 2016, null, 180, false, 180,
+            CancellationToken.None);
+        await categoriesStore.CreateAsync(
+            tournamentId, "U11 M -90 kg", "U11", Gender.Male, 90m, 2016, 2018, null, 120, false, 180,
+            CancellationToken.None);
+        var registrationsStore = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        await registrationsStore.CreateAsync(tournamentId, athleteId, 65m, true, CancellationToken.None);
+        var higherRegistration = await registrationsStore.CreateAsync(
+            tournamentId, higherStarter!.Id, 65m, true, CancellationToken.None);
+        var higherRecord = await ctx.Registrations.SingleAsync(x => x.Id == higherRegistration!.Id);
+        higherRecord.StartAgeGroup = "U13";
+        await ctx.SaveChangesAsync();
+
+        var result = await registrationsStore.AutoAssignAsync(tournamentId, CancellationToken.None);
+        var assigned = await registrationsStore.GetDetailedAsync(tournamentId, CancellationToken.None);
+        var natural = assigned.Single(x => x.AthleteId == athleteId);
+        var higher = assigned.Single(x => x.AthleteId == higherStarter.Id);
+
+        Assert.Equal(2, result.AssignedCount);
+        Assert.Equal("U11", natural.CategoryAgeGroup);
+        Assert.Equal("U13", higher.CategoryAgeGroup);
+        Assert.Equal(u13!.Id, higher.CategoryId);
     }
 
     [Fact]

@@ -67,6 +67,7 @@ import {
   UpdateAthleteRequest,
   UpdateCategoryRequest,
   UpdateClubRequest,
+  UpdateRegistrationStartAgeGroupRequest,
   UpdateTatamiRequest,
   UpdateTournamentRequest,
 } from './models';
@@ -320,6 +321,15 @@ export class ApiService {
     body: CreateRegistrationRequest,
   ): Observable<Registration> {
     return this.http.post<Registration>(`api/tournaments/${tournamentId}/registrations`, body);
+  }
+
+  updateRegistrationStartAgeGroup(
+    tournamentId: string,
+    registrationId: string,
+    body: UpdateRegistrationStartAgeGroupRequest,
+  ): Observable<Registration> {
+    return this.http.put<Registration>(
+      `api/tournaments/${tournamentId}/registrations/${registrationId}/start-age-group`, body);
   }
 
   deleteRegistration(tournamentId: string, registrationId: string): Observable<void> {

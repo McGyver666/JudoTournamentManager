@@ -737,6 +737,7 @@ public sealed class ControllerUnitTests
             mockAthletesStore.Object,
             mockCategoriesStore.Object,
             mockTournamentStore.Object,
+            new Mock<ICategoryPresetsStore>().Object,
             mockBracketService.Object,
             mockDokumePassParser.Object,
             NullLogger<RegistrationsController>.Instance);
@@ -752,6 +753,7 @@ public sealed class ControllerUnitTests
     {
         var tournamentId = Guid.NewGuid();
         var registrationId = Guid.NewGuid();
+        var athleteId = Guid.NewGuid();
         var oldCategoryId = Guid.NewGuid();
         var newCategoryId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
@@ -768,7 +770,16 @@ public sealed class ControllerUnitTests
 
         mockRegistrationsStore
             .Setup(s => s.GetByIdAsync(registrationId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Registration(registrationId, tournamentId, Guid.NewGuid(), oldCategoryId, now));
+            .ReturnsAsync(new Registration(registrationId, tournamentId, athleteId, oldCategoryId, now));
+
+        mockRegistrationsStore
+            .Setup(s => s.GetDetailedAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new RegistrationDetail(
+                    registrationId, tournamentId, athleteId, "Person", "Test", 2005, Gender.Male, "Club",
+                    oldCategoryId, "U16", "U16", Gender.Male, 66m, 65m, true, now)
+            ]);
 
         mockCategoriesStore
             .Setup(s => s.GetByIdAsync(newCategoryId, It.IsAny<CancellationToken>()))
@@ -777,6 +788,10 @@ public sealed class ControllerUnitTests
         mockCategoriesStore
             .Setup(s => s.GetByIdAsync(oldCategoryId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Category(oldCategoryId, tournamentId, "U16", "U16", Gender.Male, 66m, null, null, null, 300, false, 180, BracketFormat.SingleElimination, false, now, now));
+
+        mockCategoriesStore
+            .Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Category(newCategoryId, tournamentId, "U18", "U18", Gender.Male, 73m, null, null, null, 300, false, 180, BracketFormat.SingleElimination, false, now, now)]);
 
         mockRegistrationsStore
             .Setup(s => s.AssignCategoryAsync(registrationId, newCategoryId, It.IsAny<CancellationToken>()))
@@ -791,11 +806,20 @@ public sealed class ControllerUnitTests
             .ReturnsAsync(new List<Fight>());
 
         var mockDokumePassParser = new Mock<IDokumePassParser>();
+        var mockCategoryPresetsStore = new Mock<ICategoryPresetsStore>();
+        mockCategoryPresetsStore
+            .Setup(s => s.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new TournamentCategoryPreset(
+                    Guid.NewGuid(), tournamentId, "U18", Gender.Male, 120, 1, 1906, 2025, 300, [73m, null], 0)
+            ]);
         var controller = new RegistrationsController(
             mockRegistrationsStore.Object,
             mockAthletesStore.Object,
             mockCategoriesStore.Object,
             mockTournamentStore.Object,
+            mockCategoryPresetsStore.Object,
             mockBracketService.Object,
             mockDokumePassParser.Object,
             NullLogger<RegistrationsController>.Instance);
@@ -824,6 +848,136 @@ public sealed class ControllerUnitTests
                 BracketFormat.SingleElimination,
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task RegistrationsController_UpdateStartAgeGroupAsync_UnassignsCategoryWhenEffectiveAgeGroupChanges()
+    {
+        var tournamentId = Guid.NewGuid();
+        var registrationId = Guid.NewGuid();
+        var athleteId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+        var currentCategory = new Category(categoryId, tournamentId, "U11 W -40", "U11", Gender.Female,
+            40m, 2016, 2018, null, 120, false, 180, null, false, now, now);
+        var registrationsStore = new Mock<IRegistrationsStore>();
+        var categoriesStore = new Mock<ICategoriesStore>();
+        var tournamentStore = new Mock<ITournamentStore>();
+        var presetsStore = new Mock<ICategoryPresetsStore>();
+        var bracketService = new Mock<IBracketService>();
+        var registration = new Registration(registrationId, tournamentId, athleteId, categoryId, now);
+
+        tournamentStore
+            .Setup(x => x.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", now, now));
+        registrationsStore
+            .Setup(x => x.GetByIdAsync(registrationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(registration);
+        registrationsStore
+            .Setup(x => x.GetDetailedAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new RegistrationDetail(registrationId, tournamentId, athleteId, "Person", "Test", 2016,
+                    Gender.Female, "Club", categoryId, currentCategory.Name, "U11", Gender.Female, 40m, 29m, true, now)
+            ]);
+        categoriesStore
+            .Setup(x => x.GetByIdAsync(categoryId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(currentCategory);
+        presetsStore
+            .Setup(x => x.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new TournamentCategoryPreset(Guid.NewGuid(), tournamentId, "U11", Gender.Female, 10, 8, 2016, 2018, 120, [], 0),
+                new TournamentCategoryPreset(Guid.NewGuid(), tournamentId, "U13", Gender.Female, 12, 10, 2014, 2016, 180, [40m, null], 1)
+            ]);
+        registrationsStore
+            .Setup(x => x.UpdateStartAgeGroupAsync(registrationId, "U13", null, "system", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(registration with { CategoryId = null, StartAgeGroup = "U13" });
+
+        var controller = new RegistrationsController(
+            registrationsStore.Object,
+            new Mock<IAthletesStore>().Object,
+            categoriesStore.Object,
+            tournamentStore.Object,
+            presetsStore.Object,
+            bracketService.Object,
+            new Mock<IDokumePassParser>().Object,
+            NullLogger<RegistrationsController>.Instance);
+
+        var result = await controller.UpdateStartAgeGroupAsync(
+            tournamentId,
+            registrationId,
+            new UpdateRegistrationStartAgeGroupRequest { StartAgeGroup = "U13" },
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        registrationsStore.Verify(
+            x => x.UpdateStartAgeGroupAsync(registrationId, "U13", null, "system", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task RegistrationsController_UpdateStartAgeGroupAsync_RejectsDrawnCategory()
+    {
+        var tournamentId = Guid.NewGuid();
+        var registrationId = Guid.NewGuid();
+        var athleteId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+        var registration = new Registration(registrationId, tournamentId, athleteId, categoryId, now);
+        var registrationsStore = new Mock<IRegistrationsStore>();
+        var categoriesStore = new Mock<ICategoriesStore>();
+        var tournamentStore = new Mock<ITournamentStore>();
+        var presetsStore = new Mock<ICategoryPresetsStore>();
+        var drawnCategory = new Category(categoryId, tournamentId, "U11 W -40", "U11", Gender.Female,
+            40m, 2016, 2018, null, 120, false, 180, BracketFormat.SingleElimination, false, now, now);
+
+        tournamentStore
+            .Setup(x => x.GetByIdAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tournament(tournamentId, "Test", new DateOnly(2026, 7, 15), "Venue", "Org", now, now));
+        registrationsStore
+            .Setup(x => x.GetByIdAsync(registrationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(registration);
+        registrationsStore
+            .Setup(x => x.GetDetailedAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new RegistrationDetail(registrationId, tournamentId, athleteId, "Person", "Test", 2016,
+                    Gender.Female, "Club", categoryId, drawnCategory.Name, "U11", Gender.Female, 40m, 29m, true, now)
+            ]);
+        presetsStore
+            .Setup(x => x.GetAllAsync(tournamentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new TournamentCategoryPreset(Guid.NewGuid(), tournamentId, "U11", Gender.Female, 10, 8, 2016, 2018, 120, [], 0),
+                new TournamentCategoryPreset(Guid.NewGuid(), tournamentId, "U13", Gender.Female, 12, 10, 2014, 2016, 180, [40m, null], 1)
+            ]);
+        categoriesStore
+            .Setup(x => x.GetByIdAsync(categoryId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(drawnCategory);
+
+        var controller = new RegistrationsController(
+            registrationsStore.Object,
+            new Mock<IAthletesStore>().Object,
+            categoriesStore.Object,
+            tournamentStore.Object,
+            presetsStore.Object,
+            new Mock<IBracketService>().Object,
+            new Mock<IDokumePassParser>().Object,
+            NullLogger<RegistrationsController>.Instance);
+
+        var result = await controller.UpdateStartAgeGroupAsync(
+            tournamentId,
+            registrationId,
+            new UpdateRegistrationStartAgeGroupRequest { StartAgeGroup = "U13" },
+            CancellationToken.None);
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+        registrationsStore.Verify(
+            x => x.UpdateStartAgeGroupAsync(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     #endregion
