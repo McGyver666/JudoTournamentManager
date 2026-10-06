@@ -18,6 +18,7 @@ import { TimeService } from '../../core/time.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { CategoryFightsUpdatedEvent, TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
+import { HANSOKU_MAKE_SHIDO_COUNT, ShidoIndicatorComponent } from '../../shared/shido-indicator/shido-indicator.component';
 import {
   AdjustScoreRequest,
   Athlete,
@@ -44,7 +45,7 @@ interface WinnerConfirmationState {
 @Component({
   selector: 'app-match',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ShidoIndicatorComponent],
   templateUrl: './match.component.html',
   styleUrl: './match.component.css',
 })
@@ -815,17 +816,9 @@ export class MatchComponent implements OnInit, OnDestroy {
     switch (scoreType) {
       case 'Ippon': return this.scoreCount(fight, side, scoreType) < 1;
       case 'WazaAri': return this.scoreCount(fight, side, scoreType) < 2;
-      case 'Shido': return this.scoreCount(fight, side, scoreType) < 3;
+      case 'Shido': return this.scoreCount(fight, side, scoreType) < HANSOKU_MAKE_SHIDO_COUNT;
       default: return true;
     }
-  }
-
-  protected shidoSlots(): number[] {
-    return [0, 1, 2];
-  }
-
-  protected isHansokuMake(fight: Fight, side: FightSide): boolean {
-    return this.scoreCount(fight, side, 'Shido') >= 3;
   }
 
   protected scoreLabel(scoreType: ScoreType): string {

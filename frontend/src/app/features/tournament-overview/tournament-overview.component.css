@@ -55,22 +55,6 @@
   color: var(--text-on-accent);
 }
 
-.shido-bubbles {
-  display: inline-flex;
-  gap: 0.2rem;
-}
-
-.shido-bubble {
-  width: 0.62rem;
-  height: 0.62rem;
-  border: 1px solid var(--shido);
-  border-radius: 50%;
-}
-
-.shido-bubble.active {
-  background: var(--shido);
-}
-
 .hero-progress,
 .progress-track {
   overflow: hidden;

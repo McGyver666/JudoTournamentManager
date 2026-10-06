@@ -16,6 +16,7 @@ import { TimeService } from '../../core/time.service';
 import { CategoryFightsUpdatedEvent, TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
 import { Athlete, Category, Club, Fight, FightSide, Tatami, TatamiQueue, Tournament } from '../../core/models';
+import { HANSOKU_MAKE_SHIDO_COUNT, ShidoIndicatorComponent } from '../../shared/shido-indicator/shido-indicator.component';
 
 interface TatamiDisplay {
   tatami: Tatami;
@@ -28,7 +29,7 @@ interface TatamiDisplay {
 @Component({
   selector: 'app-display',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ShidoIndicatorComponent],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
 })
@@ -512,7 +513,7 @@ export class DisplayComponent implements OnInit, OnDestroy {
         case 'ippon': return fight.whiteIpponCount;
         case 'wazaAri': return fight.whiteWazaAriCount;
         case 'yuko': return fight.whiteYukoCount;
-        case 'shido': return Math.min(3, fight.whitePenalties);
+        case 'shido': return Math.min(HANSOKU_MAKE_SHIDO_COUNT, fight.whitePenalties);
       }
     }
 
@@ -520,16 +521,8 @@ export class DisplayComponent implements OnInit, OnDestroy {
       case 'ippon': return fight.blueIpponCount;
       case 'wazaAri': return fight.blueWazaAriCount;
       case 'yuko': return fight.blueYukoCount;
-      case 'shido': return Math.min(3, fight.bluePenalties);
+      case 'shido': return Math.min(HANSOKU_MAKE_SHIDO_COUNT, fight.bluePenalties);
     }
-  }
-
-  protected shidoSlots(): number[] {
-    return [0, 1, 2];
-  }
-
-  protected isHansokuMake(fight: Fight, side: FightSide): boolean {
-    return this.scoreCount(fight, side, 'shido') >= 3;
   }
 
   /** True when a started fight's clock is frozen (fight paused or osae-komi paused), incl. golden score. */

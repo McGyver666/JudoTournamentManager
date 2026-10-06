@@ -344,40 +344,6 @@
 	color: var(--display-text);
 }
 
-.shido-bubbles--xl {
-	gap: var(--shido-gap);
-}
-
-.shido-bubble--xl {
-	width: var(--shido-size);
-	height: var(--shido-size);
-	border: 4px solid color-mix(in srgb, var(--display-text) 55%, transparent);
-	background: color-mix(in srgb, var(--display-text) 6%, transparent);
-}
-
-.shido-bubble--xl.active {
-	background: var(--display-shido);
-	border-color: var(--display-shido);
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--display-shido) 30%, transparent), 0 0 18px color-mix(in srgb, var(--display-shido) 55%, transparent);
-}
-
-/* At least as wide as the three shido bubbles it replaces, so the row doesn't shift. */
-.tatami-shido-row .hansoku-make-badge {
-	box-sizing: border-box;
-	height: var(--shido-size);
-	min-width: calc(3 * var(--shido-size) + 2 * var(--shido-gap));
-	justify-content: center;
-	padding: 0 1rem;
-	border: 4px solid var(--display-hansoku);
-	border-radius: 999px;
-	background: var(--display-hansoku);
-	color: #fff;
-	font-size: clamp(1.1rem, 1.7vw, 1.7rem);
-	font-weight: 900;
-	letter-spacing: 0.08em;
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--display-hansoku) 30%, transparent), 0 0 18px color-mix(in srgb, var(--display-hansoku) 55%, transparent);
-}
-
 .next-section--xl {
 	margin-top: 0;
 	padding-top: 0.5rem;
