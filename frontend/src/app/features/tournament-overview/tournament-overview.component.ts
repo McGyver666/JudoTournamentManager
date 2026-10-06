@@ -8,6 +8,7 @@ import { TimeService } from '../../core/time.service';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TournamentHubService } from '../../core/tournament-hub.service';
 import { TranslatePipe } from '../../core/translate.pipe';
+import { HANSOKU_MAKE_SHIDO_COUNT, ShidoIndicatorComponent } from '../../shared/shido-indicator/shido-indicator.component';
 import { canAutoRotateHero, nextHeroIndex } from './overview-hero-state';
 
 interface TatamiView {
@@ -28,7 +29,7 @@ interface QueueFight {
 @Component({
   selector: 'app-tournament-overview',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ShidoIndicatorComponent],
   templateUrl: './tournament-overview.component.html',
   styleUrl: './tournament-overview.component.css',
 })
@@ -294,20 +295,12 @@ export class TournamentOverviewComponent implements OnDestroy {
     if (side === 'white') {
       return score === 'ippon' ? fight.whiteIpponCount
         : score === 'wazaAri' ? fight.whiteWazaAriCount
-          : Math.min(3, fight.whitePenalties);
+          : Math.min(HANSOKU_MAKE_SHIDO_COUNT, fight.whitePenalties);
     }
 
     return score === 'ippon' ? fight.blueIpponCount
       : score === 'wazaAri' ? fight.blueWazaAriCount
-        : Math.min(3, fight.bluePenalties);
-  }
-
-  protected shidoSlots(): number[] {
-    return [0, 1, 2];
-  }
-
-  protected isHansokuMake(fight: Fight, side: FightSide): boolean {
-    return this.scoreCount(fight, side, 'shido') >= 3;
+        : Math.min(HANSOKU_MAKE_SHIDO_COUNT, fight.bluePenalties);
   }
 
   protected formatAverageDuration(seconds: number | null): string {
