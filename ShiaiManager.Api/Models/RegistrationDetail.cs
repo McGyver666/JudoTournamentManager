@@ -50,6 +50,11 @@ public sealed record RegistrationDetail(
     string? LicenseVerifiedByUser = null)
 {
     /// <summary>
+    /// Optional selected age group that overrides the natural age group for this registration.
+    /// </summary>
+    public string? StartAgeGroup { get; init; }
+
+    /// <summary>
     /// Optional athlete license identifier.
     /// Kept as non-positional property for backward-compatible object initialization.
     /// </summary>

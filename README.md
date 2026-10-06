@@ -46,9 +46,10 @@ Initial admin credentials (save these now):
 ## Features
 
 - Offline-capable tournament operation on a single laptop or local LAN, with optional internet-hosted deployment behind nginx.
-- Tournament setup, clubs, athletes, registrations, category presets and assisted category generation.
+- Tournament setup, clubs, athletes, registrations, category presets and per-age-group category generation. Registrations can optionally start in a compatible higher age group; generated categories are previewed and replace only the selected age group and gender.
+- Default presets include weightless U9 for ages 6-8; tournaments can group these athletes by measured weight.
 - Athlete belt grades are optional; blank CSV grades remain blank when exported and re-imported.
-- Weigh-in registrations accept optional `grade` corrections (1-14) and `licenseId` updates, saved atomically with the registration.
+- Weigh-in registrations accept optional start age group, `grade` corrections (1-14) and `licenseId` updates, saved atomically with the registration. Start-age changes are audited and blocked after a category is drawn or locked.
 - Individual tournament draws, brackets, tatami assignment, live fight control and server-authoritative timing.
 - NWJV team-matchday workflows for senior and U16 profiles, including weigh-ins, lineups and encounters.
 - Athlete imports from DM4/DMF files, public displays, match lists, rankings, medal tables and club scoring.

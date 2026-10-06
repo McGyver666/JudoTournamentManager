@@ -46,9 +46,10 @@ Initial admin credentials (save these now):
 ## Funktionen
 
 - Offline-faehiger Turnierbetrieb auf einem Laptop oder im lokalen LAN, optional internet-gehostet hinter nginx.
-- Turnierverwaltung, Vereine, Athleten, Meldungen, Kategorien, Voreinstellungen und assistierte Klassengenerierung.
+- Turnierverwaltung, Vereine, Athleten, Meldungen, Kategorie-Presets und Generierung je Altersklasse. Eine Meldung kann optional in einer kompatiblen höheren Altersklasse starten; die Vorschau zeigt betroffene Meldungen und ersetzt nur die gewählte Altersklasse mit Geschlecht.
+- Standard-Presets enthalten U9 ohne Standardgewichtsklassen (6-8 Jahre); diese Athleten werden anhand ihres Gewichts gruppiert.
 - Guertelgrade bei Athleten sind optional; leere CSV-Grade bleiben beim Export und Re-Import leer.
-- Waagenmeldungen akzeptieren optionale `grade`-Korrekturen (1-14) und `licenseId`-Aenderungen, die atomar mit der Meldung gespeichert werden.
+- Waagenmeldungen akzeptieren eine optionale Startaltersklasse sowie `grade`-Korrekturen (1-14) und `licenseId`-Aenderungen, die atomar mit der Meldung gespeichert werden. Startaltersklassen-Aenderungen werden auditiert und nach Auslosung oder Sperrung abgelehnt.
 - Einzelturnier-Auslosungen, Brackets, Tatami-Zuordnung, Kampfbetrieb und serverautorisierte Zeitmessung.
 - NWJV-Mannschafts-Kampftage fuer Senioren- und U16-Profile mit Tageswaage, Aufstellungen und Begegnungen.
 - DM4/DMF-Athletenimport, oeffentliche Anzeigen, Wettkampflisten, Ranglisten, Medaillenspiegel und Vereinswertung.

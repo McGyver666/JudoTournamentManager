@@ -27,13 +27,34 @@ The `grade` field on athlete create/update requests is optional and nullable. Wh
 - `GET/POST/DELETE /api/tournaments/{tournamentId}/registrations`
 - `POST /api/tournaments/{tournamentId}/registrations/auto-assign`
 - `POST /api/tournaments/{tournamentId}/registrations/{registrationId}/category`
+- `PUT /api/tournaments/{tournamentId}/registrations/{registrationId}/start-age-group`
 - `GET /api/tournaments/{tournamentId}/registrations/export`
 
-Registration creation accepts optional `grade` (integer 1-14) and `licenseId` fields in addition
-to weight and license confirmation. A null grade preserves the athlete's stored grade; a null
-license ID preserves the stored license number, while an empty string clears it. Supplied athlete
-corrections are saved atomically with the registration. An `AthleteCorrectedAtWeighIn` audit entry
-is written only when the grade or license number actually changes.
+Registration creation accepts optional `startAgeGroup`, `grade` (integer 1-14), and `licenseId`
+fields in addition to weight and license confirmation. A null `startAgeGroup` selects the natural
+age group; a non-null value must match a tournament preset for the athlete's gender and birth year.
+The same `startAgeGroup` field may be changed later through the PUT endpoint by Admin/Operator.
+The change is audited as `RegistrationStartAgeGroupChanged`; if the current category no longer
+matches the effective age group, an unlocked assignment is cleared. Changes are rejected with
+`409 Conflict` when the current category is drawn or locked. Manual and automatic assignment require
+the effective age group, gender, and weight to match; category birth-year bounds are a plausibility
+check. A null grade preserves the athlete's stored grade; a null license ID preserves the stored
+license number, while an empty string clears it. Supplied athlete corrections are saved atomically
+with the registration.
+
+Category generation selects exactly one `ageGroup` and a gender mode (`Male`, `Female`, or `Mixed`).
+Mixed is available only when male and female presets for that age group both exist. The request has
+no birth-year filters and carries one `targetAthletesPerCategory` and `maxWeightDeviationKg` value.
+`StandardClasses` requires preset weight limits; presets with no limits are grouped from registered
+weights. The preview returns affected registrations, proposed categories, `categoriesToReplace`,
+warnings, and `canApply`. Applying replaces categories for the selected age group and gender; it
+returns a validation error if any affected category is drawn or locked. Generated categories inherit
+the preset's birth-year range. Applying generation leaves other age groups untouched.
+
+Default category presets for new tournaments and the reset action include U9 (ages 6-8, 120-second
+matches, no standard weight limits) for both genders. Existing tournaments are not automatically
+modified. The nullable registration `StartAgeGroup` database column is migrated with a null default,
+so older backups continue to use the natural age group.
 
 - `POST /api/tournaments/{tournamentId}/categories/{categoryId}/draw`
 - `GET /api/tournaments/{tournamentId}/categories/{categoryId}/fights`

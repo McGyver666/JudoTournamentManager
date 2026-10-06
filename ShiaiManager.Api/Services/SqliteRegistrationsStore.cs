@@ -75,7 +75,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         int? grade,
         bool licenseConfirmed,
         string operatorName,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? startAgeGroup = null)
     {
         var alreadyRegistered = await _dbContext.Registrations.AnyAsync(
             x => x.AthleteId == athleteId && x.TournamentId == tournamentId,
@@ -108,11 +109,13 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             TournamentId = tournamentId,
             AthleteId = athleteId,
             CategoryId = null, // Category assigned later
+            StartAgeGroup = NormalizeStartAgeGroup(startAgeGroup),
             LicenseConfirmed = licenseConfirmed,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
 
         _dbContext.Registrations.Add(record);
+        AddStartAgeGroupAudit(tournamentId, record.Id, null, record.StartAgeGroup, operatorName);
         await _dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation(
             "Athlete {AthleteId} registered for tournament {TournamentId} (weight={Weight}kg, licenseConfirmed={LicenseConfirmed}).",
@@ -148,7 +151,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         DateOnly tournamentDate,
         string operatorName,
         CancellationToken cancellationToken,
-        int? grade = null)
+        int? grade = null,
+        string? startAgeGroup = null)
     {
         var alreadyRegistered = await _dbContext.Registrations
             .AnyAsync(x => x.AthleteId == athleteId && x.TournamentId == tournamentId, cancellationToken);
@@ -206,6 +210,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             TournamentId = tournamentId,
             AthleteId = athleteId,
             CategoryId = null,
+            StartAgeGroup = NormalizeStartAgeGroup(startAgeGroup),
             LicenseConfirmed = licenseConfirmed,
             CreatedAtUtc = DateTimeOffset.UtcNow,
             LicenseNumber = licenseNumber,
@@ -217,6 +222,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         };
 
         _dbContext.Registrations.Add(record);
+        AddStartAgeGroupAudit(tournamentId, record.Id, null, record.StartAgeGroup, operatorName);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
@@ -326,6 +332,40 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
     }
 
     /// <inheritdoc />
+    public async Task<Registration?> UpdateStartAgeGroupAsync(
+        Guid registrationId,
+        string? startAgeGroup,
+        Guid? categoryId,
+        string operatorName,
+        CancellationToken cancellationToken)
+    {
+        var record = await _dbContext.Registrations
+            .FirstOrDefaultAsync(x => x.Id == registrationId, cancellationToken);
+        if (record is null)
+        {
+            return null;
+        }
+
+        var normalizedStartAgeGroup = NormalizeStartAgeGroup(startAgeGroup);
+        var previousStartAgeGroup = record.StartAgeGroup;
+        record.StartAgeGroup = normalizedStartAgeGroup;
+        record.CategoryId = categoryId;
+
+        if (!StringComparer.OrdinalIgnoreCase.Equals(previousStartAgeGroup, normalizedStartAgeGroup))
+        {
+            AddStartAgeGroupAudit(
+                record.TournamentId,
+                record.Id,
+                previousStartAgeGroup,
+                normalizedStartAgeGroup,
+                operatorName);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return MapToModel(record);
+    }
+
+    /// <inheritdoc />
     public async Task<AutoAssignResult> AutoAssignAsync(Guid tournamentId, CancellationToken cancellationToken)
     {
         // Load all unassigned registrations including athlete data.
@@ -341,6 +381,9 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             return new AutoAssignResult(0, 0, []);
         }
 
+        var presets = await new SqliteCategoryPresetsStore(_dbContext)
+            .GetAllAsync(tournamentId, cancellationToken);
+
         // Load all unlocked categories for the tournament.
         var categories = await _dbContext.Categories
             .Where(c => c.TournamentId == tournamentId && !c.IsLocked)
@@ -355,11 +398,24 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             var athleteGender = athlete.Gender;
             var birthYear = athlete.BirthYear;
             var weightKg = athlete.WeightKg;
+            var effectiveAgeGroup = AgeGroupResolver.GetEffectiveAgeGroup(
+                birthYear,
+                Enum.Parse<Gender>(athleteGender),
+                registration.StartAgeGroup,
+                presets);
+
+            if (effectiveAgeGroup is null)
+            {
+                const string reason = "Für den Jahrgang wurde keine passende Altersklasse in den Turnier-Presets gefunden.";
+                unassigned.Add(new UnassignedAthlete(athlete.Id, athlete.FirstName, athlete.LastName, reason));
+                continue;
+            }
 
             // Find candidate categories matching gender, birth year bounds, and weight.
             var candidates = categories
                 .Where(c =>
-                    (c.Gender == athleteGender || c.Gender == Gender.Mixed.ToString())
+                    StringComparer.OrdinalIgnoreCase.Equals(c.AgeGroup, effectiveAgeGroup)
+                    && (c.Gender == athleteGender || c.Gender == Gender.Mixed.ToString())
                     && (c.MinBirthYear == null || birthYear >= c.MinBirthYear)
                     && (c.MaxBirthYear == null || birthYear <= c.MaxBirthYear)
                     && (c.WeightClassKg == null || (weightKg != null && weightKg <= c.WeightClassKg)))
@@ -409,7 +465,10 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
     }
 
     private static Registration MapToModel(RegistrationRecord record) =>
-        new(record.Id, record.TournamentId, record.AthleteId, record.CategoryId, record.CreatedAtUtc);
+        new Registration(record.Id, record.TournamentId, record.AthleteId, record.CategoryId, record.CreatedAtUtc)
+        {
+            StartAgeGroup = record.StartAgeGroup
+        };
 
     private static RegistrationDetail MapToDetail(RegistrationRecord r) =>
         new(r.Id,
@@ -438,7 +497,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         {
 #pragma warning disable CS8602 // Athlete and Club are loaded via Include() in calling queries.
             AthleteLicenseId = r.Athlete!.LicenseId,
-            AthleteGrade = r.Athlete!.Grade
+            AthleteGrade = r.Athlete!.Grade,
+            StartAgeGroup = r.StartAgeGroup
 #pragma warning restore CS8602
         };
 
@@ -494,4 +554,32 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             Details = string.Join("; ", changes)
         });
     }
+
+    private void AddStartAgeGroupAudit(
+        Guid tournamentId,
+        Guid registrationId,
+        string? previousStartAgeGroup,
+        string? nextStartAgeGroup,
+        string operatorName)
+    {
+        if (StringComparer.OrdinalIgnoreCase.Equals(previousStartAgeGroup, nextStartAgeGroup))
+        {
+            return;
+        }
+
+        _dbContext.AuditLogs.Add(new AuditLogRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tournamentId,
+            TimestampUtc = DateTimeOffset.UtcNow,
+            User = string.IsNullOrWhiteSpace(operatorName) ? "unbekannt" : operatorName.Trim(),
+            Action = "RegistrationStartAgeGroupChanged",
+            EntityType = "Registration",
+            EntityId = registrationId,
+            Details = $"{previousStartAgeGroup ?? "natürlich"}->{nextStartAgeGroup ?? "natürlich"}"
+        });
+    }
+
+    private static string? NormalizeStartAgeGroup(string? startAgeGroup) =>
+        string.IsNullOrWhiteSpace(startAgeGroup) ? null : startAgeGroup.Trim();
 }

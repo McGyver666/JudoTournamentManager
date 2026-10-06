@@ -59,8 +59,19 @@ Use these terms as-is (German primary) in issues, tests, and code names; don't d
 - **Mannschaft** (Team) — a team entered for a `TeamMatchday`. It has a display name and belongs
   to exactly one existing Verein; one Verein may provide multiple teams on a matchday.
 - **Athlet** (Athlete) — a competitor; imported from DM4/DMF files or entered manually.
-- **Altersklasse** (Category / age group) — competition class; athletes are registered into one.
-- **Meldung** (Registration) — an athlete's assignment to a category.
+- **Altersklasse** (Category / age group) — defined by a tournament category preset and used to
+  group registrations. Presets may overlap; the natural class is the matching preset with the
+  smallest minimum age, then the smallest maximum age. See [ADR-0011](docs/adr/0011-age-groups-start-age-group-and-generation.md).
+- **Natürliche Altersklasse** (Natural age group) — the matching gender preset selected by the
+  deterministic age-range ordering when a registration has no start-age override.
+- **Startaltersklasse** (Start age group) — optional compatible preset selected for a registration
+  to permit Höherstarten.
+- **Effektive Altersklasse** (Effective age group) — the Startaltersklasse when selected, otherwise
+  the Natürliche Altersklasse; this controls generation and category assignment.
+- **Höherstarten** (Starting in a higher age group) — selecting a compatible older Startaltersklasse
+  for an athlete, while retaining the natural age group for all other registrations.
+- **Meldung** (Registration) — an athlete's tournament entry, including weight-in data, optional
+  Startaltersklasse, and at most one category assignment.
 - **NWJV Landesliga** — the first supported league competition rule profile, comprising a venue and
   configurable team encounters within one matchday; it is configurable for senior women, senior
   men, and U16. The senior rules are based on "Hinweise fur Ligamannschaften und

@@ -252,6 +252,7 @@ describe('ConfigComponent', () => {
   });
 
   it('starts new athlete forms without a grade and shows a dash for missing grades', () => {
+    fixture.detectChanges();
     context.tournamentId.set('t-1');
     const testComponent = component as any;
     testComponent.tab.set('athletes');
@@ -371,6 +372,74 @@ describe('ConfigComponent', () => {
     const csv = await (createObjectUrl.calls.first().args[0] as Blob).text();
     expect(csv).toContain('Test;Anna;2012;w;;;');
   });
+
+  it('derives generator modes from tournament presets and groups U9 by weight', () => {
+    const testComponent = component as any;
+    testComponent.presets.set([
+      createPreset('u9-male', 'U9', 'Male', 8, 6, 2018, 2020, []),
+      createPreset('u9-female', 'U9', 'Female', 8, 6, 2018, 2020, []),
+    ]);
+    testComponent.categoryGeneratorForm.ageGroup = 'U9';
+    testComponent.categoryGeneratorForm.genderMode = 'Male';
+
+    expect(testComponent.generationAgeGroups()).toEqual(['U9']);
+    expect(testComponent.generationGenderModes()).toEqual(['Male', 'Female', 'Mixed']);
+    expect(testComponent.canUseStandardWeightClasses()).toBeFalse();
+
+    testComponent.categoryGeneratorForm.weightMode = 'StandardClasses';
+    testComponent.onCategoryGeneratorSelectionChanged();
+    expect(testComponent.categoryGeneratorForm.weightMode).toBe('AthletesByTargetSize');
+  });
+
+  it('reports missing natural age groups, hidden presets, and orphan categories', () => {
+    const testComponent = component as any;
+    testComponent.presets.set([
+      createPreset('open-male', 'Open', 'Male', 120, 1, 1906, 2025, []),
+      createPreset('hidden-u11', 'U11', 'Male', 10, 8, 2016, 2018, []),
+    ]);
+    testComponent.registrations.set([
+      { athleteBirthYear: 2017, athleteGender: 'Female', startAgeGroup: null },
+    ]);
+    testComponent.categories.set([{ ageGroup: 'Removed', gender: 'Male' }]);
+
+    const warningKeys = testComponent.presetWarnings().map((warning: { key: string }) => warning.key);
+    expect(warningKeys).toContain('presets.warningNoAgeGroup');
+    expect(warningKeys).toContain('presets.warningHiddenAgeGroup');
+    expect(warningKeys).toContain('presets.warningOrphanCategory');
+  });
+
+  it('persists an empty preset weight list instead of an open class', () => {
+    const testComponent = component as any;
+    const preset = createPreset('u9-male', 'U9', 'Male', 8, 6, 2018, 2020, [30]);
+
+    testComponent.parseWeightLimitsInput(preset, '');
+
+    expect(preset.weightClassLimitsKg).toEqual([]);
+  });
+
+  function createPreset(
+    id: string,
+    ageGroup: string,
+    gender: 'Male' | 'Female',
+    maxAgeYears: number,
+    minAgeYears: number,
+    minBirthYear: number,
+    maxBirthYear: number,
+    weightClassLimitsKg: (number | null)[],
+  ) {
+    return {
+      id,
+      ageGroup,
+      gender,
+      maxAgeYears,
+      minAgeYears,
+      minBirthYear,
+      maxBirthYear,
+      defaultMatchDurationSeconds: 120,
+      weightClassLimitsKg,
+      sortOrder: 0,
+    };
+  }
 
   function createAthlete(
     id: string,

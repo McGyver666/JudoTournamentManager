@@ -13,8 +13,8 @@ import {
   Athlete,
   CategoryGenerationApplyResponse,
   CategoryGenerationGenderMode,
-  CategoryGenerationGroupSetting,
   CategoryGenerationPreviewResponse,
+  CategoryGenerationWarning,
   CategoryGenerationWeightMode,
   Category,
   CategoryPreset,
@@ -34,27 +34,10 @@ import {
 type Tab = 'tatamis' | 'categories' | 'clubs' | 'athletes' | 'presets' | 'teams';
 type GeneratorStep = 'base' | 'strategy' | 'preview';
 
-interface GenerationAgeGroupRange {
-  ageGroup: string;
-  minBirthYear: number | null;
-  maxBirthYear: number | null;
+interface PresetWarning {
+  key: string;
+  params: Record<string, string | number>;
 }
-
-interface GenerationGroupSettingForm {
-  ageGroup: string;
-  genderMode: CategoryGenerationGenderMode;
-  targetAthletesPerCategory: number;
-  maxWeightDeviationKg: number;
-}
-
-const GENERATION_AGE_GROUP_RANGES: ReadonlyArray<GenerationAgeGroupRange> = [
-  { ageGroup: 'U11', minBirthYear: 2016, maxBirthYear: 2018 },
-  { ageGroup: 'U13', minBirthYear: 2014, maxBirthYear: 2016 },
-  { ageGroup: 'U15', minBirthYear: 2012, maxBirthYear: 2014 },
-  { ageGroup: 'U18', minBirthYear: 2009, maxBirthYear: 2011 },
-  { ageGroup: 'U21', minBirthYear: 2006, maxBirthYear: 2009 },
-  { ageGroup: 'Senioren', minBirthYear: 2009, maxBirthYear: null },
-];
 
 /**
  * Configuration workspace for the active tournament. Provides CRUD for
@@ -209,28 +192,28 @@ export class ConfigComponent implements OnInit {
   protected categoryGeneratorBusy = signal(false);
   protected categoryGeneratorPreview = signal<CategoryGenerationPreviewResponse | null>(null);
   protected categoryGeneratorApplyResult = signal<CategoryGenerationApplyResponse | null>(null);
-  protected categoryGeneratorWarnings = signal<string[]>([]);
+  protected categoryGeneratorWarnings = signal<CategoryGenerationWarning[]>([]);
   protected showClubForm = signal(false);
   protected showAthleteForm = signal(false);
 
   protected categoryGeneratorForm: {
-    minBirthYear: number | null;
-    maxBirthYear: number | null;
+    ageGroup: string;
     genderMode: CategoryGenerationGenderMode;
     matchDurationSeconds: number;
     goldenScoreEnabled: boolean;
     goldenScoreDurationSeconds: number;
     weightMode: CategoryGenerationWeightMode;
-    groupSettings: GenerationGroupSettingForm[];
+    targetAthletesPerCategory: number;
+    maxWeightDeviationKg: number;
   } = {
-    minBirthYear: null,
-    maxBirthYear: null,
+    ageGroup: '',
     genderMode: 'Male',
     matchDurationSeconds: 240,
     goldenScoreEnabled: false,
     goldenScoreDurationSeconds: 180,
     weightMode: 'StandardClasses',
-    groupSettings: [],
+    targetAthletesPerCategory: 8,
+    maxWeightDeviationKg: 2,
   };
 
   ngOnInit(): void {
@@ -464,7 +447,9 @@ export class ConfigComponent implements OnInit {
     this.categoryGeneratorApplyResult.set(null);
     this.categoryGeneratorWarnings.set([]);
     this.showCategoryGenerator.set(true);
-    this.syncCategoryGeneratorGroupSettings();
+    this.categoryGeneratorForm.ageGroup = this.generationAgeGroups()[0] ?? '';
+    this.categoryGeneratorForm.genderMode = this.generationGenderModes()[0] ?? 'Male';
+    this.onCategoryGeneratorSelectionChanged();
   }
 
   protected closeCategoryGenerator(): void {
@@ -478,7 +463,6 @@ export class ConfigComponent implements OnInit {
 
   protected nextCategoryGeneratorStep(): void {
     if (this.categoryGeneratorStep() === 'base') {
-      this.syncCategoryGeneratorGroupSettings();
       this.categoryGeneratorStep.set('strategy');
       return;
     }
@@ -499,38 +483,50 @@ export class ConfigComponent implements OnInit {
     }
   }
 
-  protected syncCategoryGeneratorGroupSettings(): void {
-    const keys = new Set(this.availableGenerationGroupKeys());
-    const existing = new Map(
-      this.categoryGeneratorForm.groupSettings.map((x) => [
-        this.generationGroupKey(x.ageGroup, x.genderMode),
-        x,
-      ]),
-    );
+  protected generationAgeGroups(): string[] {
+    return [...new Set(this.presets().map((preset) => preset.ageGroup))];
+  }
 
-    const next: GenerationGroupSettingForm[] = [];
-    for (const key of keys) {
-      const current = existing.get(key);
-      if (current) {
-        next.push(current);
-        continue;
-      }
+  protected generationGenderModes(): CategoryGenerationGenderMode[] {
+    const selectedPresets = this.presets().filter((preset) => preset.ageGroup === this.categoryGeneratorForm.ageGroup);
+    const hasMale = selectedPresets.some((preset) => preset.gender === 'Male');
+    const hasFemale = selectedPresets.some((preset) => preset.gender === 'Female');
+    const modes: CategoryGenerationGenderMode[] = [];
+    if (hasMale) modes.push('Male');
+    if (hasFemale) modes.push('Female');
+    if (hasMale && hasFemale) modes.push('Mixed');
+    return modes;
+  }
 
-      const [ageGroup, genderModeRaw] = key.split('|');
-      const genderMode = genderModeRaw as CategoryGenerationGenderMode;
-      next.push({
-        ageGroup,
-        genderMode,
-        targetAthletesPerCategory: 8,
-        maxWeightDeviationKg: 2,
-      });
+  protected canUseStandardWeightClasses(): boolean {
+    const selectedPresets = this.selectedGenerationPresets();
+    return selectedPresets.length > 0
+      && selectedPresets.every((preset) => preset.weightClassLimitsKg.length > 0);
+  }
+
+  protected onCategoryGeneratorSelectionChanged(): void {
+    const genderModes = this.generationGenderModes();
+    if (!genderModes.includes(this.categoryGeneratorForm.genderMode)) {
+      this.categoryGeneratorForm.genderMode = genderModes[0] ?? 'Male';
     }
 
-    this.categoryGeneratorForm.groupSettings = next.sort((a, b) =>
-      a.ageGroup === b.ageGroup
-        ? a.genderMode.localeCompare(b.genderMode)
-        : a.ageGroup.localeCompare(b.ageGroup),
-    );
+    const selectedPresets = this.selectedGenerationPresets();
+    if (selectedPresets.length > 0) {
+      this.categoryGeneratorForm.matchDurationSeconds = Math.max(
+        ...selectedPresets.map((preset) => preset.defaultMatchDurationSeconds),
+      );
+    }
+
+    if (!this.canUseStandardWeightClasses()) {
+      this.categoryGeneratorForm.weightMode = 'AthletesByTargetSize';
+    }
+  }
+
+  private selectedGenerationPresets(): CategoryPreset[] {
+    return this.presets().filter((preset) => preset.ageGroup === this.categoryGeneratorForm.ageGroup
+      && (this.categoryGeneratorForm.genderMode === 'Mixed'
+        ? preset.gender === 'Male' || preset.gender === 'Female'
+        : preset.gender === this.categoryGeneratorForm.genderMode));
   }
 
   protected previewGeneratedCategories(): void {
@@ -606,6 +602,10 @@ export class ConfigComponent implements OnInit {
     }
 
     return this.i18n.translate('gender.mixed');
+  }
+
+  protected generatorWarningParameters(warning: CategoryGenerationWarning): Record<string, string | number> {
+    return warning.count === null ? {} : { count: warning.count };
   }
 
   // --- Team matchday -----------------------------------------------------
@@ -1078,76 +1078,16 @@ export class ConfigComponent implements OnInit {
   }
 
   private buildGenerateCategoriesRequest(): GenerateCategoriesRequest {
-    const groupSettings: CategoryGenerationGroupSetting[] =
-      this.categoryGeneratorForm.weightMode === 'AthletesByTargetSize'
-        ? this.categoryGeneratorForm.groupSettings.map((x) => ({
-            ageGroup: x.ageGroup,
-            genderMode: x.genderMode,
-            targetAthletesPerCategory: Number(x.targetAthletesPerCategory),
-            maxWeightDeviationKg: Number(x.maxWeightDeviationKg),
-          }))
-        : [];
-
     return {
-      minBirthYear:
-        this.categoryGeneratorForm.minBirthYear === null
-        || (this.categoryGeneratorForm.minBirthYear as unknown) === ''
-          ? null
-          : Number(this.categoryGeneratorForm.minBirthYear),
-      maxBirthYear:
-        this.categoryGeneratorForm.maxBirthYear === null
-        || (this.categoryGeneratorForm.maxBirthYear as unknown) === ''
-          ? null
-          : Number(this.categoryGeneratorForm.maxBirthYear),
+      ageGroup: this.categoryGeneratorForm.ageGroup,
       genderMode: this.categoryGeneratorForm.genderMode,
       matchDurationSeconds: Number(this.categoryGeneratorForm.matchDurationSeconds),
       goldenScoreEnabled: this.categoryGeneratorForm.goldenScoreEnabled,
       goldenScoreDurationSeconds: Number(this.categoryGeneratorForm.goldenScoreDurationSeconds),
       weightMode: this.categoryGeneratorForm.weightMode,
-      groupSettings,
+      targetAthletesPerCategory: Number(this.categoryGeneratorForm.targetAthletesPerCategory),
+      maxWeightDeviationKg: Number(this.categoryGeneratorForm.maxWeightDeviationKg),
     };
-  }
-
-  private availableGenerationGroupKeys(): string[] {
-    const ranges = GENERATION_AGE_GROUP_RANGES.filter((x) =>
-      this.overlapsYearRange(
-        x.minBirthYear,
-        x.maxBirthYear,
-        this.categoryGeneratorForm.minBirthYear,
-        this.categoryGeneratorForm.maxBirthYear,
-      ),
-    );
-
-    const keys: string[] = [];
-    for (const range of ranges) {
-      if (this.categoryGeneratorForm.genderMode === 'Mixed') {
-        keys.push(this.generationGroupKey(range.ageGroup, 'Mixed'));
-        continue;
-      }
-
-      keys.push(this.generationGroupKey(range.ageGroup, this.categoryGeneratorForm.genderMode));
-    }
-
-    return keys;
-  }
-
-  private overlapsYearRange(
-    aMin: number | null,
-    aMax: number | null,
-    bMin: number | null,
-    bMax: number | null,
-  ): boolean {
-    if (bMin !== null && bMax !== null) {
-      return aMin !== null && aMax !== null && aMin <= bMin && aMax >= bMax;
-    }
-
-    const left = Math.max(aMin ?? Number.MIN_SAFE_INTEGER, bMin ?? Number.MIN_SAFE_INTEGER);
-    const right = Math.min(aMax ?? Number.MAX_SAFE_INTEGER, bMax ?? Number.MAX_SAFE_INTEGER);
-    return left <= right;
-  }
-
-  private generationGroupKey(ageGroup: string, genderMode: CategoryGenerationGenderMode): string {
-    return `${ageGroup}|${genderMode}`;
   }
 
   private emptyCategory(): CreateCategoryRequest & { id: string | null } {
@@ -1184,7 +1124,7 @@ export class ConfigComponent implements OnInit {
   protected presetWeightsLabel(preset: CategoryPreset): string {
     const limits = preset.weightClassLimitsKg;
     if (limits.length === 0) {
-      return '-';
+      return '';
     }
 
     return limits
@@ -1208,6 +1148,74 @@ export class ConfigComponent implements OnInit {
     }
 
     return `${min} – ${max}`;
+  }
+
+  protected presetWarnings(): PresetWarning[] {
+    const warnings: PresetWarning[] = [];
+    const presets = this.presets();
+    const currentYear = Number(this.context.tournament()?.date.slice(0, 4)) || new Date().getFullYear();
+    const missingAgeGroupCount = this.registrations().filter((registration) =>
+      this.effectiveAgeGroup(registration, presets) === null).length;
+
+    if (missingAgeGroupCount > 0) {
+      warnings.push({ key: 'presets.warningNoAgeGroup', params: { count: missingAgeGroupCount } });
+    }
+
+    for (const preset of presets) {
+      const firstYear = preset.minBirthYear ?? currentYear - 120;
+      const lastYear = preset.maxBirthYear ?? currentYear + 1;
+      let canBeNatural = false;
+      for (let birthYear = firstYear; birthYear <= lastYear; birthYear++) {
+        if (this.naturalPreset(birthYear, preset.gender, presets)?.id === preset.id) {
+          canBeNatural = true;
+          break;
+        }
+      }
+
+      if (!canBeNatural) {
+        warnings.push({ key: 'presets.warningHiddenAgeGroup', params: { ageGroup: preset.ageGroup } });
+      }
+    }
+
+    const orphanAgeGroups = new Set(this.categories()
+      .filter((category) => !presets.some((preset) =>
+        preset.ageGroup === category.ageGroup
+        && (category.gender === 'Mixed'
+          ? preset.gender === 'Male' || preset.gender === 'Female'
+          : preset.gender === category.gender)))
+      .map((category) => category.ageGroup));
+    for (const ageGroup of orphanAgeGroups) {
+      warnings.push({ key: 'presets.warningOrphanCategory', params: { ageGroup } });
+    }
+
+    return warnings;
+  }
+
+  private effectiveAgeGroup(registration: RegistrationDetail, presets: CategoryPreset[]): string | null {
+    if (registration.startAgeGroup) {
+      const selectedPreset = presets.find((preset) =>
+        preset.gender === registration.athleteGender
+        && preset.ageGroup.toLocaleLowerCase() === registration.startAgeGroup?.toLocaleLowerCase()
+        && this.presetCoversBirthYear(preset, registration.athleteBirthYear));
+      return selectedPreset?.ageGroup ?? null;
+    }
+
+    return this.naturalPreset(registration.athleteBirthYear, registration.athleteGender, presets)?.ageGroup ?? null;
+  }
+
+  private naturalPreset(birthYear: number, gender: Gender, presets: CategoryPreset[]): CategoryPreset | null {
+    return presets
+      .filter((preset) => preset.gender === gender && this.presetCoversBirthYear(preset, birthYear))
+      .sort((left, right) =>
+        (left.minAgeYears ?? Number.MAX_SAFE_INTEGER) - (right.minAgeYears ?? Number.MAX_SAFE_INTEGER)
+        || (left.maxAgeYears ?? Number.MAX_SAFE_INTEGER) - (right.maxAgeYears ?? Number.MAX_SAFE_INTEGER)
+        || left.ageGroup.localeCompare(right.ageGroup))
+      .at(0) ?? null;
+  }
+
+  private presetCoversBirthYear(preset: CategoryPreset, birthYear: number): boolean {
+    return (preset.minBirthYear === null || birthYear >= preset.minBirthYear)
+      && (preset.maxBirthYear === null || birthYear <= preset.maxBirthYear);
   }
 
   protected addPresetRow(): void {
@@ -1295,6 +1303,12 @@ export class ConfigComponent implements OnInit {
   }
 
   protected parseWeightLimitsInput(preset: CategoryPreset, raw: string): void {
+    if (raw.trim() === '' || raw.trim() === '-') {
+      preset.weightClassLimitsKg = [];
+      this.presetsDirty = true;
+      return;
+    }
+
     const parts = raw.split(',').map((s) => s.trim());
     const limits: (number | null)[] = parts.map((p) => {
       if (p === '' || p === 'null' || p === '+') {

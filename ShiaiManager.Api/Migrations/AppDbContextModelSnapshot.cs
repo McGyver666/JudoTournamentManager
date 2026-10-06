@@ -546,6 +546,10 @@ namespace ShiaiManager.Api.Migrations
                     b.Property<DateOnly?>("PassExpiryDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("StartAgeGroup")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("TournamentId")
                         .HasColumnType("TEXT");
 

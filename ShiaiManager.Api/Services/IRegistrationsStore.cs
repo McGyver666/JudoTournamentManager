@@ -43,7 +43,8 @@ public interface IRegistrationsStore
         int? grade,
         bool licenseConfirmed,
         string operatorName,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        string? startAgeGroup = null);
 
     /// <summary>
     /// Registers an athlete with optional DokuMe license verification.
@@ -63,7 +64,8 @@ public interface IRegistrationsStore
         DateOnly tournamentDate,
         string operatorName,
         CancellationToken cancellationToken,
-        int? grade = null);
+        int? grade = null,
+        string? startAgeGroup = null);
 
     /// <summary>
     /// Deletes a registration. Returns <c>false</c> if the registration was not found.
@@ -74,6 +76,16 @@ public interface IRegistrationsStore
     /// Assigns a category to a registered athlete. Returns <c>null</c> if registration not found.
     /// </summary>
     Task<Registration?> AssignCategoryAsync(Guid registrationId, Guid categoryId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates a registration's selected start age group and category assignment.
+    /// </summary>
+    Task<Registration?> UpdateStartAgeGroupAsync(
+        Guid registrationId,
+        string? startAgeGroup,
+        Guid? categoryId,
+        string operatorName,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Automatically assigns all unassigned registrations in a tournament to the best-fitting
