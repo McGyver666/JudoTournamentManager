@@ -15,6 +15,8 @@
 	--display-border: rgba(220, 232, 246, 0.32);
 	--display-text: #f8fbff;
 	--display-text-muted: #cbd8e6;
+	--display-shido: #ffc72e;
+	--display-stopped: #ff4b3e;
 	--c-text: var(--display-text);
 	--c-muted: var(--display-text-muted);
 	--c-border: var(--display-border);
@@ -46,44 +48,82 @@
 
 .tatami-fullscreen {
 	background: linear-gradient(165deg, var(--display-bg) 0%, var(--display-bg-mid) 46%, var(--display-bg-end) 100%);
-	padding: clamp(1rem, 2.4vw, 2.4rem) clamp(1rem, 3vw, 3.5rem);
+	padding: clamp(0.75rem, 1.6vw, 1.75rem) clamp(0.75rem, 2.2vw, 2.5rem);
 	min-height: 100dvh;
 	display: flex;
 	flex-direction: column;
-	gap: clamp(0.85rem, 2vw, 1.75rem);
+	gap: clamp(0.6rem, 1.2vw, 1.1rem);
 }
 
 .tatami-fullscreen-header {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(16rem, 26rem) minmax(13rem, 0.9fr);
+	grid-template-columns: minmax(0, 1fr) auto auto;
 	align-items: center;
-	gap: clamp(0.75rem, 2vw, 1.75rem);
-	min-height: clamp(7.5rem, 15vw, 11rem);
+	gap: clamp(0.5rem, 1.4vw, 1.25rem);
+	min-height: clamp(6.5rem, 13vw, 10rem);
 }
+
+.display-page--tatami .fight-label {
+	font-size: clamp(0.95rem, 1.3vw, 1.35rem);
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	color: var(--display-text-muted);
+}
+
 .tatami-fullscreen-tatami {
-	margin: 0.2rem 0 0.15rem;
-	font-size: clamp(2.1rem, 4.2vw, 3.6rem);
+	margin: 0.1rem 0 0;
+	font-size: clamp(2.4rem, 4vw, 4.5rem);
 	letter-spacing: 0.07em;
 	text-transform: uppercase;
 	color: var(--display-text);
 }
 
 .tatami-fullscreen-category {
-	font-size: clamp(1.5rem, 3vw, 2.325rem);
+	font-size: clamp(1.75rem, 3.4vw, 3rem);
 	color: var(--display-text-muted);
 	font-weight: 700;
 	line-height: 1.15;
 }
 
+/* Border is always reserved so toggling the stopped frame causes no layout shift. */
+.fight-timer-block {
+	position: relative;
+	justify-self: end;
+	padding: 0.35rem 0.9rem 0.15rem;
+	border: 5px solid transparent;
+	border-radius: var(--radius);
+}
+
+.fight-timer-block--stopped {
+	border-color: var(--display-stopped);
+	background: color-mix(in srgb, var(--display-stopped) 16%, transparent);
+}
+
+.fight-timer-stopped-label {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translate(-50%, -62%);
+	padding: 0.1rem 0.85rem;
+	border-radius: var(--radius);
+	background: var(--display-stopped);
+	color: var(--display-bg);
+	font-size: clamp(1rem, 1.6vw, 1.6rem);
+	font-weight: 900;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
 .fight-timer--xl {
 	font-family: var(--ff-mono);
-	font-size: clamp(3.9rem, 12vw, 9rem);
+	font-size: clamp(4.5rem, 10.5vw, 11rem);
 	line-height: 1;
 	font-weight: 900;
 	letter-spacing: 0.08em;
 	color: var(--display-text);
-	justify-self: end;
 	text-align: right;
+	white-space: nowrap;
 	font-variant-numeric: tabular-nums;
 }
 
@@ -101,12 +141,20 @@
 	color: var(--display-text-muted);
 }
 
+.fight-timer--xl.fight-timer--paused {
+	color: var(--display-stopped);
+}
+
+.fight-timer--xl.fight-timer--paused .timer-colon {
+	animation: none;
+}
+
 .hold-timer,
 .hold-timer-spacer {
 	justify-self: center;
 	align-self: stretch;
 	min-width: 20rem;
-	min-height: clamp(7.5rem, 16vw, 11rem);
+	min-height: clamp(6.5rem, 13vw, 10rem);
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -125,7 +173,7 @@
 	color: var(--display-text-muted);
 	font-weight: 800;
 	letter-spacing: .04em;
-	min-width: 28rem;
+	min-width: 20rem;
 }
 
 .hold-timer--blue {
@@ -137,7 +185,7 @@
 }
 
 .hold-timer-label {
-	font-size: clamp(1rem, 2vw, 1.45rem);
+	font-size: clamp(1.15rem, 2vw, 1.6rem);
 	text-transform: uppercase;
 	letter-spacing: .12em;
 	margin-bottom: .2rem;
@@ -175,7 +223,7 @@
 .tatami-scoreboard {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: clamp(0.75rem, 1.75vw, 1.5rem);
+	gap: clamp(0.6rem, 1.2vw, 1.1rem);
 	align-items: stretch;
 }
 
@@ -183,10 +231,10 @@
 	background: linear-gradient(180deg, color-mix(in srgb, var(--display-text) 10%, transparent) 0%, color-mix(in srgb, var(--display-text) 5%, transparent) 100%);
 	border: 2px solid var(--display-border);
 	border-radius: var(--radius);
-	padding: clamp(1rem, 2vw, 1.75rem);
+	padding: clamp(0.75rem, 1.4vw, 1.25rem);
 	display: flex;
 	flex-direction: column;
-	gap: clamp(0.65rem, 1.25vw, 1rem);
+	gap: clamp(0.35rem, 0.8vw, 0.7rem);
 	color: var(--display-text);
 	min-width: 0;
 }
@@ -201,7 +249,7 @@
 }
 
 .tatami-athlete-side {
-	font-size: clamp(1rem, 2vw, 1.275rem);
+	font-size: clamp(1.1rem, 1.8vw, 1.6rem);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 	color: var(--side-accent-muted);
@@ -213,14 +261,14 @@
 }
 
 .tatami-athlete-name {
-	font-size: clamp(1.8rem, 4.5vw, 4.25rem);
+	font-size: clamp(2.2rem, 4.9vw, 4.75rem);
 	font-weight: 800;
-	line-height: 1.08;
+	line-height: 1.05;
 	overflow-wrap: anywhere;
 }
 
 .tatami-athlete-club {
-	font-size: clamp(1.2rem, 2.55vw, 1.875rem);
+	font-size: clamp(1.35rem, 2.6vw, 2.25rem);
 	color: var(--display-text-muted);
 	overflow-wrap: anywhere;
 }
@@ -229,24 +277,24 @@
 	color: var(--side-accent-contrast);
 }
 
-.tatami-counters {display:grid;grid-template-columns:1fr 1fr;gap:1.125rem}
+.tatami-counters {display:grid;grid-template-columns:1fr 1fr;gap:clamp(0.4rem, 0.8vw, 0.75rem)}
 .tatami-counters--triple {grid-template-columns:1fr 1fr 1fr}
 
 .tatami-counter {
 	background: color-mix(in srgb, var(--display-bg) 64%, transparent);
 	border: 1px solid color-mix(in srgb, var(--display-border) 80%, transparent);
 	border-radius: var(--radius);
-	padding: .975rem;
+	padding: .5rem .4rem;
 	display: flex;
 	flex-direction: column;
-	gap: .2rem;
+	gap: 0;
 	align-items: center;
 	justify-content: center;
-	min-height: 8rem;
+	min-height: 7rem;
 }
 
 .tatami-counter span {
-	font-size: clamp(1.05rem, 2.325vw, 1.65rem);
+	font-size: clamp(1.2rem, 2.2vw, 1.9rem);
 	color: var(--display-text-muted);
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
@@ -255,8 +303,8 @@
 
 .tatami-counter strong {
 	font-family: var(--ff-mono);
-	font-size: clamp(2.7rem, 10vw, 12rem);
-	line-height: 1;
+	font-size: clamp(2.7rem, 11.5vw, 14rem);
+	line-height: 0.95;
 	color: var(--side-accent-contrast);
 	font-variant-numeric: tabular-nums;
 }
@@ -280,53 +328,66 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	font-size: clamp(1.5rem, 3vw, 2.175rem);
+	font-size: clamp(1.6rem, 2.6vw, 2.5rem);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
 	color: var(--display-text);
-	margin-top: 0.2rem;
 }
 
 .shido-bubbles--xl {
-	gap: 0.5rem;
+	gap: clamp(0.5rem, 0.9vw, 0.9rem);
 }
 
 .shido-bubble--xl {
-	width: 1.35rem;
-	height: 1.35rem;
-	border-width: 2px;
+	width: clamp(2.25rem, 3.4vw, 3.5rem);
+	height: clamp(2.25rem, 3.4vw, 3.5rem);
+	border: 4px solid color-mix(in srgb, var(--display-text) 55%, transparent);
+	background: color-mix(in srgb, var(--display-text) 6%, transparent);
+}
+
+.shido-bubble--xl.active {
+	background: var(--display-shido);
+	border-color: var(--display-shido);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--display-shido) 30%, transparent), 0 0 18px color-mix(in srgb, var(--display-shido) 55%, transparent);
 }
 
 .next-section--xl {
-	padding-top: 0.9rem;
+	margin-top: 0;
+	padding-top: 0.5rem;
 }
 
 .next-list--xl {
-	gap: 0.7rem;
+	gap: 0.5rem;
 }
 
 .next-item--xl {
-	padding: 1.125rem 1.35rem;
+	padding: 0.6rem 1.1rem;
 	background: linear-gradient(135deg, color-mix(in srgb, var(--display-bg) 88%, transparent) 0%, color-mix(in srgb, var(--display-bg-end) 84%, transparent) 100%);
 	border: 1px solid color-mix(in srgb, var(--side-accent-muted) 55%, transparent);
 	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--display-text) 8%, transparent);
 }
 
 .next-section--xl .next-label {
-	font-size: 1.05rem;
+	font-size: clamp(1rem, 1.3vw, 1.35rem);
+	font-weight: 700;
 	color: var(--display-text-muted);
 }
 
 .next-section--xl .next-line {
-	font-size: 3.5rem;
+	font-size: clamp(2rem, 3.4vw, 4rem);
+	line-height: 1.1;
 }
 
 .next-section--xl .next-category {
-	font-size: 2rem;
+	font-size: clamp(1.4rem, 2vw, 2.25rem);
+	margin-top: 0;
 	color: var(--display-text-muted);
 }
 
 .next-section--xl .next-vs {
 	color: color-mix(in srgb, var(--display-text-muted) 78%, transparent);
-	font-size: 1.5rem;
+	font-size: clamp(1.2rem, 1.6vw, 1.75rem);
 }
 
 .next-name--blue {
@@ -444,7 +505,7 @@
 		display: none;
 	}
 
-	.tatami-fullscreen-header > .fight-timer--xl {
+	.tatami-fullscreen-header > .fight-timer-block {
 		grid-area: timer;
 	}
 
@@ -484,7 +545,7 @@
 		min-height: 5.5rem;
 	}
 
-	.tatami-fullscreen-header > .fight-timer--xl {
+	.tatami-fullscreen-header > .fight-timer-block {
 		margin-left: auto;
 	}
 
@@ -505,6 +566,10 @@
 	.tatami-athlete {
 		padding: 0.85rem 1rem;
 		gap: 0.55rem;
+	}
+
+	.tatami-athlete-name {
+		font-size: clamp(1.8rem, 3.8vw, 3.5rem);
 	}
 
 	.tatami-counter {

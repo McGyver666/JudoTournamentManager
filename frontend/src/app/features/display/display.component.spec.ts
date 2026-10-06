@@ -332,6 +332,42 @@ describe('DisplayComponent', () => {
     expect(white.querySelectorAll('.shido-bubble').length).toBe(3);
   });
 
+  const clockCases: { name: string; fight: Partial<Fight>; stopped: boolean }[] = [
+    { name: 'running fight', fight: {}, stopped: false },
+    { name: 'paused fight', fight: { status: 'Paused', pausedAtUtc: new Date().toISOString() }, stopped: true },
+    { name: 'paused golden score', fight: { status: 'Paused', pausedAtUtc: new Date().toISOString(), isGoldenScore: true }, stopped: true },
+    { name: 'paused osae-komi', fight: { osaeKomiSide: 'Blue', osaeKomiPausedAtUtc: new Date().toISOString() }, stopped: true },
+    { name: 'not yet started fight', fight: { status: 'Pending', startedAtUtc: null }, stopped: false },
+  ];
+
+  clockCases.forEach(({ name, fight, stopped }) => {
+    it(`marks the tatami clock as stopped=${stopped} for a ${name}`, () => {
+      apiCalls.getTatamis.and.returnValue(of([createTatami()]));
+      apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight(fight), upcoming: [] }));
+      TestBed.overrideProvider(ActivatedRoute, {
+        useValue: {
+          paramMap: of(convertToParamMap({ tatamiId: 'tatami-1' })),
+          queryParamMap: of(convertToParamMap({ tournamentId: 'tournament-1' })),
+        },
+      });
+      TestBed.overrideProvider(SideThemeService, {
+        useValue: { applyTheme: () => undefined, accentSideLabelKey: () => 'match.blueSide' },
+      });
+
+      const fixture = TestBed.createComponent(DisplayComponent);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      const block = root.querySelector('.fight-timer-block') as HTMLElement;
+      expect(block.classList.contains('fight-timer-block--stopped')).toBe(stopped);
+      expect(root.querySelector('.fight-timer--xl')!.classList.contains('fight-timer--paused')).toBe(stopped);
+      expect(root.querySelector('.fight-timer-stopped-label')?.textContent?.trim() ?? null)
+        .toBe(stopped ? 'display.timeStopped' : null);
+
+      fixture.destroy();
+    });
+  });
+
   it('refreshes the tournament view when a fight is completed', () => {
     apiCalls.getTatamis.and.returnValue(of([createTatami()]));
     apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight(), upcoming: [] }));
