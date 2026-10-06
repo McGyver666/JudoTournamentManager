@@ -61,7 +61,7 @@
                 <td>{{ reg.athleteBirthYear }}</td>
                 <td>{{ reg.athleteWeightKg !== null ? (reg.athleteWeightKg + ' kg') : '–' }}</td>
                 <td>
-                  <select (change)="reassign(reg, $any($event.target).value)">
+                  <select (change)="reassign(reg, $any($event.target))">
                     <option value="">{{ 'categoryAssignment.noCategory' | t }}</option>
                     @for (cat of categories(); track cat.id) {
                       <option [value]="cat.id" [disabled]="cat.isLocked">{{ categoryLabel(cat) }}</option>
@@ -110,7 +110,7 @@
                     <td>{{ reg.athleteBirthYear }}</td>
                     <td>{{ reg.athleteWeightKg !== null ? (reg.athleteWeightKg + ' kg') : '–' }}</td>
                     <td>
-                      <select [value]="reg.categoryId ?? ''" (change)="reassign(reg, $any($event.target).value)" [disabled]="cat.isLocked">
+                      <select [value]="reg.categoryId ?? ''" (change)="reassign(reg, $any($event.target))" [disabled]="cat.isLocked">
                         <option value="">{{ 'categoryAssignment.noCategory' | t }}</option>
                         @for (c of categories(); track c.id) {
                           <option [value]="c.id" [selected]="c.id === reg.categoryId" [disabled]="c.isLocked">{{ categoryLabel(c) }}</option>

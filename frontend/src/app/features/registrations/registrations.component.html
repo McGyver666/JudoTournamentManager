@@ -102,6 +102,14 @@
             max="300"
             required />
 
+          <label>{{ 'registrations.startAgeGroup' | t }}</label>
+          <select [(ngModel)]="form.startAgeGroup" name="startAgeGroup">
+            <option value="">{{ 'registrations.naturalAgeGroup' | t }}</option>
+            @for (ageGroup of formStartAgeGroupOptions(); track ageGroup) {
+              <option [value]="ageGroup">{{ ageGroup }}</option>
+            }
+          </select>
+
           <label>{{ 'registrations.licenseNumber' | t }}</label>
           <input
             type="text"
@@ -172,6 +180,7 @@
             <th>{{ 'athletes.lastName' | t }}</th>
             <th>{{ 'athletes.firstName' | t }}</th>
             <th>{{ 'registrations.birthYear' | t }}</th>
+            <th>{{ 'registrations.startAgeGroup' | t }}</th>
             <th>{{ 'registrations.weight' | t }}</th>
             <th>{{ 'registrations.grade' | t }}</th>
             <th>{{ 'registrations.licenseConfirmed' | t }}</th>
@@ -193,6 +202,17 @@
               <td>{{ r.athleteLastName }}</td>
               <td>{{ r.athleteFirstName }}</td>
               <td>{{ r.athleteBirthYear }}</td>
+              <td>
+                <select [ngModel]="r.startAgeGroup ?? ''"
+                  (ngModelChange)="updateStartAgeGroup(r, $event)"
+                  [name]="'startAgeGroup_' + r.id"
+                  [disabled]="isStartAgeGroupChangeDisabled(r)">
+                  <option value="">{{ 'registrations.naturalAgeGroup' | t }}</option>
+                  @for (ageGroup of startAgeGroupOptions(r.athleteGender, r.athleteBirthYear); track ageGroup) {
+                    <option [value]="ageGroup">{{ ageGroup }}</option>
+                  }
+                </select>
+              </td>
               <td>{{ r.athleteWeightKg !== null ? (r.athleteWeightKg + ' kg') : '–' }}</td>
               <td>{{ gradeLabel(r.athleteGrade) }}</td>
               <td>{{ r.licenseConfirmed ? '✓' : '–' }}</td>

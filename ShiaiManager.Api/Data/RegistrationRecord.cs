@@ -20,6 +20,9 @@ public sealed class RegistrationRecord
     /// <summary>Target category (null until assigned during weight-in or later).</summary>
     public Guid? CategoryId { get; set; }
 
+    /// <summary>Optional age group selected for this registration instead of the natural age group.</summary>
+    public string? StartAgeGroup { get; set; }
+
     /// <summary>Whether the athlete's license was confirmed/verified at registration.</summary>
     public bool LicenseConfirmed { get; set; }
 

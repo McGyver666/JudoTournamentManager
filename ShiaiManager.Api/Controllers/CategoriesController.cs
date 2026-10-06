@@ -16,6 +16,7 @@ public sealed class CategoriesController : ControllerBase
     private readonly ICategoriesStore _categoriesStore;
     private readonly ITournamentStore _tournamentStore;
     private readonly ICategoryGenerationService _categoryGenerationService;
+    private readonly IAuditLogService _auditLog;
 
     /// <summary>
     /// Initializes a new controller instance.
@@ -23,14 +24,17 @@ public sealed class CategoriesController : ControllerBase
     public CategoriesController(
         ICategoriesStore categoriesStore,
         ITournamentStore tournamentStore,
-        ICategoryGenerationService categoryGenerationService)
+        ICategoryGenerationService categoryGenerationService,
+        IAuditLogService auditLog)
     {
         ArgumentNullException.ThrowIfNull(categoriesStore);
         ArgumentNullException.ThrowIfNull(tournamentStore);
         ArgumentNullException.ThrowIfNull(categoryGenerationService);
+        ArgumentNullException.ThrowIfNull(auditLog);
         _categoriesStore = categoriesStore;
         _tournamentStore = tournamentStore;
         _categoryGenerationService = categoryGenerationService;
+        _auditLog = auditLog;
     }
 
     /// <summary>
@@ -257,15 +261,15 @@ public sealed class CategoriesController : ControllerBase
             var preview = await _categoryGenerationService.PreviewAsync(tournamentId, request, cancellationToken);
             return Ok(preview);
         }
-        catch (InvalidOperationException ex)
+        catch (LocalizedOperationException ex)
         {
-            ModelState.AddModelError(nameof(request), ex.Message);
-            return ValidationProblem(ModelState);
+            return this.LocalizedValidationProblem(nameof(request), ex.Localized);
         }
     }
 
     /// <summary>
-    /// Applies category generation and persists created categories.
+    /// Applies category generation: replaces the categories of the selected age group and gender
+    /// and writes an audit log entry.
     /// </summary>
     [Authorize(Roles = "Admin,Operator")]
     [HttpPost("generate/apply")]
@@ -285,12 +289,19 @@ public sealed class CategoriesController : ControllerBase
         try
         {
             var result = await _categoryGenerationService.ApplyAsync(tournamentId, request, cancellationToken);
+            await _auditLog.LogAsync(
+                tournamentId,
+                User?.Identity?.Name ?? "system",
+                "CategoriesGenerated",
+                "Category",
+                null,
+                $"{request.AgeGroup.Trim()} {request.GenderMode}: deleted={result.DeletedCount}, created={result.CreatedCount}",
+                cancellationToken);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (LocalizedOperationException ex)
         {
-            ModelState.AddModelError(nameof(request), ex.Message);
-            return ValidationProblem(ModelState);
+            return this.LocalizedValidationProblem(nameof(request), ex.Localized);
         }
     }
 

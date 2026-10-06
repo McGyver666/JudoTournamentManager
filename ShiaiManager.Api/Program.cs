@@ -618,24 +618,8 @@ static async Task EnsureCategoryPresetsTableAsync(AppDbContext dbContext, ILogge
         return;
     }
 
-    await dbContext.Database.ExecuteSqlRawAsync(
-        """
-        CREATE TABLE IF NOT EXISTS "CategoryPresets" (
-            "Id" TEXT NOT NULL CONSTRAINT "PK_CategoryPresets" PRIMARY KEY,
-            "TournamentId" TEXT NOT NULL,
-            "AgeGroup" TEXT NOT NULL,
-            "Gender" TEXT NOT NULL,
-            "MaxAgeYears" INTEGER NULL,
-            "MinAgeYears" INTEGER NULL,
-            "DefaultMatchDurationSeconds" INTEGER NOT NULL DEFAULT 240,
-            "WeightClassLimitsJson" TEXT NOT NULL,
-            "SortOrder" INTEGER NOT NULL,
-            CONSTRAINT "FK_CategoryPresets_Tournaments_TournamentId" FOREIGN KEY ("TournamentId") REFERENCES "Tournaments" ("Id") ON DELETE CASCADE
-        );
-        """);
-
-    await dbContext.Database.ExecuteSqlRawAsync(
-        "CREATE INDEX IF NOT EXISTS \"IX_CategoryPresets_TournamentId\" ON \"CategoryPresets\" (\"TournamentId\");");
+    await dbContext.Database.ExecuteSqlRawAsync(CategoryPresetsSchema.CreateTableSql);
+    await dbContext.Database.ExecuteSqlRawAsync(CategoryPresetsSchema.CreateIndexSql);
 
     logger.LogWarning("Schema patch applied: created missing CategoryPresets table.");
 }

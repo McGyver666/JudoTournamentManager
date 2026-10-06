@@ -230,4 +230,87 @@ public sealed class CategoriesStoreTests
 
         Assert.False(deleted);
     }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task ReplaceAsync_DeletesCategoriesClearsAssignmentsAndCreatesNewOnes()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var tid = await SeedTournamentAsync(ctx);
+        var store = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var replaced = await store.CreateAsync(
+            tid, "U13 W -40 kg", "U13", Gender.Female, 40m, 2014, 2016, null, 180, false, 180, CancellationToken.None);
+        var kept = await store.CreateAsync(
+            tid, "U11 W -40 kg", "U11", Gender.Female, 40m, 2016, 2018, null, 120, false, 180, CancellationToken.None);
+        var registrationId = await SeedRegistrationAsync(ctx, tid, replaced!.Id);
+
+        var result = await store.ReplaceAsync(
+            tid,
+            [replaced.Id],
+            [
+                NewCategory("U13", 36m),
+                NewCategory("U13", null),
+                NewCategory("U11", 40m)
+            ],
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.DeletedCount);
+        Assert.Equal(2, result.Created.Count);
+        Assert.Equal(1, result.SkippedDuplicateCount);
+        Assert.Null(await store.GetByIdAsync(replaced.Id, CancellationToken.None));
+        Assert.NotNull(await store.GetByIdAsync(kept!.Id, CancellationToken.None));
+        var registration = await ctx.Registrations.AsNoTracking().SingleAsync(x => x.Id == registrationId);
+        Assert.Null(registration.CategoryId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task ReplaceAsync_WhenCategoryHasFights_ReturnsNullAndKeepsData()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var tid = await SeedTournamentAsync(ctx);
+        var store = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var fought = await store.CreateAsync(
+            tid, "U13 W -40 kg", "U13", Gender.Female, 40m, 2014, 2016, null, 180, false, 180, CancellationToken.None);
+        ctx.Fights.Add(new FightRecord
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = tid,
+            CategoryId = fought!.Id,
+            BracketType = "Main",
+            Round = 1,
+            FightNumber = 1,
+            Status = "Pending"
+        });
+        await ctx.SaveChangesAsync();
+
+        var idsWithFights = await store.GetIdsWithFightsAsync(tid, CancellationToken.None);
+        var result = await store.ReplaceAsync(tid, [fought.Id], [NewCategory("U13", 36m)], CancellationToken.None);
+
+        Assert.Contains(fought.Id, idsWithFights);
+        Assert.Null(result);
+        var remaining = await store.GetAllAsync(tid, CancellationToken.None);
+        Assert.Equal(fought.Id, Assert.Single(remaining).Id);
+    }
+
+    private static NewCategory NewCategory(string ageGroup, decimal? weightClassKg) =>
+        new($"{ageGroup} W {weightClassKg}", ageGroup, Gender.Female, weightClassKg, 2014, 2016, null, 180, false, 180);
+
+    private static async Task<Guid> SeedRegistrationAsync(AppDbContext ctx, Guid tournamentId, Guid categoryId)
+    {
+        var club = await new SqliteClubsStore(ctx, NullLogger<SqliteClubsStore>.Instance)
+            .CreateAsync(tournamentId, "JC Test", null, null, null, CancellationToken.None);
+        var athlete = await new SqliteAthletesStore(ctx, NullLogger<SqliteAthletesStore>.Instance)
+            .CreateAsync(tournamentId, club!.Id, "Lina", "Test", 2015, Gender.Female, null, 35m, null, false, CancellationToken.None);
+        var registrations = new SqliteRegistrationsStore(ctx, NullLogger<SqliteRegistrationsStore>.Instance);
+        var registration = await registrations.CreateAsync(tournamentId, athlete!.Id, 35m, true, CancellationToken.None);
+        await registrations.AssignCategoryAsync(registration!.Id, categoryId, CancellationToken.None);
+        ctx.ChangeTracker.Clear();
+        return registration.Id;
+    }
 }

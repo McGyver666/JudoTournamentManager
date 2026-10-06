@@ -197,22 +197,15 @@ export interface CategoryPresetItemRequest {
   weightClassLimitsKg: (number | null)[];
 }
 
-export interface CategoryGenerationGroupSetting {
-  ageGroup: string;
-  genderMode: CategoryGenerationGenderMode;
-  targetAthletesPerCategory: number;
-  maxWeightDeviationKg: number;
-}
-
 export interface GenerateCategoriesRequest {
-  minBirthYear: number | null;
-  maxBirthYear: number | null;
+  ageGroup: string;
   genderMode: CategoryGenerationGenderMode;
   matchDurationSeconds: number;
   goldenScoreEnabled: boolean;
   goldenScoreDurationSeconds: number;
   weightMode: CategoryGenerationWeightMode;
-  groupSettings: CategoryGenerationGroupSetting[];
+  targetAthletesPerCategory: number;
+  maxWeightDeviationKg: number;
 }
 
 export interface GeneratedCategoryProposal {
@@ -229,19 +222,43 @@ export interface GeneratedCategoryProposal {
   source: string;
 }
 
+export interface GeneratedRegistrationPreview {
+  registrationId: string;
+  firstName: string;
+  lastName: string;
+  birthYear: number;
+  gender: Gender;
+  weightKg: number | null;
+  startAgeGroup: string | null;
+}
+
+export interface CategoryGenerationWarning {
+  key: string;
+  count: number | null;
+}
+
 export interface CategoryGenerationPreviewResponse {
   proposedCount: number;
   categories: GeneratedCategoryProposal[];
-  warnings: string[];
+  warnings: CategoryGenerationWarning[];
+  categoriesToReplace: Category[];
+  affectedRegistrations: GeneratedRegistrationPreview[];
+  canApply: boolean;
 }
 
 export interface CategoryGenerationApplyResponse {
   createdCount: number;
   deletedCount: number;
   skippedDuplicateCount: number;
-  skippedLockedCount: number;
   createdCategories: Category[];
-  warnings: string[];
+  warnings: CategoryGenerationWarning[];
+}
+
+/** Warning shown in the preset tab; computed by the backend. */
+export interface CategoryPresetWarning {
+  key: string;
+  ageGroup: string | null;
+  count: number | null;
 }
 
 export interface Club {
@@ -352,6 +369,7 @@ export interface Registration {
   tournamentId: string;
   athleteId: string;
   categoryId: string | null;
+  startAgeGroup: string | null;
   createdAtUtc: string;
 }
 
@@ -366,6 +384,7 @@ export interface RegistrationDetail {
   athleteClubName: string;
   athleteGrade: number | null;
   athleteWeightKg: number | null;
+  startAgeGroup: string | null;
   categoryId: string | null;
   categoryName: string | null;
   categoryAgeGroup: string | null;
@@ -383,11 +402,16 @@ export interface RegistrationDetail {
 export interface CreateRegistrationRequest {
   athleteId: string;
   weightKg: number;
+  startAgeGroup: string | null;
   grade: number | null;
   licenseId: string | null;
   licenseConfirmed: boolean;
   dokumeQrUrl?: string;
   licenseCheckOverrideReason?: string;
+}
+
+export interface UpdateRegistrationStartAgeGroupRequest {
+  startAgeGroup: string | null;
 }
 
 export interface DokumePassCheckResult {
@@ -411,6 +435,7 @@ export interface UnassignedAthlete {
   firstName: string;
   lastName: string;
   reason: string;
+  reasonKey: string | null;
 }
 
 export interface AutoAssignResult {

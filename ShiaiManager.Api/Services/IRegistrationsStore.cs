@@ -43,6 +43,7 @@ public interface IRegistrationsStore
         int? grade,
         bool licenseConfirmed,
         string operatorName,
+        string? startAgeGroup,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -62,8 +63,9 @@ public interface IRegistrationsStore
         IDokumePassParser dokumePassParser,
         DateOnly tournamentDate,
         string operatorName,
-        CancellationToken cancellationToken,
-        int? grade = null);
+        int? grade,
+        string? startAgeGroup,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Deletes a registration. Returns <c>false</c> if the registration was not found.
@@ -76,8 +78,19 @@ public interface IRegistrationsStore
     Task<Registration?> AssignCategoryAsync(Guid registrationId, Guid categoryId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Updates a registration's selected start age group and category assignment.
+    /// </summary>
+    Task<Registration?> UpdateStartAgeGroupAsync(
+        Guid registrationId,
+        string? startAgeGroup,
+        Guid? categoryId,
+        string operatorName,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Automatically assigns all unassigned registrations in a tournament to the best-fitting
-    /// unlocked category based on gender, birth year bounds and weight class.
+    /// unlocked category of the registration's effective age group, matching gender and weight class.
+    /// The category birth-year range is not used for matching.
     /// Already-assigned registrations are left unchanged.
     /// </summary>
     Task<AutoAssignResult> AutoAssignAsync(Guid tournamentId, CancellationToken cancellationToken);

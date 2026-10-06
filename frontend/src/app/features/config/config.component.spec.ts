@@ -55,15 +55,15 @@ describe('ConfigComponent', () => {
     updatedAtUtc: '2026-01-01T00:00:00Z',
   };
 
-  let apiSpy: jasmine.SpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete'>>;
+  let apiSpy: jasmine.SpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete' | 'getCategoryPresetWarnings'>>;
   let context: TournamentContextStub;
   let component: ConfigComponent;
   let fixture: ComponentFixture<ConfigComponent>;
 
   beforeEach(async () => {
-    apiSpy = jasmine.createSpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete'>>(
+    apiSpy = jasmine.createSpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete' | 'getCategoryPresetWarnings'>>(
       'ApiService',
-      ['deleteClub', 'deleteAthlete'],
+      ['deleteClub', 'deleteAthlete', 'getCategoryPresetWarnings'],
     );
     context = new TournamentContextStub();
 
@@ -252,6 +252,7 @@ describe('ConfigComponent', () => {
   });
 
   it('starts new athlete forms without a grade and shows a dash for missing grades', () => {
+    fixture.detectChanges();
     context.tournamentId.set('t-1');
     const testComponent = component as any;
     testComponent.tab.set('athletes');
@@ -371,6 +372,73 @@ describe('ConfigComponent', () => {
     const csv = await (createObjectUrl.calls.first().args[0] as Blob).text();
     expect(csv).toContain('Test;Anna;2012;w;;;');
   });
+
+  it('derives generator modes from tournament presets and groups U9 by weight', () => {
+    const testComponent = component as any;
+    testComponent.presets.set([
+      createPreset('u9-male', 'U9', 'Male', 8, 6, 2018, 2020, []),
+      createPreset('u9-female', 'U9', 'Female', 8, 6, 2018, 2020, []),
+    ]);
+    testComponent.categoryGeneratorForm.ageGroup = 'U9';
+    testComponent.categoryGeneratorForm.genderMode = 'Male';
+
+    expect(testComponent.generationAgeGroups()).toEqual(['U9']);
+    expect(testComponent.generationGenderModes()).toEqual(['Male', 'Female', 'Mixed']);
+    expect(testComponent.canUseStandardWeightClasses()).toBeFalse();
+
+    testComponent.categoryGeneratorForm.weightMode = 'StandardClasses';
+    testComponent.onCategoryGeneratorSelectionChanged();
+    expect(testComponent.categoryGeneratorForm.weightMode).toBe('AthletesByTargetSize');
+  });
+
+  it('shows preset warnings computed by the backend with their translation parameters', () => {
+    context.tournamentId.set('t-1');
+    apiSpy.getCategoryPresetWarnings.and.returnValue(of([
+      { key: 'presets.warningNoAgeGroup', ageGroup: null, count: 2 },
+      { key: 'presets.warningHiddenAgeGroup', ageGroup: 'U11', count: null },
+    ]));
+
+    (component as any).loadPresetWarnings();
+
+    expect(apiSpy.getCategoryPresetWarnings).toHaveBeenCalledWith('t-1');
+    expect((component as any).presetWarnings()).toEqual([
+      { key: 'presets.warningNoAgeGroup', params: { count: 2 } },
+      { key: 'presets.warningHiddenAgeGroup', params: { ageGroup: 'U11' } },
+    ]);
+  });
+
+  it('persists an empty preset weight list instead of an open class', () => {
+    const testComponent = component as any;
+    const preset = createPreset('u9-male', 'U9', 'Male', 8, 6, 2018, 2020, [30]);
+
+    testComponent.parseWeightLimitsInput(preset, '');
+
+    expect(preset.weightClassLimitsKg).toEqual([]);
+  });
+
+  function createPreset(
+    id: string,
+    ageGroup: string,
+    gender: 'Male' | 'Female',
+    maxAgeYears: number,
+    minAgeYears: number,
+    minBirthYear: number,
+    maxBirthYear: number,
+    weightClassLimitsKg: (number | null)[],
+  ) {
+    return {
+      id,
+      ageGroup,
+      gender,
+      maxAgeYears,
+      minAgeYears,
+      minBirthYear,
+      maxBirthYear,
+      defaultMatchDurationSeconds: 120,
+      weightClassLimitsKg,
+      sortOrder: 0,
+    };
+  }
 
   function createAthlete(
     id: string,

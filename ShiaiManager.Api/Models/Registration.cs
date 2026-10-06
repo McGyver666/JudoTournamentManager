@@ -13,4 +13,8 @@ public sealed record Registration(
     Guid TournamentId,
     Guid AthleteId,
     Guid? CategoryId,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc)
+{
+    /// <summary>Optional tournament preset age group selected for higher starting.</summary>
+    public string? StartAgeGroup { get; init; }
+}

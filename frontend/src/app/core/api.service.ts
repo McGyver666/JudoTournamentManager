@@ -14,6 +14,7 @@ import {
   Category,
   CategoryPreset,
   CategoryPresetItemRequest,
+  CategoryPresetWarning,
   ChangePasswordRequest,
   Club,
   CompletedFightSummary,
@@ -67,6 +68,7 @@ import {
   UpdateAthleteRequest,
   UpdateCategoryRequest,
   UpdateClubRequest,
+  UpdateRegistrationStartAgeGroupRequest,
   UpdateTatamiRequest,
   UpdateTournamentRequest,
 } from './models';
@@ -279,6 +281,11 @@ export class ApiService {
       `api/tournaments/${tournamentId}/category-presets`);
   }
 
+  getCategoryPresetWarnings(tournamentId: string): Observable<CategoryPresetWarning[]> {
+    return this.http.get<CategoryPresetWarning[]>(
+      `api/tournaments/${tournamentId}/category-presets/warnings`);
+  }
+
   updateCategoryPresets(
     tournamentId: string,
     presets: CategoryPresetItemRequest[],
@@ -320,6 +327,15 @@ export class ApiService {
     body: CreateRegistrationRequest,
   ): Observable<Registration> {
     return this.http.post<Registration>(`api/tournaments/${tournamentId}/registrations`, body);
+  }
+
+  updateRegistrationStartAgeGroup(
+    tournamentId: string,
+    registrationId: string,
+    body: UpdateRegistrationStartAgeGroupRequest,
+  ): Observable<Registration> {
+    return this.http.put<Registration>(
+      `api/tournaments/${tournamentId}/registrations/${registrationId}/start-age-group`, body);
   }
 
   deleteRegistration(tournamentId: string, registrationId: string): Observable<void> {

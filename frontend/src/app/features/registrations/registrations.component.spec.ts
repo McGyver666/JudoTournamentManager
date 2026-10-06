@@ -11,7 +11,8 @@ import { RegistrationsComponent } from './registrations.component';
 describe('RegistrationsComponent', () => {
   let apiSpy: jasmine.SpyObj<Pick<
     ApiService,
-    'getRegistrations' | 'getAthletes' | 'getCategories' | 'getClubs' | 'createRegistration' | 'updateAthlete'
+    'getRegistrations' | 'getAthletes' | 'getCategories' | 'getClubs' | 'getCategoryPresets'
+    | 'createRegistration' | 'updateAthlete' | 'updateRegistrationStartAgeGroup'
   >>;
   let fixture: ComponentFixture<RegistrationsComponent>;
   let component: RegistrationsComponent;
@@ -22,18 +23,30 @@ describe('RegistrationsComponent', () => {
       'getAthletes',
       'getCategories',
       'getClubs',
+      'getCategoryPresets',
       'createRegistration',
       'updateAthlete',
+      'updateRegistrationStartAgeGroup',
     ]);
     apiSpy.getRegistrations.and.returnValue(of([]));
     apiSpy.getAthletes.and.returnValue(of([createAthlete()]));
     apiSpy.getCategories.and.returnValue(of([]));
     apiSpy.getClubs.and.returnValue(of([]));
+    apiSpy.getCategoryPresets.and.returnValue(of([]));
     apiSpy.createRegistration.and.returnValue(of({
       id: 'registration-1',
       tournamentId: 'tournament-1',
       athleteId: 'athlete-1',
       categoryId: null,
+      startAgeGroup: null,
+      createdAtUtc: '',
+    }));
+    apiSpy.updateRegistrationStartAgeGroup.and.returnValue(of({
+      id: 'registration-1',
+      tournamentId: 'tournament-1',
+      athleteId: 'athlete-1',
+      categoryId: null,
+      startAgeGroup: 'U13',
       createdAtUtc: '',
     }));
     apiSpy.updateAthlete.and.returnValue(of(void 0));
@@ -75,6 +88,7 @@ describe('RegistrationsComponent', () => {
     expect(gradeSelect.selectedIndex).toBe(1);
 
     testComponent.form.weightKg = 65;
+    testComponent.form.startAgeGroup = 'U13';
     testComponent.form.grade = 5;
     testComponent.form.licenseId = 'NEW-456';
 
@@ -85,11 +99,29 @@ describe('RegistrationsComponent', () => {
       jasmine.objectContaining({
         athleteId: 'athlete-1',
         weightKg: 65,
+        startAgeGroup: 'U13',
         licenseId: 'NEW-456',
         grade: 5,
       }),
     );
     expect(apiSpy.updateAthlete).not.toHaveBeenCalled();
+  });
+
+  it('updates the start age group of an existing registration through the registration API', () => {
+    const registration = {
+      id: 'registration-1',
+      athleteGender: 'Male',
+      athleteBirthYear: 2010,
+      startAgeGroup: null,
+    } as any;
+
+    (component as any).updateStartAgeGroup(registration, 'U18');
+
+    expect(apiSpy.updateRegistrationStartAgeGroup).toHaveBeenCalledWith(
+      'tournament-1',
+      'registration-1',
+      { startAgeGroup: 'U18' },
+    );
   });
 
   it('shows the localized belt grade for weighed athletes', () => {
@@ -112,6 +144,36 @@ describe('RegistrationsComponent', () => {
 
     const table = fixture.nativeElement.querySelector('table') as HTMLTableElement;
     expect(table.textContent).toContain('athletes.gradeOption5');
+  });
+
+  it('offers only start age groups of matching gender whose birth-year range covers the athlete', () => {
+    const testComponent = component as any;
+    testComponent.presets.set([
+      { ageGroup: 'U11', gender: 'Male', minBirthYear: 2016, maxBirthYear: 2018 },
+      { ageGroup: 'U13', gender: 'Male', minBirthYear: 2014, maxBirthYear: 2016 },
+      { ageGroup: 'U13', gender: 'Female', minBirthYear: 2014, maxBirthYear: 2016 },
+      { ageGroup: 'Männer', gender: 'Male', minBirthYear: null, maxBirthYear: 2009 },
+    ]);
+
+    expect(testComponent.startAgeGroupOptions('Male', 2016)).toEqual(['U11', 'U13']);
+    expect(testComponent.startAgeGroupOptions('Male', 1990)).toEqual(['Männer']);
+  });
+
+  it('disables start age group changes for locked or drawn categories and for read-only users', () => {
+    const testComponent = component as any;
+    testComponent.categories.set([
+      { id: 'open', isLocked: false, drawFormat: null },
+      { id: 'drawn', isLocked: false, drawFormat: 'RoundRobin' },
+      { id: 'locked', isLocked: true, drawFormat: null },
+    ]);
+
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: null })).toBeFalse();
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'open' })).toBeFalse();
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'drawn' })).toBeTrue();
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'locked' })).toBeTrue();
+
+    (TestBed.inject(AuthStateService) as any).canOperate.set(false);
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'open' })).toBeTrue();
   });
 });
 

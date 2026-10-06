@@ -7,7 +7,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { I18nService } from '../../core/i18n.service';
 import { extractApiError } from '../../core/http-error';
-import { Athlete, Category, Club, Gender, RegistrationDetail } from '../../core/models';
+import { Athlete, Category, CategoryPreset, Club, Gender, RegistrationDetail } from '../../core/models';
 import { QrLicenseScannerComponent } from './qr-license-scanner.component';
 
 /**
@@ -34,6 +34,7 @@ export class RegistrationsComponent implements OnInit {
   protected readonly athletes = signal<Athlete[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly clubs = signal<Club[]>([]);
+  protected readonly presets = signal<CategoryPreset[]>([]);
   protected readonly gradeOptions = ATHLETE_GRADE_OPTIONS;
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -56,6 +57,7 @@ export class RegistrationsComponent implements OnInit {
   protected form = {
     athleteId: '',
     weightKg: 0 as number,
+    startAgeGroup: '',
     grade: null as number | null,
     licenseId: '',
     licenseConfirmed: true,
@@ -134,6 +136,7 @@ export class RegistrationsComponent implements OnInit {
         this.syncActiveAthlete();
       }
     });
+    this.api.getCategoryPresets(id).subscribe({ next: (x) => this.presets.set(x) });
     this.api.getClubs(id).subscribe({ next: (x) => this.clubs.set(x) });
   }
 
@@ -246,6 +249,7 @@ export class RegistrationsComponent implements OnInit {
     this.activeAthleteId.set(selected.id);
     this.form.athleteId = selected.id;
     this.form.weightKg = selected.weightKg ?? 0;
+    this.form.startAgeGroup = '';
     this.form.grade = selected.grade;
     this.form.licenseId = selected.licenseId ?? '';
 
@@ -322,6 +326,7 @@ export class RegistrationsComponent implements OnInit {
     const request = {
       athleteId: this.form.athleteId,
       weightKg: this.form.weightKg,
+      startAgeGroup: this.form.startAgeGroup || null,
       licenseId: this.form.licenseId,
       grade: this.form.grade,
       licenseConfirmed: this.form.licenseConfirmed,
@@ -331,9 +336,11 @@ export class RegistrationsComponent implements OnInit {
 
     this.api.createRegistration(id, request).subscribe({
       next: () => this.afterSuccessfulSave(),
-      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
+      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'), this.translateKey)),
     });
   }
+
+  private readonly translateKey = (key: string): string => this.i18n.translate(key);
 
   protected remove(r: RegistrationDetail): void {
     if (!this.canOperate()) {
@@ -347,6 +354,47 @@ export class RegistrationsComponent implements OnInit {
       next: () => this.registrations.update((list) => list.filter((x) => x.id !== r.id)),
       error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.delete'))),
     });
+  }
+
+  protected updateStartAgeGroup(registration: RegistrationDetail, startAgeGroup: string): void {
+    const id = this.tournamentId;
+    if (!this.canOperate() || !id) {
+      return;
+    }
+
+    this.error.set(null);
+    this.api.updateRegistrationStartAgeGroup(id, registration.id, {
+      startAgeGroup: startAgeGroup || null,
+    }).subscribe({
+      next: () => this.load(),
+      error: (err) => {
+        this.error.set(extractApiError(err, this.i18n.translate('errors.save'), this.translateKey));
+        this.load();
+      },
+    });
+  }
+
+  /** Preset age groups of matching gender whose birth-year range covers the athlete. */
+  protected startAgeGroupOptions(gender: Gender, birthYear: number): string[] {
+    return [...new Set(this.presets()
+      .filter((preset) => preset.gender === gender
+        && (preset.minBirthYear === null || birthYear >= preset.minBirthYear)
+        && (preset.maxBirthYear === null || birthYear <= preset.maxBirthYear))
+      .map((preset) => preset.ageGroup))];
+  }
+
+  protected formStartAgeGroupOptions(): string[] {
+    const athlete = this.athletes().find((item) => item.id === this.form.athleteId);
+    return athlete ? this.startAgeGroupOptions(athlete.gender, athlete.birthYear) : [];
+  }
+
+  protected isStartAgeGroupChangeDisabled(registration: RegistrationDetail): boolean {
+    if (!this.canOperate()) {
+      return true;
+    }
+
+    const category = this.categories().find((item) => item.id === registration.categoryId);
+    return !!category && (category.isLocked || category.drawFormat !== null);
   }
 
   protected weightLabel(kg: number | null): string {
