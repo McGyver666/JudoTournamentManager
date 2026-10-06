@@ -1,0 +1,16 @@
+@if (isHansokuMake()) {
+  <span
+    class="hansoku-make-badge"
+    [class.hansoku-make-badge--xl]="xl()"
+    [attr.aria-label]="('match.shido' | t) + ': ' + ('match.hansokuMake' | t)">{{ 'match.hansokuMake' | t }}</span>
+} @else {
+  <span class="shido-bubbles" [class.shido-bubbles--xl]="xl()" [attr.aria-label]="'match.shido' | t">
+    @for (slot of slots; track slot) {
+      <span
+        class="shido-bubble"
+        [class.shido-bubble--xl]="xl()"
+        [class.shido-bubble--active]="slot < count() && activeClass() === 'shido-bubble--active'"
+        [class.active]="slot < count() && activeClass() === 'active'"></span>
+    }
+  </span>
+}
