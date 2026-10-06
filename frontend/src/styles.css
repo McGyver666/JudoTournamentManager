@@ -736,6 +736,11 @@ tr:last-child td {
   white-space: nowrap;
 }
 
+/* Overview hero variant of app-shido-indicator (lives here because the bubbles are inside the child component). */
+app-tournament-overview .shido-bubbles {gap:.2rem}
+app-tournament-overview .shido-bubble {width:.62rem;height:.62rem;border:1px solid var(--shido);border-radius:50%}
+app-tournament-overview .shido-bubble.active {background:var(--shido)}
+
 app-display .tatami-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}
 
 app-display .tatami-card {
