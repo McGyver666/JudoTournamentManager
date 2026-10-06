@@ -532,6 +532,12 @@ export class DisplayComponent implements OnInit, OnDestroy {
     return this.scoreCount(fight, side, 'shido') >= 3;
   }
 
+  /** True when a started fight's clock is frozen (fight paused or osae-komi paused), incl. golden score. */
+  protected isFightClockStopped(fight: Fight): boolean {
+    return fight.startedAtUtc !== null
+      && (fight.status === 'Paused' || fight.osaeKomiPausedAtUtc !== null);
+  }
+
   protected timerForFight(fight: Fight): string {
     // Bind to the ticking signal to force refresh every second.
     const now = this.nowEpochMs();

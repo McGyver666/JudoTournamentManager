@@ -624,6 +624,7 @@
   "display.noTatamis": "No tatamis found.",
   "display.currentFight": "Current fight",
   "display.fightTime": "Fight time",
+  "display.timeStopped": "Time stopped",
   "display.idle": "No fights",
   "display.nextFight": "Next fight",
   "display.nextFights": "Next fights",

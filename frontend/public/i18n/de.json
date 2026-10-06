@@ -626,6 +626,7 @@
   "display.noTatamis": "Keine Matten gefunden.",
   "display.currentFight": "Aktueller Kampf",
   "display.fightTime": "Kampfzeit",
+  "display.timeStopped": "Zeit gestoppt",
   "display.idle": "Keine Kämpfe",
   "display.nextFight": "Nächster Kampf",
   "display.nextFights": "Nächste Kämpfe",
