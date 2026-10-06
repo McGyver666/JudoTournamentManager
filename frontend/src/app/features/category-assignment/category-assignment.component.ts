@@ -9,7 +9,7 @@ import { AutoAssignResult, Category, Gender, RegistrationDetail } from '../../co
 
 /**
  * Category assignment step between Meldungen and Auslosung.
- * Provides bulk auto-assignment based on gender, birth year and weight, plus
+ * Provides bulk auto-assignment based on effective age group, gender and weight, plus
  * per-athlete manual override via a category dropdown.
  */
 @Component({
@@ -116,17 +116,37 @@ export class CategoryAssignmentComponent implements OnInit {
     });
   }
 
-  protected reassign(reg: RegistrationDetail, categoryId: string): void {
+  protected reassign(reg: RegistrationDetail, select: HTMLSelectElement): void {
     const id = this.tournamentId;
     if (!id) return;
+    const categoryId = select.value;
+    const category = this.categories().find((c) => c.id === categoryId);
+    if (category && !this.isPlausibleBirthYear(category, reg.athleteBirthYear)
+      && !confirm(this.i18n.translate('categoryAssignment.confirmBirthYearOutsideRange', {
+        birthYear: reg.athleteBirthYear,
+        range: this.ageBoundsLabel(category),
+      }))) {
+      select.value = reg.categoryId ?? '';
+      return;
+    }
+
     this.error.set(null);
     this.api.assignCategory(id, reg.id, { categoryId }).subscribe({
       next: () => {
         this.registrations.update((list) =>
           list.map((r) => r.id === reg.id ? { ...r, categoryId } : r));
       },
-      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
+      error: (err) => {
+        select.value = reg.categoryId ?? '';
+        this.error.set(extractApiError(err, this.i18n.translate('errors.save'), (key) => this.i18n.translate(key)));
+      },
     });
+  }
+
+  /** The category birth-year range is only a plausibility hint; the backend does not enforce it. */
+  private isPlausibleBirthYear(category: Category, birthYear: number): boolean {
+    return (category.minBirthYear === null || birthYear >= category.minBirthYear)
+      && (category.maxBirthYear === null || birthYear <= category.maxBirthYear);
   }
 
   protected categoryLabel(c: Category): string {

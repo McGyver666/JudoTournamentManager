@@ -193,10 +193,9 @@ public sealed class RegistrationsController : ControllerBase
         }
 
         var presets = await _categoryPresetsStore.GetAllAsync(tournamentId, cancellationToken);
-        if (!IsValidStartAgeGroup(request.StartAgeGroup, athlete.BirthYear, athlete.Gender, presets))
+        if (!AgeGroupResolver.IsAllowedStartAgeGroup(request.StartAgeGroup, athlete.BirthYear, athlete.Gender, presets))
         {
-            ModelState.AddModelError(nameof(request.StartAgeGroup), "Die Startaltersklasse passt nicht zu Geschlecht und Jahrgang des Athleten.");
-            return ValidationProblem(ModelState);
+            return this.LocalizedValidationProblem(nameof(request.StartAgeGroup), AgeGroupMessages.StartAgeGroupInvalid);
         }
 
         // If DokuMe QR URL provided, use license-aware registration flow
@@ -213,9 +212,9 @@ public sealed class RegistrationsController : ControllerBase
                 _dokumePassParser,
                 tournament.Date,
                 User?.Identity?.Name ?? "system",
-                cancellationToken,
                 request.Grade,
-                request.StartAgeGroup);
+                request.StartAgeGroup,
+                cancellationToken);
 
             if (created is null)
             {
@@ -250,8 +249,8 @@ public sealed class RegistrationsController : ControllerBase
             request.Grade,
             request.LicenseConfirmed,
             User?.Identity?.Name ?? "system",
-            cancellationToken,
-            request.StartAgeGroup);
+            request.StartAgeGroup,
+            cancellationToken);
 
         if (registration is null)
         {
@@ -307,7 +306,7 @@ public sealed class RegistrationsController : ControllerBase
 
     /// <summary>
     /// Automatically assigns all unassigned registrations to the best-fitting unlocked category
-    /// based on gender, birth year, and weight. Already-assigned registrations are skipped.
+    /// of their effective age group, based on gender and weight. Already-assigned registrations are skipped.
     /// </summary>
     [Authorize(Roles = "Admin,Operator")]
     [HttpPost("auto-assign")]
@@ -360,7 +359,9 @@ public sealed class RegistrationsController : ControllerBase
 
     /// <summary>
     /// Assigns a registered athlete to a category.
-    /// Returns 409 Conflict if the athlete is not yet registered or the category is locked.
+    /// The category must belong to the registration's effective age group, accept the athlete's gender
+    /// and not be below the athlete's weight. The category birth-year range is only a plausibility hint.
+    /// Returns 409 Conflict if the category is locked.
     /// </summary>
     [Authorize(Roles = "Admin,Operator")]
     [HttpPost("{registrationId:guid}/category")]
@@ -402,55 +403,27 @@ public sealed class RegistrationsController : ControllerBase
             });
         }
 
-        var registrationDetails = await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken);
-        var details = registrationDetails.FirstOrDefault(x => x.Id == registrationId);
+        var details = await GetRegistrationDetailAsync(tournamentId, registrationId, cancellationToken);
         if (details is null)
         {
             return NotFound();
         }
 
         var presets = await _categoryPresetsStore.GetAllAsync(tournamentId, cancellationToken);
-        var effectiveAgeGroup = AgeGroupResolver.GetEffectiveAgeGroup(
-            details.AthleteBirthYear,
-            details.AthleteGender,
-            registration.StartAgeGroup,
-            presets);
-        if (effectiveAgeGroup is null
-            || !StringComparer.OrdinalIgnoreCase.Equals(category.AgeGroup, effectiveAgeGroup))
+        var effectiveAgeGroup = AgeGroupResolver.GetEffectiveAgeGroup(details, presets);
+        if (effectiveAgeGroup is null || !AgeGroupResolver.IsSameAgeGroup(category.AgeGroup, effectiveAgeGroup))
         {
-            ModelState.AddModelError(nameof(request.CategoryId), "Die Kategorie muss zur effektiven Altersklasse der Meldung passen.");
-            return ValidationProblem(ModelState);
+            return this.LocalizedValidationProblem(nameof(request.CategoryId), AgeGroupMessages.CategoryAgeGroupMismatch);
         }
 
-        if (category.Gender != Gender.Mixed && category.Gender != details.AthleteGender)
+        if (!category.AcceptsGender(details.AthleteGender))
         {
-            ModelState.AddModelError(nameof(request.CategoryId), "Das Geschlecht der Kategorie passt nicht zur Meldung.");
-            return ValidationProblem(ModelState);
+            return this.LocalizedValidationProblem(nameof(request.CategoryId), AgeGroupMessages.CategoryGenderMismatch);
         }
 
-        if ((category.MinBirthYear.HasValue && details.AthleteBirthYear < category.MinBirthYear.Value)
-            || (category.MaxBirthYear.HasValue && details.AthleteBirthYear > category.MaxBirthYear.Value))
+        if (!category.AcceptsWeight(details.AthleteWeightKg))
         {
-            ModelState.AddModelError(nameof(request.CategoryId), "Der Jahrgang liegt außerhalb des plausiblen Kategorienbereichs.");
-            return ValidationProblem(ModelState);
-        }
-
-        var matchingCategories = await _categoriesStore.GetAllAsync(tournamentId, cancellationToken);
-        var previousWeightLimit = matchingCategories
-            .Where(x => StringComparer.OrdinalIgnoreCase.Equals(x.AgeGroup, category.AgeGroup)
-                && x.Gender == category.Gender
-                && x.WeightClassKg.HasValue
-                && (!category.WeightClassKg.HasValue || x.WeightClassKg.Value < category.WeightClassKg.Value))
-            .Select(x => x.WeightClassKg!.Value)
-            .DefaultIfEmpty()
-            .Max();
-        var athleteWeight = details.AthleteWeightKg;
-        if (!athleteWeight.HasValue
-            || (category.WeightClassKg.HasValue && athleteWeight.Value > category.WeightClassKg.Value)
-            || (previousWeightLimit > 0 && athleteWeight.Value <= previousWeightLimit))
-        {
-            ModelState.AddModelError(nameof(request.CategoryId), "Das Gewicht liegt nicht in der gewählten Gewichtsklasse.");
-            return ValidationProblem(ModelState);
+            return this.LocalizedValidationProblem(nameof(request.CategoryId), AgeGroupMessages.WeightAboveCategoryLimit);
         }
 
         var oldCategoryId = registration.CategoryId;
@@ -503,23 +476,21 @@ public sealed class RegistrationsController : ControllerBase
         var normalizedStartAgeGroup = string.IsNullOrWhiteSpace(request.StartAgeGroup)
             ? null
             : request.StartAgeGroup.Trim();
-        if (StringComparer.OrdinalIgnoreCase.Equals(registration.StartAgeGroup, normalizedStartAgeGroup))
+        if (AgeGroupResolver.IsSameAgeGroup(registration.StartAgeGroup, normalizedStartAgeGroup))
         {
             return Ok(registration);
         }
 
-        var details = (await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken))
-            .FirstOrDefault(x => x.Id == registrationId);
+        var details = await GetRegistrationDetailAsync(tournamentId, registrationId, cancellationToken);
         if (details is null)
         {
             return NotFound();
         }
 
         var presets = await _categoryPresetsStore.GetAllAsync(tournamentId, cancellationToken);
-        if (!IsValidStartAgeGroup(normalizedStartAgeGroup, details.AthleteBirthYear, details.AthleteGender, presets))
+        if (!AgeGroupResolver.IsAllowedStartAgeGroup(normalizedStartAgeGroup, details.AthleteBirthYear, details.AthleteGender, presets))
         {
-            ModelState.AddModelError(nameof(request.StartAgeGroup), "Die Startaltersklasse passt nicht zu Geschlecht und Jahrgang des Athleten.");
-            return ValidationProblem(ModelState);
+            return this.LocalizedValidationProblem(nameof(request.StartAgeGroup), AgeGroupMessages.StartAgeGroupInvalid);
         }
 
         Category? oldCategory = null;
@@ -528,12 +499,9 @@ public sealed class RegistrationsController : ControllerBase
             oldCategory = await _categoriesStore.GetByIdAsync(registration.CategoryId.Value, cancellationToken);
             if (oldCategory is not null && (oldCategory.IsLocked || oldCategory.DrawFormat.HasValue))
             {
-                return Conflict(new ProblemDetails
-                {
-                    Title = "Startaltersklasse kann nicht geändert werden.",
-                    Detail = "Die aktuelle Kategorie ist gesperrt oder bereits ausgelost.",
-                    Status = StatusCodes.Status409Conflict
-                });
+                return this.LocalizedConflict(
+                    "Startaltersklasse kann nicht geändert werden.",
+                    AgeGroupMessages.StartAgeGroupCategoryLocked);
             }
         }
 
@@ -544,7 +512,7 @@ public sealed class RegistrationsController : ControllerBase
             presets);
         Guid? nextCategoryId = oldCategory is not null
             && effectiveAgeGroup is not null
-            && StringComparer.OrdinalIgnoreCase.Equals(oldCategory.AgeGroup, effectiveAgeGroup)
+            && AgeGroupResolver.IsSameAgeGroup(oldCategory.AgeGroup, effectiveAgeGroup)
                 ? oldCategory.Id
                 : null;
 
@@ -567,13 +535,12 @@ public sealed class RegistrationsController : ControllerBase
         return Ok(updated);
     }
 
-    private static bool IsValidStartAgeGroup(
-        string? startAgeGroup,
-        int birthYear,
-        Gender gender,
-        IReadOnlyList<TournamentCategoryPreset> presets) =>
-        string.IsNullOrWhiteSpace(startAgeGroup)
-        || AgeGroupResolver.GetEffectiveAgeGroup(birthYear, gender, startAgeGroup, presets) is not null;
+    private async Task<RegistrationDetail?> GetRegistrationDetailAsync(
+        Guid tournamentId,
+        Guid registrationId,
+        CancellationToken cancellationToken) =>
+        (await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken))
+            .FirstOrDefault(x => x.Id == registrationId);
 
     private async Task RefreshAffectedDrawsAsync(
         Guid tournamentId,

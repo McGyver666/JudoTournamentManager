@@ -22,7 +22,7 @@ public sealed class SqliteCategoryPresetsStore : ICategoryPresetsStore
         new("U15",    Gender.Female, 14, 12,   180, [33m, 36m, 40m, 44m, 48m, 52m, 57m, 63m, null]),
         new("U18",    Gender.Female, 17, 15,   240, [40m, 44m, 48m, 52m, 57m, 63m, 70m, 78m, null]),
         new("U21",    Gender.Female, 20, 17,   240, [48m, 52m, 57m, 63m, 70m, 78m, null]),
-        new("Frauen", Gender.Female, 17, null, 240, [48m, 52m, 57m, 63m, 70m, 78m, null]),
+        new("Frauen", Gender.Female, null, 17, 240, [48m, 52m, 57m, 63m, 70m, 78m, null]),
 
         // Male
         new("U9",     Gender.Male, 8, 6,    120, []),
@@ -31,7 +31,7 @@ public sealed class SqliteCategoryPresetsStore : ICategoryPresetsStore
         new("U15",    Gender.Male, 14, 12,   180, [34m, 37m, 40m, 43m, 46m, 50m, 55m, 60m, 66m, null]),
         new("U18",    Gender.Male, 17, 15,   240, [46m, 50m, 55m, 60m, 66m, 73m, 81m, 90m, null]),
         new("U21",    Gender.Male, 20, 17,   240, [60m, 66m, 73m, 81m, 90m, 100m, null]),
-        new("Männer", Gender.Male, 17, null, 240, [60m, 66m, 73m, 81m, 90m, 100m, null]),
+        new("Männer", Gender.Male, null, 17, 240, [60m, 66m, 73m, 81m, 90m, 100m, null]),
     ];
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

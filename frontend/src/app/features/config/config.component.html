@@ -187,8 +187,8 @@
               }
             </div>
           }
-          @if (preview.affectedAthletes.length > 0) {
-            <h4>{{ 'categories.generatorAffectedAthletes' | t }} ({{ preview.affectedAthletes.length }})</h4>
+          @if (preview.affectedRegistrations.length > 0) {
+            <h4>{{ 'categories.generatorAffectedRegistrations' | t }} ({{ preview.affectedRegistrations.length }})</h4>
             <div class="table-wrap">
               <table>
                 <thead>
@@ -201,7 +201,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (athlete of preview.affectedAthletes; track athlete.registrationId) {
+                  @for (athlete of preview.affectedRegistrations; track athlete.registrationId) {
                     <tr>
                       <td>{{ athlete.firstName }}</td>
                       <td>{{ athlete.lastName }}</td>
@@ -734,8 +734,8 @@
             <tr>
               <th>{{ 'presets.ageGroup' | t }}</th>
               <th>{{ 'presets.gender' | t }}</th>
-              <th>{{ 'presets.maxAgeYears' | t }}</th>
               <th>{{ 'presets.minAgeYears' | t }}</th>
+              <th>{{ 'presets.maxAgeYears' | t }}</th>
               <th>{{ 'presets.birthYearRange' | t }}</th>
               <th>{{ 'presets.matchDuration' | t }}</th>
               <th>{{ 'presets.weightLimits' | t }}</th>
@@ -758,12 +758,12 @@
                   </select>
                 </td>
                 <td>
-                  <input type="number" min="1" max="120" [(ngModel)]="p.maxAgeYears" [name]="'pmaxage_' + i"
+                  <input type="number" min="1" max="120" [(ngModel)]="p.minAgeYears" [name]="'pminage_' + i"
                     (ngModelChange)="onPresetChange()" [disabled]="!canOperate()"
                     placeholder="{{ 'common.optional' | t }}" />
                 </td>
                 <td>
-                  <input type="number" min="1" max="120" [(ngModel)]="p.minAgeYears" [name]="'pminage_' + i"
+                  <input type="number" min="1" max="120" [(ngModel)]="p.maxAgeYears" [name]="'pmaxage_' + i"
                     (ngModelChange)="onPresetChange()" [disabled]="!canOperate()"
                     placeholder="{{ 'common.optional' | t }}" />
                 </td>

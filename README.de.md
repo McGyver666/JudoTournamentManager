@@ -47,7 +47,8 @@ Initial admin credentials (save these now):
 
 - Offline-faehiger Turnierbetrieb auf einem Laptop oder im lokalen LAN, optional internet-gehostet hinter nginx.
 - Turnierverwaltung, Vereine, Athleten, Meldungen, Kategorie-Presets und Generierung je Altersklasse. Eine Meldung kann optional in einer kompatiblen höheren Altersklasse starten; die Vorschau zeigt betroffene Meldungen und ersetzt nur die gewählte Altersklasse mit Geschlecht.
-- Standard-Presets enthalten U9 ohne Standardgewichtsklassen (6-8 Jahre); diese Athleten werden anhand ihres Gewichts gruppiert.
+- Standard-Presets enthalten U9 ohne Standardgewichtsklassen (6-8 Jahre); diese Athleten werden anhand ihres Gewichts gruppiert. Die Erwachsenen-Presets (`Männer`/`Frauen`) gelten ab 17 Jahren ohne Altersobergrenze.
+- Jahrgangsbereiche von Kategorien sind nur ein Plausibilitaetshinweis; eine manuelle Zuordnung ausserhalb des Bereichs fragt nach einer Bestaetigung. Backups enthalten die Kategorie-Presets; beim Restore eines aelteren Backups ohne Presets werden die Standard-Presets angelegt.
 - Guertelgrade bei Athleten sind optional; leere CSV-Grade bleiben beim Export und Re-Import leer.
 - Waagenmeldungen akzeptieren eine optionale Startaltersklasse sowie `grade`-Korrekturen (1-14) und `licenseId`-Aenderungen, die atomar mit der Meldung gespeichert werden. Startaltersklassen-Aenderungen werden auditiert und nach Auslosung oder Sperrung abgelehnt.
 - Einzelturnier-Auslosungen, Brackets, Tatami-Zuordnung, Kampfbetrieb und serverautorisierte Zeitmessung.

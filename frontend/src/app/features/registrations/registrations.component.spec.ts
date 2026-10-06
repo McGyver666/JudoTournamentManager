@@ -145,6 +145,36 @@ describe('RegistrationsComponent', () => {
     const table = fixture.nativeElement.querySelector('table') as HTMLTableElement;
     expect(table.textContent).toContain('athletes.gradeOption5');
   });
+
+  it('offers only start age groups of matching gender whose birth-year range covers the athlete', () => {
+    const testComponent = component as any;
+    testComponent.presets.set([
+      { ageGroup: 'U11', gender: 'Male', minBirthYear: 2016, maxBirthYear: 2018 },
+      { ageGroup: 'U13', gender: 'Male', minBirthYear: 2014, maxBirthYear: 2016 },
+      { ageGroup: 'U13', gender: 'Female', minBirthYear: 2014, maxBirthYear: 2016 },
+      { ageGroup: 'Männer', gender: 'Male', minBirthYear: null, maxBirthYear: 2009 },
+    ]);
+
+    expect(testComponent.startAgeGroupOptions('Male', 2016)).toEqual(['U11', 'U13']);
+    expect(testComponent.startAgeGroupOptions('Male', 1990)).toEqual(['Männer']);
+  });
+
+  it('disables start age group changes for locked or drawn categories and for read-only users', () => {
+    const testComponent = component as any;
+    testComponent.categories.set([
+      { id: 'open', isLocked: false, drawFormat: null },
+      { id: 'drawn', isLocked: false, drawFormat: 'RoundRobin' },
+      { id: 'locked', isLocked: true, drawFormat: null },
+    ]);
+
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: null })).toBeFalse();
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'open' })).toBeFalse();
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'drawn' })).toBeTrue();
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'locked' })).toBeTrue();
+
+    (TestBed.inject(AuthStateService) as any).canOperate.set(false);
+    expect(testComponent.isStartAgeGroupChangeDisabled({ categoryId: 'open' })).toBeTrue();
+  });
 });
 
 function createAthlete(): Athlete {

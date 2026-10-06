@@ -29,6 +29,11 @@ public sealed class TournamentBackup
     public IReadOnlyList<TatamiRecord> Tatamis { get; set; } = [];
 
     /// <summary>
+    /// Category presets (age groups) of this tournament. Empty in backups created before presets were exported.
+    /// </summary>
+    public IReadOnlyList<CategoryPresetRecord> CategoryPresets { get; set; } = [];
+
+    /// <summary>
     /// All category records belonging to this tournament.
     /// </summary>
     public IReadOnlyList<CategoryRecord> Categories { get; set; } = [];

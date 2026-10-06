@@ -171,6 +171,105 @@ public sealed class SqliteCategoriesStore : ICategoriesStore
         return true;
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlySet<Guid>> GetIdsWithFightsAsync(Guid tournamentId, CancellationToken cancellationToken)
+    {
+        var ids = await _dbContext.Fights
+            .AsNoTracking()
+            .Where(x => x.TournamentId == tournamentId)
+            .Select(x => x.CategoryId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return ids.ToHashSet();
+    }
+
+    /// <inheritdoc />
+    public async Task<CategoryReplaceResult?> ReplaceAsync(
+        Guid tournamentId,
+        IReadOnlyCollection<Guid> categoryIdsToDelete,
+        IReadOnlyList<NewCategory> categoriesToCreate,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(categoryIdsToDelete);
+        ArgumentNullException.ThrowIfNull(categoriesToCreate);
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        var recordsToDelete = await _dbContext.Categories
+            .Where(x => x.TournamentId == tournamentId && categoryIdsToDelete.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+        var hasFights = await _dbContext.Fights
+            .AnyAsync(x => categoryIdsToDelete.Contains(x.CategoryId), cancellationToken);
+        if (hasFights || recordsToDelete.Any(x => x.IsLocked || x.DrawFormat is not null))
+        {
+            _logger.LogWarning(
+                "Category replacement for tournament {TournamentId} rejected: a category is locked, drawn or has fights.",
+                tournamentId);
+            return null;
+        }
+
+        await _dbContext.Registrations
+            .Where(x => x.CategoryId.HasValue && categoryIdsToDelete.Contains(x.CategoryId.Value))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.CategoryId, (Guid?)null), cancellationToken);
+        _dbContext.Categories.RemoveRange(recordsToDelete);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var existingKeys = await _dbContext.Categories
+            .AsNoTracking()
+            .Where(x => x.TournamentId == tournamentId)
+            .Select(x => new { x.AgeGroup, x.Gender, x.WeightClassKg })
+            .ToListAsync(cancellationToken);
+        var usedKeys = existingKeys
+            .Select(x => (x.AgeGroup, x.Gender, x.WeightClassKg))
+            .ToHashSet();
+
+        var utcNow = DateTimeOffset.UtcNow;
+        var createdRecords = new List<CategoryRecord>();
+        var skippedDuplicateCount = 0;
+        foreach (var category in categoriesToCreate)
+        {
+            var ageGroup = category.AgeGroup.Trim();
+            var gender = category.Gender.ToString();
+            if (!usedKeys.Add((ageGroup, gender, category.WeightClassKg)))
+            {
+                skippedDuplicateCount++;
+                continue;
+            }
+
+            createdRecords.Add(new CategoryRecord
+            {
+                Id = Guid.NewGuid(),
+                TournamentId = tournamentId,
+                Name = category.Name.Trim(),
+                AgeGroup = ageGroup,
+                Gender = gender,
+                WeightClassKg = category.WeightClassKg,
+                MinBirthYear = category.MinBirthYear,
+                MaxBirthYear = category.MaxBirthYear,
+                RulesetNotes = category.RulesetNotes?.Trim(),
+                MatchDurationSeconds = category.MatchDurationSeconds > 0 ? category.MatchDurationSeconds : 300,
+                GoldenScoreEnabled = category.GoldenScoreEnabled,
+                GoldenScoreDurationSeconds = category.GoldenScoreDurationSeconds > 0 ? category.GoldenScoreDurationSeconds : 180,
+                IsLocked = false,
+                CreatedAtUtc = utcNow,
+                UpdatedAtUtc = utcNow
+            });
+        }
+
+        _dbContext.Categories.AddRange(createdRecords);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Categories replaced for tournament {TournamentId}: deleted={Deleted}, created={Created}, duplicateSkipped={DuplicateSkipped}.",
+            tournamentId, recordsToDelete.Count, createdRecords.Count, skippedDuplicateCount);
+        return new CategoryReplaceResult(
+            recordsToDelete.Count,
+            createdRecords.Select(MapToModel).ToArray(),
+            skippedDuplicateCount);
+    }
+
     private static Category MapToModel(CategoryRecord record)
     {
         var gender = Enum.Parse<Gender>(record.Gender);

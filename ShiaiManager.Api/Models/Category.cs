@@ -35,4 +35,16 @@ public sealed record Category(
     BracketFormat? DrawFormat,
     bool IsLocked,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc)
+{
+    /// <summary>
+    /// Whether an athlete of <paramref name="gender"/> may compete in this category.
+    /// </summary>
+    public bool AcceptsGender(Gender gender) => Gender == Gender.Mixed || Gender == gender;
+
+    /// <summary>
+    /// Whether an athlete is not heavier than the weight limit; open classes and unknown weights always fit.
+    /// </summary>
+    public bool AcceptsWeight(decimal? weightKg) =>
+        !WeightClassKg.HasValue || !weightKg.HasValue || weightKg.Value <= WeightClassKg.Value;
+}

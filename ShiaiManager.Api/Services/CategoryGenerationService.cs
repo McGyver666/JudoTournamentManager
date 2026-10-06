@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ShiaiManager.Api.Contracts;
 using ShiaiManager.Api.Models;
 using Microsoft.Extensions.Logging;
@@ -5,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace ShiaiManager.Api.Services;
 
 /// <summary>
-/// Default category generation implementation for the assistant workflow.
+/// Generates the categories of one age group and gender scope from the tournament presets.
 /// </summary>
 public sealed class CategoryGenerationService : ICategoryGenerationService
 {
@@ -45,7 +46,7 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
             proposals.Warnings)
         {
             CategoriesToReplace = proposals.CategoriesToReplace,
-            AffectedAthletes = proposals.AffectedAthletes,
+            AffectedRegistrations = proposals.AffectedRegistrations,
             CanApply = proposals.CanApply
         };
     }
@@ -56,71 +57,51 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
         CancellationToken cancellationToken)
     {
         var proposals = await BuildProposalsAsync(tournamentId, request, cancellationToken);
-        var warnings = proposals.Warnings.ToList();
-
         if (!proposals.CanApply)
         {
-            throw new InvalidOperationException(
-                "Die Kategorien dieser Altersklasse können nicht ersetzt werden, weil mindestens eine gesperrt oder bereits ausgelost ist.");
+            throw new LocalizedOperationException(AgeGroupMessages.CategoriesCannotBeReplaced);
         }
 
-        var deletedCount = 0;
-        foreach (var category in proposals.CategoriesToReplace)
-        {
-            if (await _categoriesStore.DeleteAsync(category.Id, cancellationToken))
-            {
-                deletedCount++;
-            }
-        }
-
-        const int skippedLockedCount = 0;
-        var skippedDuplicateCount = 0;
-        var created = new List<Category>();
-
-        foreach (var proposal in proposals.Categories)
-        {
-            var createdCategory = await _categoriesStore.CreateAsync(
-                tournamentId,
+        var newCategories = proposals.Categories
+            .Select(proposal => new NewCategory(
                 proposal.Name,
                 proposal.AgeGroup,
                 proposal.Gender,
                 proposal.WeightClassKg,
                 proposal.MinBirthYear,
                 proposal.MaxBirthYear,
-                BuildGeneratedNote(proposal.Source),
+                $"{GeneratedMarker} source={proposal.Source}",
                 proposal.MatchDurationSeconds,
                 proposal.GoldenScoreEnabled,
-                proposal.GoldenScoreDurationSeconds,
-                cancellationToken);
+                proposal.GoldenScoreDurationSeconds))
+            .ToList();
 
-            if (createdCategory is null)
-            {
-                skippedDuplicateCount++;
-                continue;
-            }
+        var result = await _categoriesStore.ReplaceAsync(
+            tournamentId,
+            proposals.CategoriesToReplace.Select(c => c.Id).ToList(),
+            newCategories,
+            cancellationToken)
+            // A category may have been drawn or locked between preview and apply.
+            ?? throw new LocalizedOperationException(AgeGroupMessages.CategoriesCannotBeReplaced);
 
-            created.Add(createdCategory);
-        }
-
-        if (skippedDuplicateCount > 0)
+        var warnings = proposals.Warnings.ToList();
+        if (result.SkippedDuplicateCount > 0)
         {
-            warnings.Add(new CategoryGenerationWarning("categories.warningDuplicatesSkipped", skippedDuplicateCount));
+            warnings.Add(new CategoryGenerationWarning("categories.warningDuplicatesSkipped", result.SkippedDuplicateCount));
         }
 
         _logger.LogInformation(
-            "Category generation applied for tournament {TournamentId}: created={Created}, deleted={Deleted}, duplicateSkipped={DuplicateSkipped}, lockedSkipped={LockedSkipped}.",
+            "Category generation applied for tournament {TournamentId}: created={Created}, deleted={Deleted}, duplicateSkipped={DuplicateSkipped}.",
             tournamentId,
-            created.Count,
-            deletedCount,
-            skippedDuplicateCount,
-            skippedLockedCount);
+            result.Created.Count,
+            result.DeletedCount,
+            result.SkippedDuplicateCount);
 
         return new CategoryGenerationApplyResponse(
-            created.Count,
-            deletedCount,
-            skippedDuplicateCount,
-            skippedLockedCount,
-            created,
+            result.Created.Count,
+            result.DeletedCount,
+            result.SkippedDuplicateCount,
+            result.Created,
             warnings);
     }
 
@@ -130,98 +111,85 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
         CancellationToken cancellationToken)
     {
         ValidateRequest(request);
+        var ageGroup = request.AgeGroup.Trim();
+        var genderMode = request.GenderMode!.Value;
 
         var warnings = new List<CategoryGenerationWarning>();
         var registrations = await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken);
+        var presets = await _categoryPresetsStore.GetAllAsync(tournamentId, cancellationToken);
 
-        var storedPresets = await _categoryPresetsStore.GetAllAsync(tournamentId, cancellationToken);
-        var ageGroupPresets = storedPresets
-            .Where(p => StringComparer.OrdinalIgnoreCase.Equals(p.AgeGroup, request.AgeGroup.Trim()))
-            .ToList();
-        var matchingPresets = ageGroupPresets
-            .Where(p => request.GenderMode switch
-            {
-                CategoryGenerationGenderMode.Male => p.Gender == Gender.Male,
-                CategoryGenerationGenderMode.Female => p.Gender == Gender.Female,
-                CategoryGenerationGenderMode.Mixed => p.Gender is Gender.Male or Gender.Female,
-                _ => false
-            })
+        var matchingPresets = presets
+            .Where(p => AgeGroupResolver.IsSameAgeGroup(p.AgeGroup, ageGroup) && MatchesGenderMode(p.Gender, genderMode))
             .ToList();
 
-        if (request.GenderMode == CategoryGenerationGenderMode.Mixed
+        if (genderMode == CategoryGenerationGenderMode.Mixed
             && (!matchingPresets.Any(p => p.Gender == Gender.Male)
                 || !matchingPresets.Any(p => p.Gender == Gender.Female)))
         {
-            throw new InvalidOperationException("Für Mixed müssen männliche und weibliche Presets derselben Altersklasse existieren.");
+            throw new LocalizedOperationException(AgeGroupMessages.MixedRequiresBothGenders);
         }
 
         if (matchingPresets.Count == 0)
         {
-            throw new InvalidOperationException("Für die ausgewählte Altersklasse und das Geschlecht wurde kein Turnier-Preset gefunden.");
+            throw new LocalizedOperationException(AgeGroupMessages.PresetNotFound);
         }
 
         if (request.WeightMode == CategoryGenerationWeightMode.StandardClasses
             && matchingPresets.Any(p => p.WeightClassLimitsKg.Count == 0))
         {
-            throw new InvalidOperationException("Das Preset hat keine Standardgewichtsklassen. Bitte nach Gewicht gruppieren.");
+            throw new LocalizedOperationException(AgeGroupMessages.PresetWithoutStandardClasses);
         }
 
-        var eligibleRegistrations = registrations
-            .Where(r => request.GenderMode switch
-            {
-                CategoryGenerationGenderMode.Male => r.AthleteGender == Gender.Male,
-                CategoryGenerationGenderMode.Female => r.AthleteGender == Gender.Female,
-                CategoryGenerationGenderMode.Mixed => r.AthleteGender is Gender.Male or Gender.Female,
-                _ => false
-            })
-            .Where(r => StringComparer.OrdinalIgnoreCase.Equals(
-                AgeGroupResolver.GetEffectiveAgeGroup(r.AthleteBirthYear, r.AthleteGender, r.StartAgeGroup, storedPresets),
-                request.AgeGroup.Trim()))
-            .ToList();
-
-        var registrationsWithoutPreset = registrations.Count(r =>
-            AgeGroupResolver.GetEffectiveAgeGroup(r.AthleteBirthYear, r.AthleteGender, r.StartAgeGroup, storedPresets) is null);
+        var registrationsWithoutPreset = registrations.Count(r => AgeGroupResolver.GetEffectiveAgeGroup(r, presets) is null);
         if (registrationsWithoutPreset > 0)
         {
             warnings.Add(new CategoryGenerationWarning("categories.warningRegistrationsWithoutPreset", registrationsWithoutPreset));
         }
 
+        var eligibleRegistrations = registrations
+            .Where(r => MatchesGenderMode(r.AthleteGender, genderMode)
+                && AgeGroupResolver.IsSameAgeGroup(AgeGroupResolver.GetEffectiveAgeGroup(r, presets), ageGroup))
+            .ToList();
+
         if (request.WeightMode == CategoryGenerationWeightMode.StandardClasses)
         {
-            var registrationsWithoutWeight = eligibleRegistrations.Count(registration => !registration.AthleteWeightKg.HasValue);
+            var registrationsWithoutWeight = eligibleRegistrations.Count(r => !r.AthleteWeightKg.HasValue);
             if (registrationsWithoutWeight > 0)
             {
                 warnings.Add(new CategoryGenerationWarning("categories.warningStandardClassesWithoutWeight", registrationsWithoutWeight));
             }
         }
 
-        var categories = request.WeightMode switch
+        var categoryGender = ToCategoryGender(genderMode);
+        var (minBirthYear, maxBirthYear) = MergeBirthYearBounds(matchingPresets);
+        var target = new ProposalTarget(ageGroup, categoryGender, minBirthYear, maxBirthYear);
+        var categories = (request.WeightMode switch
         {
-            CategoryGenerationWeightMode.StandardClasses => BuildStandardProposals(matchingPresets, request, eligibleRegistrations, warnings),
-            CategoryGenerationWeightMode.AthletesByTargetSize => BuildAthleteDrivenProposals(request, eligibleRegistrations, warnings, matchingPresets),
-            _ => throw new InvalidOperationException("Unbekannte Gewichtsklassen-Strategie.")
-        };
-
-        var uniqueCategories = categories
-            .GroupBy(c => new { c.AgeGroup, c.Gender, c.WeightClassKg })
+            CategoryGenerationWeightMode.StandardClasses =>
+                BuildStandardProposals(target, matchingPresets, request, eligibleRegistrations),
+            CategoryGenerationWeightMode.AthletesByTargetSize =>
+                BuildAthleteDrivenProposals(target, request, eligibleRegistrations, warnings),
+            _ => throw new UnreachableException()
+        })
+            .GroupBy(c => c.WeightClassKg)
             .Select(g => g.First())
-            .OrderBy(c => c.AgeGroup)
-            .ThenBy(c => c.Gender)
-            .ThenBy(c => c.WeightClassKg ?? decimal.MaxValue)
+            .OrderBy(c => c.WeightClassKg ?? decimal.MaxValue)
             .ToList();
 
-        var categoriesToReplace = (await _categoriesStore.GetAllAsync(tournamentId, cancellationToken) ?? [])
-            .Where(c => StringComparer.OrdinalIgnoreCase.Equals(c.AgeGroup, request.AgeGroup.Trim()))
-            .Where(c => IsSelectedGender(c.Gender, request.GenderMode!.Value))
+        var existingCategories = await _categoriesStore.GetAllAsync(tournamentId, cancellationToken);
+        var categoriesToReplace = existingCategories
+            .Where(c => AgeGroupResolver.IsSameAgeGroup(c.AgeGroup, ageGroup) && c.Gender == categoryGender)
             .ToList();
-        var canApply = !categoriesToReplace.Any(c => c.IsLocked || c.DrawFormat.HasValue);
+        var categoryIdsWithFights = await _categoriesStore.GetIdsWithFightsAsync(tournamentId, cancellationToken);
+        var canApply = !categoriesToReplace.Any(c =>
+            c.IsLocked || c.DrawFormat.HasValue || categoryIdsWithFights.Contains(c.Id));
         if (!canApply)
         {
             warnings.Add(new CategoryGenerationWarning("categories.warningCategoriesLocked"));
         }
 
-        var affectedAthletes = eligibleRegistrations
-            .Select(registration => new GeneratedAthletePreview(
+        var affectedRegistrations = eligibleRegistrations
+            .Select(registration => new GeneratedRegistrationPreview(
                 registration.Id,
                 registration.AthleteFirstName,
                 registration.AthleteLastName,
@@ -231,118 +199,89 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
                 registration.StartAgeGroup))
             .ToList();
 
-        return new ProposalBuildResult(uniqueCategories, warnings, categoriesToReplace, affectedAthletes, canApply);
+        return new ProposalBuildResult(categories, warnings, categoriesToReplace, affectedRegistrations, canApply);
     }
 
     private static void ValidateRequest(GenerateCategoriesRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.AgeGroup))
         {
-            throw new InvalidOperationException("Die Altersklasse ist erforderlich.");
+            throw new LocalizedOperationException(AgeGroupMessages.AgeGroupRequired);
         }
 
-        if (request.GenderMode is null)
+        if (request.GenderMode is not { } genderMode || !Enum.IsDefined(genderMode))
         {
-            throw new InvalidOperationException("Der Geschlechtsmodus ist erforderlich.");
+            throw new LocalizedOperationException(AgeGroupMessages.GenderModeRequired);
         }
 
-        if (request.WeightMode is null)
+        if (request.WeightMode is not { } weightMode || !Enum.IsDefined(weightMode))
         {
-            throw new InvalidOperationException("Die Gewichtsklassen-Strategie ist erforderlich.");
+            throw new LocalizedOperationException(AgeGroupMessages.WeightModeRequired);
         }
 
         if (request.TargetAthletesPerCategory is < 2 or > 64)
         {
-            throw new InvalidOperationException("Die Zielanzahl muss zwischen 2 und 64 liegen.");
+            throw new LocalizedOperationException(AgeGroupMessages.TargetSizeOutOfRange);
         }
 
         if (request.MaxWeightDeviationKg is < 0.1m or > 50m)
         {
-            throw new InvalidOperationException("Die maximale Gewichtsabweichung muss zwischen 0,1 und 50 kg liegen.");
+            throw new LocalizedOperationException(AgeGroupMessages.MaxWeightDeviationOutOfRange);
         }
     }
 
-    private static bool IsSelectedGender(Gender categoryGender, CategoryGenerationGenderMode mode) =>
+    /// <summary>
+    /// Whether an athlete or preset of <paramref name="gender"/> takes part in a run with <paramref name="mode"/>.
+    /// </summary>
+    private static bool MatchesGenderMode(Gender gender, CategoryGenerationGenderMode mode) =>
+        mode == CategoryGenerationGenderMode.Mixed
+            ? gender is Gender.Male or Gender.Female
+            : gender == ToCategoryGender(mode);
+
+    private static Gender ToCategoryGender(CategoryGenerationGenderMode mode) =>
         mode switch
         {
-            CategoryGenerationGenderMode.Male => categoryGender == Gender.Male,
-            CategoryGenerationGenderMode.Female => categoryGender == Gender.Female,
-            CategoryGenerationGenderMode.Mixed => categoryGender == Gender.Mixed,
-            _ => false
+            CategoryGenerationGenderMode.Male => Gender.Male,
+            CategoryGenerationGenderMode.Female => Gender.Female,
+            CategoryGenerationGenderMode.Mixed => Gender.Mixed,
+            _ => throw new UnreachableException()
         };
 
-    private static List<GeneratedCategoryProposal> BuildStandardProposals(
-        IReadOnlyList<TournamentCategoryPreset> storedPresets,
-        GenerateCategoriesRequest request,
-        IReadOnlyList<RegistrationDetail> registrations,
-        List<CategoryGenerationWarning> warnings)
+    private static (int? MinBirthYear, int? MaxBirthYear) MergeBirthYearBounds(
+        IReadOnlyList<TournamentCategoryPreset> presets)
     {
-        var mode = request.GenderMode!.Value;
-        var rows = storedPresets
-            .Where(p => mode switch
-            {
-                CategoryGenerationGenderMode.Male => p.Gender == Gender.Male,
-                CategoryGenerationGenderMode.Female => p.Gender == Gender.Female,
-                CategoryGenerationGenderMode.Mixed => true,
-                _ => false
-            })
-            .Where(p => string.IsNullOrWhiteSpace(request.AgeGroup)
-                || StringComparer.OrdinalIgnoreCase.Equals(p.AgeGroup, request.AgeGroup.Trim()))
-            .Select(p => new StandardPresetRow(
-                p.AgeGroup,
-                mode == CategoryGenerationGenderMode.Mixed ? Gender.Mixed : p.Gender,
-                p.MinBirthYear,
-                p.MaxBirthYear,
-                p.DefaultMatchDurationSeconds,
-                p.WeightClassLimitsKg))
+        var minBirthYear = presets.Any(p => p.MinBirthYear is null) ? null : presets.Min(p => p.MinBirthYear);
+        var maxBirthYear = presets.Any(p => p.MaxBirthYear is null) ? null : presets.Max(p => p.MaxBirthYear);
+        return (minBirthYear, maxBirthYear);
+    }
+
+    private static List<GeneratedCategoryProposal> BuildStandardProposals(
+        ProposalTarget target,
+        IReadOnlyList<TournamentCategoryPreset> presets,
+        GenerateCategoriesRequest request,
+        IReadOnlyList<RegistrationDetail> registrations)
+    {
+        // Mixed runs combine the male and female weight limits of the same age group.
+        var weightLimits = presets
+            .SelectMany(p => p.WeightClassLimitsKg)
+            .Distinct()
+            .OrderBy(limit => limit ?? decimal.MaxValue)
             .ToList();
 
-        // For Mixed mode merge male and female rows by normalized age group
-        if (mode == CategoryGenerationGenderMode.Mixed)
-        {
-            rows = MergeToBeMixedRows(rows);
-        }
-
-        if (rows.Count == 0)
-        {
-            warnings.Add(new CategoryGenerationWarning("categories.warningNoStandardClasses"));
-            return [];
-        }
-
         var proposals = new List<GeneratedCategoryProposal>();
-        foreach (var row in rows)
+        decimal? previousLimit = null;
+        foreach (var limit in weightLimits)
         {
-            decimal? previousLimit = null;
-            foreach (var limit in row.WeightClassLimitsKg)
+            proposals.Add(target.ToProposal(
+                limit,
+                previousLimit,
+                CountAthletesInWeightBand(registrations, previousLimit, limit),
+                request,
+                "standard"));
+
+            if (limit.HasValue)
             {
-                var minYear = row.MinBirthYear;
-                var maxYear = row.MaxBirthYear;
-                var gender = mode == CategoryGenerationGenderMode.Mixed ? Gender.Mixed : row.Gender;
-                var estimatedAthletes = CountMatchingAthletes(
-                    registrations,
-                    gender,
-                    minYear,
-                    maxYear,
-                    previousLimit,
-                    limit);
-
-                proposals.Add(new GeneratedCategoryProposal(
-                    BuildCategoryName(row.AgeGroup, gender, limit, previousLimit),
-                    row.AgeGroup,
-                    gender,
-                    limit,
-                    minYear,
-                    maxYear,
-                    request.MatchDurationSeconds,
-                    request.GoldenScoreEnabled,
-                    request.GoldenScoreDurationSeconds,
-                    estimatedAthletes,
-                    "standard"));
-
-                if (limit.HasValue)
-                {
-                    previousLimit = limit;
-                }
+                previousLimit = limit;
             }
         }
 
@@ -350,140 +289,68 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
     }
 
     private static List<GeneratedCategoryProposal> BuildAthleteDrivenProposals(
+        ProposalTarget target,
         GenerateCategoriesRequest request,
         IReadOnlyList<RegistrationDetail> registrations,
-        List<CategoryGenerationWarning> warnings,
-        IReadOnlyList<TournamentCategoryPreset> presets)
+        List<CategoryGenerationWarning> warnings)
     {
-        var mode = request.GenderMode!.Value;
-
-        var ageGroupRegistrations = registrations
-            .Where(r => mode switch
-            {
-                CategoryGenerationGenderMode.Male => r.AthleteGender == Gender.Male,
-                CategoryGenerationGenderMode.Female => r.AthleteGender == Gender.Female,
-                CategoryGenerationGenderMode.Mixed => r.AthleteGender is Gender.Male or Gender.Female,
-                _ => false
-            })
-            .ToList();
-
-        var usableRegistrations = ageGroupRegistrations
-            .Where(r => r.AthleteWeightKg.HasValue)
-            .ToList();
-
-        var ignoredNoWeight = ageGroupRegistrations.Count(r => !r.AthleteWeightKg.HasValue);
+        var ignoredNoWeight = registrations.Count(r => !r.AthleteWeightKg.HasValue);
         if (ignoredNoWeight > 0)
         {
             warnings.Add(new CategoryGenerationWarning("categories.warningGroupingWithoutWeight", ignoredNoWeight));
         }
 
-        var grouped = usableRegistrations
-            .GroupBy(r => mode == CategoryGenerationGenderMode.Mixed ? Gender.Mixed : r.AthleteGender)
+        var sortedWeights = registrations
+            .Where(r => r.AthleteWeightKg.HasValue)
+            .Select(r => r.AthleteWeightKg!.Value)
+            .OrderBy(x => x)
             .ToList();
 
-        if (grouped.Count == 0)
+        if (sortedWeights.Count == 0)
         {
             warnings.Add(new CategoryGenerationWarning("categories.warningNoWeightedRegistrations"));
             return [];
         }
 
         var proposals = new List<GeneratedCategoryProposal>();
-        foreach (var group in grouped)
+        var index = 0;
+        decimal? previousLimit = null;
+        while (index < sortedWeights.Count)
         {
-            var targetSize = request.TargetAthletesPerCategory;
-            var maxDeviationKg = request.MaxWeightDeviationKg;
+            var start = index;
+            var end = index;
 
-            var sortedWeights = group
-                .Select(x => x.AthleteWeightKg!.Value)
-                .OrderBy(x => x)
-                .ToList();
-
-            var (minBirthYear, maxBirthYear) = ResolvePresetBounds(request.AgeGroup.Trim(), group.Key, presets);
-
-            int index = 0;
-            decimal? previousLimit = null;
-            while (index < sortedWeights.Count)
+            while (end + 1 < sortedWeights.Count
+                && end - start + 1 < request.TargetAthletesPerCategory
+                && sortedWeights[end + 1] - sortedWeights[end] <= request.MaxWeightDeviationKg)
             {
-                var start = index;
-                var end = index;
-
-                while (end + 1 < sortedWeights.Count)
-                {
-                    var count = end - start + 1;
-                    if (count >= targetSize)
-                    {
-                        break;
-                    }
-
-                    var nextGap = sortedWeights[end + 1] - sortedWeights[end];
-                    if (nextGap > maxDeviationKg)
-                    {
-                        break;
-                    }
-
-                    end++;
-                }
-
-                var isLast = end == sortedWeights.Count - 1;
-                decimal? limit = isLast ? null : Math.Round(sortedWeights[end], 1, MidpointRounding.AwayFromZero);
-                var athleteCount = end - start + 1;
-
-                proposals.Add(new GeneratedCategoryProposal(
-                    BuildCategoryName(request.AgeGroup.Trim(), group.Key, limit, previousLimit),
-                    request.AgeGroup.Trim(),
-                    group.Key,
-                    limit,
-                    minBirthYear,
-                    maxBirthYear,
-                    request.MatchDurationSeconds,
-                    request.GoldenScoreEnabled,
-                    request.GoldenScoreDurationSeconds,
-                    athleteCount,
-                    "athlete-target"));
-
-                if (limit.HasValue)
-                {
-                    previousLimit = limit;
-                }
-
-                index = end + 1;
+                end++;
             }
+
+            var isLast = end == sortedWeights.Count - 1;
+            decimal? limit = isLast ? null : Math.Round(sortedWeights[end], 1, MidpointRounding.AwayFromZero);
+            proposals.Add(target.ToProposal(limit, previousLimit, end - start + 1, request, "athlete-target"));
+
+            if (limit.HasValue)
+            {
+                previousLimit = limit;
+            }
+
+            index = end + 1;
         }
 
         return proposals;
     }
 
-    private static List<StandardPresetRow> MergeToBeMixedRows(IEnumerable<StandardPresetRow> rows)
+    private static int CountAthletesInWeightBand(
+        IReadOnlyList<RegistrationDetail> registrations,
+        decimal? lowerExclusiveLimit,
+        decimal? weightLimit)
     {
-        var grouped = rows
-            .GroupBy(x => x.AgeGroup)
-            .Select(g =>
-            {
-                var hasUnboundedMin = g.Any(x => x.MinBirthYear is null);
-                var hasUnboundedMax = g.Any(x => x.MaxBirthYear is null);
-                var minBirthYear = hasUnboundedMin ? (int?)null : g.Min(x => x.MinBirthYear!.Value);
-                var maxBirthYear = hasUnboundedMax
-                    ? (int?)null
-                    : g.Select(x => x.MaxBirthYear!.Value).Max();
-
-                var mergedWeights = g
-                    .SelectMany(x => x.WeightClassLimitsKg)
-                    .Distinct()
-                    .OrderBy(x => x ?? decimal.MaxValue)
-                    .ToList();
-
-                return new StandardPresetRow(
-                    g.Key,
-                    Gender.Mixed,
-                    minBirthYear,
-                    maxBirthYear,
-                    g.Max(x => x.DefaultMatchDurationSeconds),
-                    mergedWeights);
-            })
-            .OrderBy(x => x.AgeGroup)
-            .ToList();
-
-        return grouped;
+        return registrations.Count(r =>
+            r.AthleteWeightKg.HasValue
+            && (!lowerExclusiveLimit.HasValue || r.AthleteWeightKg.Value > lowerExclusiveLimit.Value)
+            && (!weightLimit.HasValue || r.AthleteWeightKg.Value <= weightLimit.Value));
     }
 
     private static string BuildCategoryName(
@@ -509,74 +376,35 @@ public sealed class CategoryGenerationService : ICategoryGenerationService
         return $"{ageGroup} {genderLabel} {weightLabel}";
     }
 
-    private static int CountMatchingAthletes(
-        IReadOnlyList<RegistrationDetail> registrations,
-        Gender categoryGender,
-        int? minBirthYear,
-        int? maxBirthYear,
-        decimal? lowerExclusiveLimit,
-        decimal? weightLimit)
+    /// <summary>
+    /// Age group, gender and preset birth-year range shared by all proposals of one generation run.
+    /// </summary>
+    private sealed record ProposalTarget(string AgeGroup, Gender Gender, int? MinBirthYear, int? MaxBirthYear)
     {
-        return registrations.Count(r =>
-            r.AthleteWeightKg.HasValue
-            && (categoryGender == Gender.Mixed || r.AthleteGender == categoryGender)
-            && (!minBirthYear.HasValue || r.AthleteBirthYear >= minBirthYear.Value)
-            && (!maxBirthYear.HasValue || r.AthleteBirthYear <= maxBirthYear.Value)
-            && (!lowerExclusiveLimit.HasValue || r.AthleteWeightKg.Value > lowerExclusiveLimit.Value)
-            && (!weightLimit.HasValue || r.AthleteWeightKg.Value <= weightLimit.Value));
+        public GeneratedCategoryProposal ToProposal(
+            decimal? weightLimit,
+            decimal? previousLimit,
+            int estimatedAthletes,
+            GenerateCategoriesRequest request,
+            string source) =>
+            new(
+                BuildCategoryName(AgeGroup, Gender, weightLimit, previousLimit),
+                AgeGroup,
+                Gender,
+                weightLimit,
+                MinBirthYear,
+                MaxBirthYear,
+                request.MatchDurationSeconds,
+                request.GoldenScoreEnabled,
+                request.GoldenScoreDurationSeconds,
+                estimatedAthletes,
+                source);
     }
-
-    private static (int? MinBirthYear, int? MaxBirthYear) ResolvePresetBounds(
-        string ageGroup,
-        Gender gender,
-        IReadOnlyList<TournamentCategoryPreset> presets)
-    {
-        var matchingPresets = presets
-            .Where(p => StringComparer.OrdinalIgnoreCase.Equals(p.AgeGroup, ageGroup)
-                && (gender == Gender.Mixed || p.Gender == gender))
-            .ToList();
-
-        if (matchingPresets.Count == 0)
-        {
-            return (null, null);
-        }
-
-        var minBirthYear = matchingPresets.Any(p => p.MinBirthYear is null)
-            ? null
-            : matchingPresets.Min(p => p.MinBirthYear);
-        var maxBirthYear = matchingPresets.Any(p => p.MaxBirthYear is null)
-            ? null
-            : matchingPresets.Max(p => p.MaxBirthYear);
-        return (minBirthYear, maxBirthYear);
-    }
-
-    private static string BuildGroupSettingKey(string ageGroup, CategoryGenerationGenderMode genderMode)
-        => $"{ageGroup.Trim().ToUpperInvariant()}|{genderMode}";
-
-    private static CategoryGenerationGenderMode MapGenderToMode(Gender gender)
-        => gender switch
-        {
-            Gender.Male => CategoryGenerationGenderMode.Male,
-            Gender.Female => CategoryGenerationGenderMode.Female,
-            Gender.Mixed => CategoryGenerationGenderMode.Mixed,
-            _ => throw new InvalidOperationException("Unbekanntes Geschlecht.")
-        };
-
-    private static string BuildGeneratedNote(string source)
-        => $"{GeneratedMarker} source={source}";
-
-    private sealed record StandardPresetRow(
-        string AgeGroup,
-        Gender Gender,
-        int? MinBirthYear,
-        int? MaxBirthYear,
-        int DefaultMatchDurationSeconds,
-        IReadOnlyList<decimal?> WeightClassLimitsKg);
 
     private sealed record ProposalBuildResult(
         IReadOnlyList<GeneratedCategoryProposal> Categories,
         IReadOnlyList<CategoryGenerationWarning> Warnings,
         IReadOnlyList<Category> CategoriesToReplace,
-        IReadOnlyList<GeneratedAthletePreview> AffectedAthletes,
+        IReadOnlyList<GeneratedRegistrationPreview> AffectedRegistrations,
         bool CanApply);
 }

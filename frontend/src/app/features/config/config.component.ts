@@ -73,6 +73,7 @@ export class ConfigComponent implements OnInit {
   protected readonly selectedAthleteClubId = signal('');
   protected readonly registrations = signal<RegistrationDetail[]>([]);
   protected readonly presets = signal<CategoryPreset[]>([]);
+  protected readonly presetWarnings = signal<PresetWarning[]>([]);
   protected readonly teamMatchday = signal<TeamMatchday | null>(null);
   protected readonly teamMatchdayInfo = signal<string | null>(null);
   protected teamForm = { clubId: '', name: '' };
@@ -259,6 +260,7 @@ export class ConfigComponent implements OnInit {
     this.api.getAthletes(id).subscribe({ next: (x) => this.setAthletes(x), error: this.onLoadError });
     this.api.getRegistrations(id).subscribe({ next: (x) => this.registrations.set(x), error: this.onLoadError });
     this.api.getCategoryPresets(id).subscribe({ next: (x) => this.presets.set(x), error: this.onLoadError });
+    this.loadPresetWarnings();
     if (this.context.tournament()?.competitionMode === 'TeamMatchday') {
       this.api.getTeamMatchday(id).subscribe({
         next: (x) => {
@@ -298,6 +300,27 @@ export class ConfigComponent implements OnInit {
 
   private readonly onSaveError = (err: unknown): void =>
     this.error.set(extractApiError(err, this.i18n.translate('errors.save')));
+
+  private readonly translateKey = (key: string): string => this.i18n.translate(key);
+
+  private loadPresetWarnings(): void {
+    const id = this.tournamentId;
+    if (!id || !this.canOperate()) {
+      this.presetWarnings.set([]);
+      return;
+    }
+
+    this.api.getCategoryPresetWarnings(id).subscribe({
+      next: (warnings) => this.presetWarnings.set(warnings.map((warning) => ({
+        key: warning.key,
+        params: {
+          ...(warning.ageGroup !== null ? { ageGroup: warning.ageGroup } : {}),
+          ...(warning.count !== null ? { count: warning.count } : {}),
+        },
+      }))),
+      error: this.onLoadError,
+    });
+  }
 
   // --- Tatamis -----------------------------------------------------------
   protected newTatami(): void {
@@ -414,6 +437,7 @@ export class ConfigComponent implements OnInit {
       next: () => {
         this.showCategoryForm.set(false);
         this.api.getCategories(id).subscribe({ next: (x) => this.categories.set(x) });
+        this.loadPresetWarnings();
       },
       error: this.onSaveError,
     });
@@ -431,6 +455,7 @@ export class ConfigComponent implements OnInit {
       next: () => {
         this.categories.update((list) => list.filter((x) => x.id !== c.id));
         this.api.getRegistrations(id).subscribe({ next: (x) => this.registrations.set(x) });
+        this.loadPresetWarnings();
       },
       error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.delete'))),
     });
@@ -552,7 +577,7 @@ export class ConfigComponent implements OnInit {
       },
       error: (err) => {
         this.categoryGeneratorBusy.set(false);
-        this.error.set(extractApiError(err, this.i18n.translate('errors.load')));
+        this.error.set(extractApiError(err, this.i18n.translate('errors.load'), this.translateKey));
       },
     });
   }
@@ -578,10 +603,11 @@ export class ConfigComponent implements OnInit {
         this.showCategoryGenerator.set(false);
         this.api.getCategories(id).subscribe({ next: (x) => this.categories.set(x) });
         this.api.getRegistrations(id).subscribe({ next: (x) => this.registrations.set(x) });
+        this.loadPresetWarnings();
       },
       error: (err) => {
         this.categoryGeneratorBusy.set(false);
-        this.error.set(extractApiError(err, this.i18n.translate('errors.save')));
+        this.error.set(extractApiError(err, this.i18n.translate('errors.save'), this.translateKey));
       },
     });
   }
@@ -1150,74 +1176,6 @@ export class ConfigComponent implements OnInit {
     return `${min} – ${max}`;
   }
 
-  protected presetWarnings(): PresetWarning[] {
-    const warnings: PresetWarning[] = [];
-    const presets = this.presets();
-    const currentYear = Number(this.context.tournament()?.date.slice(0, 4)) || new Date().getFullYear();
-    const missingAgeGroupCount = this.registrations().filter((registration) =>
-      this.effectiveAgeGroup(registration, presets) === null).length;
-
-    if (missingAgeGroupCount > 0) {
-      warnings.push({ key: 'presets.warningNoAgeGroup', params: { count: missingAgeGroupCount } });
-    }
-
-    for (const preset of presets) {
-      const firstYear = preset.minBirthYear ?? currentYear - 120;
-      const lastYear = preset.maxBirthYear ?? currentYear + 1;
-      let canBeNatural = false;
-      for (let birthYear = firstYear; birthYear <= lastYear; birthYear++) {
-        if (this.naturalPreset(birthYear, preset.gender, presets)?.id === preset.id) {
-          canBeNatural = true;
-          break;
-        }
-      }
-
-      if (!canBeNatural) {
-        warnings.push({ key: 'presets.warningHiddenAgeGroup', params: { ageGroup: preset.ageGroup } });
-      }
-    }
-
-    const orphanAgeGroups = new Set(this.categories()
-      .filter((category) => !presets.some((preset) =>
-        preset.ageGroup === category.ageGroup
-        && (category.gender === 'Mixed'
-          ? preset.gender === 'Male' || preset.gender === 'Female'
-          : preset.gender === category.gender)))
-      .map((category) => category.ageGroup));
-    for (const ageGroup of orphanAgeGroups) {
-      warnings.push({ key: 'presets.warningOrphanCategory', params: { ageGroup } });
-    }
-
-    return warnings;
-  }
-
-  private effectiveAgeGroup(registration: RegistrationDetail, presets: CategoryPreset[]): string | null {
-    if (registration.startAgeGroup) {
-      const selectedPreset = presets.find((preset) =>
-        preset.gender === registration.athleteGender
-        && preset.ageGroup.toLocaleLowerCase() === registration.startAgeGroup?.toLocaleLowerCase()
-        && this.presetCoversBirthYear(preset, registration.athleteBirthYear));
-      return selectedPreset?.ageGroup ?? null;
-    }
-
-    return this.naturalPreset(registration.athleteBirthYear, registration.athleteGender, presets)?.ageGroup ?? null;
-  }
-
-  private naturalPreset(birthYear: number, gender: Gender, presets: CategoryPreset[]): CategoryPreset | null {
-    return presets
-      .filter((preset) => preset.gender === gender && this.presetCoversBirthYear(preset, birthYear))
-      .sort((left, right) =>
-        (left.minAgeYears ?? Number.MAX_SAFE_INTEGER) - (right.minAgeYears ?? Number.MAX_SAFE_INTEGER)
-        || (left.maxAgeYears ?? Number.MAX_SAFE_INTEGER) - (right.maxAgeYears ?? Number.MAX_SAFE_INTEGER)
-        || left.ageGroup.localeCompare(right.ageGroup))
-      .at(0) ?? null;
-  }
-
-  private presetCoversBirthYear(preset: CategoryPreset, birthYear: number): boolean {
-    return (preset.minBirthYear === null || birthYear >= preset.minBirthYear)
-      && (preset.maxBirthYear === null || birthYear <= preset.maxBirthYear);
-  }
-
   protected addPresetRow(): void {
     if (!this.canOperate()) {
       return;
@@ -1277,6 +1235,7 @@ export class ConfigComponent implements OnInit {
       next: (saved) => {
         this.presets.set(saved);
         this.presetsDirty = false;
+        this.loadPresetWarnings();
       },
       error: this.onSaveError,
     });
@@ -1297,6 +1256,7 @@ export class ConfigComponent implements OnInit {
       next: (saved) => {
         this.presets.set(saved);
         this.presetsDirty = false;
+        this.loadPresetWarnings();
       },
       error: this.onSaveError,
     });
