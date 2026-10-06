@@ -336,9 +336,11 @@ export class RegistrationsComponent implements OnInit {
 
     this.api.createRegistration(id, request).subscribe({
       next: () => this.afterSuccessfulSave(),
-      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
+      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'), this.translateKey)),
     });
   }
+
+  private readonly translateKey = (key: string): string => this.i18n.translate(key);
 
   protected remove(r: RegistrationDetail): void {
     if (!this.canOperate()) {
@@ -365,21 +367,25 @@ export class RegistrationsComponent implements OnInit {
       startAgeGroup: startAgeGroup || null,
     }).subscribe({
       next: () => this.load(),
-      error: (err) => this.error.set(extractApiError(err, this.i18n.translate('errors.save'))),
+      error: (err) => {
+        this.error.set(extractApiError(err, this.i18n.translate('errors.save'), this.translateKey));
+        this.load();
+      },
     });
   }
 
-  protected startAgeGroupOptions(): string[] {
-    const athlete = this.athletes().find((item) => item.id === this.form.athleteId);
-    if (!athlete) {
-      return [];
-    }
-
+  /** Preset age groups of matching gender whose birth-year range covers the athlete. */
+  protected startAgeGroupOptions(gender: Gender, birthYear: number): string[] {
     return [...new Set(this.presets()
-      .filter((preset) => preset.gender === athlete.gender)
-      .filter((preset) => preset.minBirthYear === null || athlete.birthYear >= preset.minBirthYear)
-      .filter((preset) => preset.maxBirthYear === null || athlete.birthYear <= preset.maxBirthYear)
+      .filter((preset) => preset.gender === gender
+        && (preset.minBirthYear === null || birthYear >= preset.minBirthYear)
+        && (preset.maxBirthYear === null || birthYear <= preset.maxBirthYear))
       .map((preset) => preset.ageGroup))];
+  }
+
+  protected formStartAgeGroupOptions(): string[] {
+    const athlete = this.athletes().find((item) => item.id === this.form.athleteId);
+    return athlete ? this.startAgeGroupOptions(athlete.gender, athlete.birthYear) : [];
   }
 
   protected isStartAgeGroupChangeDisabled(registration: RegistrationDetail): boolean {

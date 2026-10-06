@@ -55,15 +55,15 @@ describe('ConfigComponent', () => {
     updatedAtUtc: '2026-01-01T00:00:00Z',
   };
 
-  let apiSpy: jasmine.SpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete'>>;
+  let apiSpy: jasmine.SpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete' | 'getCategoryPresetWarnings'>>;
   let context: TournamentContextStub;
   let component: ConfigComponent;
   let fixture: ComponentFixture<ConfigComponent>;
 
   beforeEach(async () => {
-    apiSpy = jasmine.createSpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete'>>(
+    apiSpy = jasmine.createSpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete' | 'getCategoryPresetWarnings'>>(
       'ApiService',
-      ['deleteClub', 'deleteAthlete'],
+      ['deleteClub', 'deleteAthlete', 'getCategoryPresetWarnings'],
     );
     context = new TournamentContextStub();
 
@@ -391,21 +391,20 @@ describe('ConfigComponent', () => {
     expect(testComponent.categoryGeneratorForm.weightMode).toBe('AthletesByTargetSize');
   });
 
-  it('reports missing natural age groups, hidden presets, and orphan categories', () => {
-    const testComponent = component as any;
-    testComponent.presets.set([
-      createPreset('open-male', 'Open', 'Male', 120, 1, 1906, 2025, []),
-      createPreset('hidden-u11', 'U11', 'Male', 10, 8, 2016, 2018, []),
-    ]);
-    testComponent.registrations.set([
-      { athleteBirthYear: 2017, athleteGender: 'Female', startAgeGroup: null },
-    ]);
-    testComponent.categories.set([{ ageGroup: 'Removed', gender: 'Male' }]);
+  it('shows preset warnings computed by the backend with their translation parameters', () => {
+    context.tournamentId.set('t-1');
+    apiSpy.getCategoryPresetWarnings.and.returnValue(of([
+      { key: 'presets.warningNoAgeGroup', ageGroup: null, count: 2 },
+      { key: 'presets.warningHiddenAgeGroup', ageGroup: 'U11', count: null },
+    ]));
 
-    const warningKeys = testComponent.presetWarnings().map((warning: { key: string }) => warning.key);
-    expect(warningKeys).toContain('presets.warningNoAgeGroup');
-    expect(warningKeys).toContain('presets.warningHiddenAgeGroup');
-    expect(warningKeys).toContain('presets.warningOrphanCategory');
+    (component as any).loadPresetWarnings();
+
+    expect(apiSpy.getCategoryPresetWarnings).toHaveBeenCalledWith('t-1');
+    expect((component as any).presetWarnings()).toEqual([
+      { key: 'presets.warningNoAgeGroup', params: { count: 2 } },
+      { key: 'presets.warningHiddenAgeGroup', params: { ageGroup: 'U11' } },
+    ]);
   });
 
   it('persists an empty preset weight list instead of an open class', () => {

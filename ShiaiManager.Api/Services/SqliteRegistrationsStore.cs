@@ -12,16 +12,31 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
 {
     private readonly AppDbContext _dbContext;
     private readonly ILogger<SqliteRegistrationsStore> _logger;
+    private readonly ICategoryPresetsStore _categoryPresetsStore;
 
     /// <summary>
     /// Initializes a new store instance.
     /// </summary>
-    public SqliteRegistrationsStore(AppDbContext dbContext, ILogger<SqliteRegistrationsStore> logger)
+    public SqliteRegistrationsStore(
+        AppDbContext dbContext,
+        ILogger<SqliteRegistrationsStore> logger,
+        ICategoryPresetsStore categoryPresetsStore)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(categoryPresetsStore);
         _dbContext = dbContext;
         _logger = logger;
+        _categoryPresetsStore = categoryPresetsStore;
+    }
+
+    /// <summary>
+    /// Initializes a new store instance.
+    /// Compatibility constructor for tests that do not provide a preset store.
+    /// </summary>
+    public SqliteRegistrationsStore(AppDbContext dbContext, ILogger<SqliteRegistrationsStore> logger)
+        : this(dbContext, logger, new SqliteCategoryPresetsStore(dbContext))
+    {
     }
 
     /// <inheritdoc />
@@ -63,7 +78,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         CancellationToken cancellationToken)
     {
         return await CreateAtWeighInAsync(
-            tournamentId, athleteId, weightKg, null, null, licenseConfirmed, "system", cancellationToken);
+            tournamentId, athleteId, weightKg, null, null, licenseConfirmed, "system", null, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -75,8 +90,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         int? grade,
         bool licenseConfirmed,
         string operatorName,
-        CancellationToken cancellationToken,
-        string? startAgeGroup = null)
+        string? startAgeGroup,
+        CancellationToken cancellationToken)
     {
         var alreadyRegistered = await _dbContext.Registrations.AnyAsync(
             x => x.AthleteId == athleteId && x.TournamentId == tournamentId,
@@ -135,7 +150,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         CancellationToken cancellationToken)
     {
         return await CreateAtWeighInAsync(
-            tournamentId, athleteId, weightKg, licenseId, null, licenseConfirmed, "system", cancellationToken);
+            tournamentId, athleteId, weightKg, licenseId, null, licenseConfirmed, "system", null, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -150,9 +165,9 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         IDokumePassParser dokumePassParser,
         DateOnly tournamentDate,
         string operatorName,
-        CancellationToken cancellationToken,
-        int? grade = null,
-        string? startAgeGroup = null)
+        int? grade,
+        string? startAgeGroup,
+        CancellationToken cancellationToken)
     {
         var alreadyRegistered = await _dbContext.Registrations
             .AnyAsync(x => x.AthleteId == athleteId && x.TournamentId == tournamentId, cancellationToken);
@@ -258,6 +273,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             dokumePassParser,
             tournamentDate,
             operatorName,
+            null,
+            null,
             CancellationToken.None);
     }
 
@@ -287,6 +304,8 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             dokumePassParser,
             tournamentDate,
             operatorName,
+            null,
+            null,
             cancellationToken);
     }
 
@@ -351,15 +370,12 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         record.StartAgeGroup = normalizedStartAgeGroup;
         record.CategoryId = categoryId;
 
-        if (!StringComparer.OrdinalIgnoreCase.Equals(previousStartAgeGroup, normalizedStartAgeGroup))
-        {
-            AddStartAgeGroupAudit(
-                record.TournamentId,
-                record.Id,
-                previousStartAgeGroup,
-                normalizedStartAgeGroup,
-                operatorName);
-        }
+        AddStartAgeGroupAudit(
+            record.TournamentId,
+            record.Id,
+            previousStartAgeGroup,
+            normalizedStartAgeGroup,
+            operatorName);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         return MapToModel(record);
@@ -381,8 +397,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
             return new AutoAssignResult(0, 0, []);
         }
 
-        var presets = await new SqliteCategoryPresetsStore(_dbContext)
-            .GetAllAsync(tournamentId, cancellationToken);
+        var presets = await _categoryPresetsStore.GetAllAsync(tournamentId, cancellationToken);
 
         // Load all unlocked categories for the tournament.
         var categories = await _dbContext.Categories
@@ -406,18 +421,19 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
 
             if (effectiveAgeGroup is null)
             {
-                const string reason = "Für den Jahrgang wurde keine passende Altersklasse in den Turnier-Presets gefunden.";
-                unassigned.Add(new UnassignedAthlete(athlete.Id, athlete.FirstName, athlete.LastName, reason));
+                var noAgeGroup = AgeGroupMessages.NoPresetForBirthYear;
+                unassigned.Add(new UnassignedAthlete(athlete.Id, athlete.FirstName, athlete.LastName, noAgeGroup.Text)
+                {
+                    ReasonKey = noAgeGroup.Key
+                });
                 continue;
             }
 
-            // Find candidate categories matching gender, birth year bounds, and weight.
+            // The category birth-year range is only a plausibility hint, so it is not used for matching.
             var candidates = categories
                 .Where(c =>
-                    StringComparer.OrdinalIgnoreCase.Equals(c.AgeGroup, effectiveAgeGroup)
+                    AgeGroupResolver.IsSameAgeGroup(c.AgeGroup, effectiveAgeGroup)
                     && (c.Gender == athleteGender || c.Gender == Gender.Mixed.ToString())
-                    && (c.MinBirthYear == null || birthYear >= c.MinBirthYear)
-                    && (c.MaxBirthYear == null || birthYear <= c.MaxBirthYear)
                     && (c.WeightClassKg == null || (weightKg != null && weightKg <= c.WeightClassKg)))
                 // Prefer exact gender classes over mixed, then smallest fitting weight.
                 .OrderBy(c => c.Gender == athleteGender ? 0 : 1)
@@ -562,7 +578,7 @@ public sealed class SqliteRegistrationsStore : IRegistrationsStore
         string? nextStartAgeGroup,
         string operatorName)
     {
-        if (StringComparer.OrdinalIgnoreCase.Equals(previousStartAgeGroup, nextStartAgeGroup))
+        if (AgeGroupResolver.IsSameAgeGroup(previousStartAgeGroup, nextStartAgeGroup))
         {
             return;
         }

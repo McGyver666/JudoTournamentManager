@@ -61,7 +61,7 @@ Use these terms as-is (German primary) in issues, tests, and code names; don't d
 - **Athlet** (Athlete) — a competitor; imported from DM4/DMF files or entered manually.
 - **Altersklasse** (Category / age group) — defined by a tournament category preset and used to
   group registrations. Presets may overlap; the natural class is the matching preset with the
-  smallest minimum age, then the smallest maximum age. See [ADR-0011](docs/adr/0011-age-groups-start-age-group-and-generation.md).
+  smallest minimum age (no minimum counts as lowest), then the smallest maximum age. See [ADR-0011](docs/adr/0011-age-groups-start-age-group-and-generation.md).
 - **Natürliche Altersklasse** (Natural age group) — the matching gender preset selected by the
   deterministic age-range ordering when a registration has no start-age override.
 - **Startaltersklasse** (Start age group) — optional compatible preset selected for a registration

@@ -37,24 +37,38 @@ The same `startAgeGroup` field may be changed later through the PUT endpoint by 
 The change is audited as `RegistrationStartAgeGroupChanged`; if the current category no longer
 matches the effective age group, an unlocked assignment is cleared. Changes are rejected with
 `409 Conflict` when the current category is drawn or locked. Manual and automatic assignment require
-the effective age group, gender, and weight to match; category birth-year bounds are a plausibility
-check. A null grade preserves the athlete's stored grade; a null license ID preserves the stored
-license number, while an empty string clears it. Supplied athlete corrections are saved atomically
-with the registration.
+the category to belong to the effective age group and accept the athlete's gender. Manual
+assignment rejects only athletes heavier than the category limit; an unknown weight or a heavier
+weight class is allowed. Automatic assignment picks the lightest fitting class. Category birth-year
+bounds are only a plausibility check: the API does not enforce them, and the assignment page asks
+for confirmation before assigning outside the range. A null grade preserves the athlete's stored
+grade; a null license ID preserves the stored license number, while an empty string clears it.
+Supplied athlete corrections are saved atomically with the registration. Auto-assignment results
+carry an optional `reasonKey` translation key for each unassigned athlete.
 
 Category generation selects exactly one `ageGroup` and a gender mode (`Male`, `Female`, or `Mixed`).
 Mixed is available only when male and female presets for that age group both exist. The request has
 no birth-year filters and carries one `targetAthletesPerCategory` and `maxWeightDeviationKg` value.
 `StandardClasses` requires preset weight limits; presets with no limits are grouped from registered
-weights. The preview returns affected registrations, proposed categories, `categoriesToReplace`,
-warnings, and `canApply`. Applying replaces categories for the selected age group and gender; it
-returns a validation error if any affected category is drawn or locked. Generated categories inherit
-the preset's birth-year range. Applying generation leaves other age groups untouched.
+weights. The preview returns `affectedRegistrations`, proposed categories, `categoriesToReplace`,
+warnings, and `canApply`. Applying replaces categories for the selected age group and gender in one
+transaction, clears the category assignments of the replaced categories, and writes a
+`CategoriesGenerated` audit entry. It returns a validation error if any affected category is drawn,
+locked, or already has fights. The apply response contains `createdCount`, `deletedCount`,
+`skippedDuplicateCount`, `createdCategories`, and `warnings`. Generated categories inherit the
+preset's birth-year range. Applying generation leaves other age groups untouched.
+
+Validation and conflict responses of age-group, start-age-group, assignment, and generation
+endpoints carry a `messageKey` ProblemDetails extension (for example
+`errors.ageGroups.startAgeGroupInvalid`). The frontend translates the key; the German text remains in
+`errors`/`detail` for other clients.
 
 Default category presets for new tournaments and the reset action include U9 (ages 6-8, 120-second
-matches, no standard weight limits) for both genders. Existing tournaments are not automatically
-modified. The nullable registration `StartAgeGroup` database column is migrated with a null default,
-so older backups continue to use the natural age group.
+matches, no standard weight limits) for both genders. The adult presets `Männer`/`Frauen` have a
+minimum age of 17 and no maximum age. Existing tournaments do not get U9 automatically; a migration
+only corrects unedited adult presets that were seeded as "at most 17 years". The nullable
+registration `StartAgeGroup` database column is migrated with a null default, so older backups
+continue to use the natural age group.
 
 - `POST /api/tournaments/{tournamentId}/categories/{categoryId}/draw`
 - `GET /api/tournaments/{tournamentId}/categories/{categoryId}/fights`
@@ -63,6 +77,7 @@ so older backups continue to use the natural age group.
 - `GET /api/tournaments/{tournamentId}/categories/{categoryId}/standings`
 
 - `GET/PUT /api/tournaments/{tournamentId}/category-presets`
+- `GET /api/tournaments/{tournamentId}/category-presets/warnings` (Admin/Operator; registrations without age group, presets that can never be a natural age group, categories whose age group has no preset)
 - `POST /api/tournaments/{tournamentId}/category-presets/reset-defaults`
 
 - `GET /api/tournaments/{tournamentId}/tatamis/{tatamiId}/queue`
@@ -87,8 +102,8 @@ so older backups continue to use the natural age group.
 - `GET /api/tournaments/{tournamentId}/club-scoring/global`
 - `GET /api/tournaments/{tournamentId}/results/export` (Admin/Operator; UTF-8 mit BOM, Semikolon, vorläufige Einzelplatzierungen)
 - `GET /api/tournaments/{tournamentId}/audit-log`
-- `GET /api/tournaments/{tournamentId}/backup` (Admin; JSON download)
-- `POST /api/tournaments/restore` (Admin; JSON restore, max. 50 MB; larger bodies return `413`)
+- `GET /api/tournaments/{tournamentId}/backup` (Admin; JSON download, includes `categoryPresets`)
+- `POST /api/tournaments/restore` (Admin; JSON restore, max. 50 MB; larger bodies return `413`; backups without `categoryPresets` get the default presets of the tournament year)
 
 - `GET /api/tournaments/{tournamentId}/team-matchday`
 - `POST /api/tournaments/{tournamentId}/team-matchday/teams`

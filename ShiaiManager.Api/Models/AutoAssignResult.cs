@@ -11,7 +11,13 @@ public sealed record UnassignedAthlete(
     Guid AthleteId,
     string FirstName,
     string LastName,
-    string Reason);
+    string Reason)
+{
+    /// <summary>
+    /// Optional frontend translation key for <see cref="Reason"/>.
+    /// </summary>
+    public string? ReasonKey { get; init; }
+}
 
 /// <summary>
 /// Summary returned after an auto-assignment run.

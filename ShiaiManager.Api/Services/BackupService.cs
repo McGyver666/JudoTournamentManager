@@ -12,14 +12,17 @@ public sealed class BackupService : IBackupService
     private const string SupportedVersion = "1.0";
 
     private readonly AppDbContext _dbContext;
+    private readonly ICategoryPresetsStore _categoryPresetsStore;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BackupService"/>.
     /// </summary>
-    public BackupService(AppDbContext dbContext)
+    public BackupService(AppDbContext dbContext, ICategoryPresetsStore categoryPresetsStore)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(categoryPresetsStore);
         _dbContext = dbContext;
+        _categoryPresetsStore = categoryPresetsStore;
     }
 
     /// <inheritdoc />
@@ -35,6 +38,11 @@ public sealed class BackupService : IBackupService
         }
 
         var tatamis = await _dbContext.Tatamis
+            .AsNoTracking()
+            .Where(x => x.TournamentId == tournamentId)
+            .ToListAsync(cancellationToken);
+
+        var categoryPresets = await _dbContext.CategoryPresets
             .AsNoTracking()
             .Where(x => x.TournamentId == tournamentId)
             .ToListAsync(cancellationToken);
@@ -96,6 +104,7 @@ public sealed class BackupService : IBackupService
             ExportedAtUtc = DateTimeOffset.UtcNow,
             Tournament = tournament,
             Tatamis = tatamis,
+            CategoryPresets = categoryPresets,
             Categories = categories,
             Clubs = clubs,
             Athletes = athletes,
@@ -145,6 +154,20 @@ public sealed class BackupService : IBackupService
         {
             _dbContext.Tatamis.AddRange(backup.Tatamis);
             await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        if (backup.CategoryPresets is { Count: > 0 })
+        {
+            _dbContext.CategoryPresets.AddRange(backup.CategoryPresets);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            // Older backups carry no presets; age groups would otherwise be missing entirely.
+            await _categoryPresetsStore.SeedDefaultsAsync(
+                backup.Tournament.Id,
+                backup.Tournament.Date.Year,
+                cancellationToken);
         }
 
         if (backup.Categories.Count > 0)

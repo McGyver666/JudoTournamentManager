@@ -103,7 +103,7 @@ public sealed record GeneratedCategoryProposal(
 /// <param name="Gender">Athlete's gender.</param>
 /// <param name="WeightKg">Athlete's measured weight, if present.</param>
 /// <param name="StartAgeGroup">Selected higher-start age group, or null for natural classification.</param>
-public sealed record GeneratedAthletePreview(
+public sealed record GeneratedRegistrationPreview(
     Guid RegistrationId,
     string FirstName,
     string LastName,
@@ -131,9 +131,9 @@ public sealed record CategoryGenerationPreviewResponse(
     public IReadOnlyList<Category> CategoriesToReplace { get; init; } = [];
 
     /// <summary>Registrations included in the selected age-group run.</summary>
-    public IReadOnlyList<GeneratedAthletePreview> AffectedAthletes { get; init; } = [];
+    public IReadOnlyList<GeneratedRegistrationPreview> AffectedRegistrations { get; init; } = [];
 
-    /// <summary>Whether the preview can be applied without changing locked or drawn categories.</summary>
+    /// <summary>Whether the preview can be applied without changing locked, drawn or fought categories.</summary>
     public bool CanApply { get; init; } = true;
 }
 
@@ -144,6 +144,5 @@ public sealed record CategoryGenerationApplyResponse(
     int CreatedCount,
     int DeletedCount,
     int SkippedDuplicateCount,
-    int SkippedLockedCount,
     IReadOnlyList<Category> CreatedCategories,
     IReadOnlyList<CategoryGenerationWarning> Warnings);

@@ -13,6 +13,11 @@ namespace ShiaiManager.Api.Tests;
 [Trait("Category", "UnitTest")]
 public sealed class BackupRestoreIntegrationTests : IClassFixture<BackupRestoreIntegrationTests.ApiFactory>
 {
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new(System.Text.Json.JsonSerializerDefaults.Web)
+    {
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
+
     private readonly ApiFactory _factory;
 
     public BackupRestoreIntegrationTests(ApiFactory factory)
@@ -187,6 +192,124 @@ public sealed class BackupRestoreIntegrationTests : IClassFixture<BackupRestoreI
 
         var response = await client.PostAsJsonAsync("/api/tournaments/restore", backup);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BackupEndpoint_IncludesCategoryPresets()
+    {
+        using var client = _factory.CreateClient();
+        var adminToken = await EnsureAdminAndGetTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var createResponse = await client.PostAsJsonAsync("/api/tournaments", new CreateTournamentRequest
+        {
+            Name = "Preset-Backup",
+            Date = DateOnly.FromDateTime(DateTime.UtcNow),
+            Venue = "Testort",
+            Organizer = "Testveranstalter"
+        });
+        var tournament = await createResponse.Content.ReadFromJsonAsync<Models.Tournament>();
+
+        var backup = await client.GetFromJsonAsync<TournamentBackup>($"/api/tournaments/{tournament!.Id}/backup");
+
+        Assert.NotNull(backup);
+        Assert.Contains(backup!.CategoryPresets, preset => preset.AgeGroup == "U9");
+        Assert.Contains(backup.CategoryPresets, preset => preset.AgeGroup == "Männer" && preset.MinAgeYears == 17);
+    }
+
+    [Fact]
+    public async Task RestoreEndpoint_RestoresPresetsAndStartAgeGroup()
+    {
+        using var client = _factory.CreateClient();
+        var adminToken = await EnsureAdminAndGetTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var now = DateTimeOffset.UtcNow;
+        var tournamentId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+        var athleteId = Guid.NewGuid();
+        var backup = new TournamentBackup
+        {
+            Version = "1.0",
+            ExportedAtUtc = now,
+            Tournament = new TournamentRecord
+            {
+                Id = tournamentId,
+                Name = "Restored Presets",
+                Date = new DateOnly(2026, 10, 5),
+                Venue = "Testort",
+                Organizer = "Testveranstalter",
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            },
+            CategoryPresets =
+            [
+                new CategoryPresetRecord
+                {
+                    Id = Guid.NewGuid(), TournamentId = tournamentId, AgeGroup = "Offen", Gender = "Female",
+                    MaxAgeYears = 12, MinAgeYears = 6, DefaultMatchDurationSeconds = 120,
+                    WeightClassLimitsJson = "[]", SortOrder = 0
+                }
+            ],
+            Clubs = [new ClubRecord { Id = clubId, TournamentId = tournamentId, Name = "SC Restored", CreatedAtUtc = now, UpdatedAtUtc = now }],
+            Athletes =
+            [
+                new AthleteRecord
+                {
+                    Id = athleteId, TournamentId = tournamentId, ClubId = clubId, FirstName = "Lina", LastName = "Test",
+                    BirthYear = 2016, Gender = "Female", WeightKg = 29m, CreatedAtUtc = now, UpdatedAtUtc = now
+                }
+            ],
+            Registrations =
+            [
+                new RegistrationRecord
+                {
+                    Id = Guid.NewGuid(), TournamentId = tournamentId, AthleteId = athleteId, StartAgeGroup = "Offen",
+                    LicenseConfirmed = true, CreatedAtUtc = now
+                }
+            ]
+        };
+
+        var restoreResponse = await client.PostAsJsonAsync("/api/tournaments/restore", backup);
+        Assert.Equal(HttpStatusCode.Created, restoreResponse.StatusCode);
+
+        var presets = await client.GetFromJsonAsync<List<CategoryPresetResponse>>($"/api/tournaments/{tournamentId}/category-presets", JsonOptions);
+        Assert.Equal("Offen", Assert.Single(presets!).AgeGroup);
+        var registrations = await client.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/tournaments/{tournamentId}/registrations");
+        Assert.Equal("Offen", Assert.Single(registrations.EnumerateArray()).GetProperty("startAgeGroup").GetString());
+    }
+
+    [Fact]
+    public async Task RestoreEndpoint_SeedsDefaultPresets_ForBackupWithoutPresets()
+    {
+        using var client = _factory.CreateClient();
+        var adminToken = await EnsureAdminAndGetTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var now = DateTimeOffset.UtcNow;
+        var tournamentId = Guid.NewGuid();
+        // Older backups have no "categoryPresets" property at all.
+        var legacyJson = $$"""
+            {
+              "version": "1.0",
+              "exportedAtUtc": "{{now:O}}",
+              "tournament": {
+                "id": "{{tournamentId}}",
+                "name": "Legacy Backup",
+                "date": "2026-10-05",
+                "venue": "Testort",
+                "organizer": "Testveranstalter",
+                "createdAtUtc": "{{now:O}}",
+                "updatedAtUtc": "{{now:O}}"
+              }
+            }
+            """;
+
+        var restoreResponse = await client.PostAsync(
+            "/api/tournaments/restore",
+            new StringContent(legacyJson, System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, restoreResponse.StatusCode);
+
+        var presets = await client.GetFromJsonAsync<List<CategoryPresetResponse>>($"/api/tournaments/{tournamentId}/category-presets", JsonOptions);
+        Assert.Contains(presets!, preset => preset.AgeGroup == "U9");
+        Assert.Contains(presets!, preset => preset.AgeGroup == "Männer");
     }
 
     private static async Task<string> EnsureAdminAndGetTokenAsync(HttpClient client)

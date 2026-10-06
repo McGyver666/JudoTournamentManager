@@ -15,18 +15,26 @@ public sealed class CategoryPresetsController : ControllerBase
 {
     private readonly ICategoryPresetsStore _presetsStore;
     private readonly ITournamentStore _tournamentStore;
+    private readonly IRegistrationsStore _registrationsStore;
+    private readonly ICategoriesStore _categoriesStore;
 
     /// <summary>
     /// Initializes a new controller instance.
     /// </summary>
     public CategoryPresetsController(
         ICategoryPresetsStore presetsStore,
-        ITournamentStore tournamentStore)
+        ITournamentStore tournamentStore,
+        IRegistrationsStore registrationsStore,
+        ICategoriesStore categoriesStore)
     {
         ArgumentNullException.ThrowIfNull(presetsStore);
         ArgumentNullException.ThrowIfNull(tournamentStore);
+        ArgumentNullException.ThrowIfNull(registrationsStore);
+        ArgumentNullException.ThrowIfNull(categoriesStore);
         _presetsStore = presetsStore;
         _tournamentStore = tournamentStore;
+        _registrationsStore = registrationsStore;
+        _categoriesStore = categoriesStore;
     }
 
     /// <summary>
@@ -48,6 +56,30 @@ public sealed class CategoryPresetsController : ControllerBase
 
         var presets = await _presetsStore.GetAllAsync(tournamentId, cancellationToken);
         return Ok(presets.Select(MapToResponse).ToArray());
+    }
+
+    /// <summary>
+    /// Returns preset warnings: registrations without age group, presets that can never be a natural
+    /// age group, and categories whose age group has no preset.
+    /// </summary>
+    [Authorize(Roles = "Admin,Operator")]
+    [HttpGet("warnings")]
+    [ProducesResponseType(typeof(IReadOnlyList<CategoryPresetWarning>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<CategoryPresetWarning>>> GetWarningsAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken)
+    {
+        var tournament = await _tournamentStore.GetByIdAsync(tournamentId, cancellationToken);
+        if (tournament is null)
+        {
+            return NotFound();
+        }
+
+        var presets = await _presetsStore.GetAllAsync(tournamentId, cancellationToken);
+        var registrations = await _registrationsStore.GetDetailedAsync(tournamentId, cancellationToken);
+        var categories = await _categoriesStore.GetAllAsync(tournamentId, cancellationToken);
+        return Ok(CategoryPresetWarnings.Build(presets, registrations, categories, tournament.Date.Year));
     }
 
     /// <summary>

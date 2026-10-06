@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ShiaiManager.Api.Data;
 
 /// <summary>
@@ -12,7 +14,8 @@ public sealed class CategoryPresetRecord
     public Guid TournamentId { get; set; }
 
     /// <summary>Navigation to the owning tournament.</summary>
-    public TournamentRecord Tournament { get; set; } = null!;
+    [JsonIgnore]
+    public TournamentRecord? Tournament { get; set; }
 
     /// <summary>Age-group label, e.g. "U13", "Frauen".</summary>
     public string AgeGroup { get; set; } = string.Empty;

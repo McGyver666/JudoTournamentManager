@@ -105,7 +105,7 @@
           <label>{{ 'registrations.startAgeGroup' | t }}</label>
           <select [(ngModel)]="form.startAgeGroup" name="startAgeGroup">
             <option value="">{{ 'registrations.naturalAgeGroup' | t }}</option>
-            @for (ageGroup of startAgeGroupOptions(); track ageGroup) {
+            @for (ageGroup of formStartAgeGroupOptions(); track ageGroup) {
               <option [value]="ageGroup">{{ ageGroup }}</option>
             }
           </select>
@@ -208,12 +208,8 @@
                   [name]="'startAgeGroup_' + r.id"
                   [disabled]="isStartAgeGroupChangeDisabled(r)">
                   <option value="">{{ 'registrations.naturalAgeGroup' | t }}</option>
-                  @for (preset of presets(); track preset.id) {
-                    @if (preset.gender === r.athleteGender
-                      && (preset.minBirthYear === null || r.athleteBirthYear >= preset.minBirthYear)
-                      && (preset.maxBirthYear === null || r.athleteBirthYear <= preset.maxBirthYear)) {
-                      <option [value]="preset.ageGroup">{{ preset.ageGroup }}</option>
-                    }
+                  @for (ageGroup of startAgeGroupOptions(r.athleteGender, r.athleteBirthYear); track ageGroup) {
+                    <option [value]="ageGroup">{{ ageGroup }}</option>
                   }
                 </select>
               </td>

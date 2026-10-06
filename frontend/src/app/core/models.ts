@@ -222,7 +222,7 @@ export interface GeneratedCategoryProposal {
   source: string;
 }
 
-export interface GeneratedAthletePreview {
+export interface GeneratedRegistrationPreview {
   registrationId: string;
   firstName: string;
   lastName: string;
@@ -242,7 +242,7 @@ export interface CategoryGenerationPreviewResponse {
   categories: GeneratedCategoryProposal[];
   warnings: CategoryGenerationWarning[];
   categoriesToReplace: Category[];
-  affectedAthletes: GeneratedAthletePreview[];
+  affectedRegistrations: GeneratedRegistrationPreview[];
   canApply: boolean;
 }
 
@@ -250,9 +250,15 @@ export interface CategoryGenerationApplyResponse {
   createdCount: number;
   deletedCount: number;
   skippedDuplicateCount: number;
-  skippedLockedCount: number;
   createdCategories: Category[];
   warnings: CategoryGenerationWarning[];
+}
+
+/** Warning shown in the preset tab; computed by the backend. */
+export interface CategoryPresetWarning {
+  key: string;
+  ageGroup: string | null;
+  count: number | null;
 }
 
 export interface Club {
@@ -429,6 +435,7 @@ export interface UnassignedAthlete {
   firstName: string;
   lastName: string;
   reason: string;
+  reasonKey: string | null;
 }
 
 export interface AutoAssignResult {

@@ -47,7 +47,8 @@ Initial admin credentials (save these now):
 
 - Offline-capable tournament operation on a single laptop or local LAN, with optional internet-hosted deployment behind nginx.
 - Tournament setup, clubs, athletes, registrations, category presets and per-age-group category generation. Registrations can optionally start in a compatible higher age group; generated categories are previewed and replace only the selected age group and gender.
-- Default presets include weightless U9 for ages 6-8; tournaments can group these athletes by measured weight.
+- Default presets include weightless U9 for ages 6-8; tournaments can group these athletes by measured weight. Adult presets (`Männer`/`Frauen`) start at age 17 without an upper limit.
+- Category birth-year ranges are a plausibility hint only; manual assignment outside the range asks for confirmation. Backups include the category presets; restoring an older backup without presets seeds the defaults.
 - Athlete belt grades are optional; blank CSV grades remain blank when exported and re-imported.
 - Weigh-in registrations accept optional start age group, `grade` corrections (1-14) and `licenseId` updates, saved atomically with the registration. Start-age changes are audited and blocked after a category is drawn or locked.
 - Individual tournament draws, brackets, tatami assignment, live fight control and server-authoritative timing.

@@ -58,4 +58,19 @@ public interface ICategoriesStore
     /// Callers must ensure the category is not locked before calling this method.
     /// </summary>
     Task<bool> DeleteAsync(Guid categoryId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns the identifiers of all categories of a tournament that already have fights.
+    /// </summary>
+    Task<IReadOnlySet<Guid>> GetIdsWithFightsAsync(Guid tournamentId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Atomically deletes categories, clears their registration assignments and creates new categories.
+    /// Returns <c>null</c> without changes when a category to delete is locked, drawn or has fights.
+    /// </summary>
+    Task<CategoryReplaceResult?> ReplaceAsync(
+        Guid tournamentId,
+        IReadOnlyCollection<Guid> categoryIdsToDelete,
+        IReadOnlyList<NewCategory> categoriesToCreate,
+        CancellationToken cancellationToken);
 }

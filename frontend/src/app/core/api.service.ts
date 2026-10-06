@@ -14,6 +14,7 @@ import {
   Category,
   CategoryPreset,
   CategoryPresetItemRequest,
+  CategoryPresetWarning,
   ChangePasswordRequest,
   Club,
   CompletedFightSummary,
@@ -278,6 +279,11 @@ export class ApiService {
   getCategoryPresets(tournamentId: string): Observable<CategoryPreset[]> {
     return this.http.get<CategoryPreset[]>(
       `api/tournaments/${tournamentId}/category-presets`);
+  }
+
+  getCategoryPresetWarnings(tournamentId: string): Observable<CategoryPresetWarning[]> {
+    return this.http.get<CategoryPresetWarning[]>(
+      `api/tournaments/${tournamentId}/category-presets/warnings`);
   }
 
   updateCategoryPresets(
