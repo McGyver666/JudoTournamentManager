@@ -39,11 +39,17 @@
           }
           @if (d.current) {
             @let tparts = timerColonParts(d.current);
-            <div
-              class="fight-timer fight-timer--xl"
-              [class.fight-timer--golden]="d.current.startedAtUtc && d.current.isGoldenScore"
-              [class.fight-timer--paused]="d.current.startedAtUtc && d.current.status === 'Paused' && !d.current.isGoldenScore"
-              [attr.aria-label]="'display.fightTime' | t"><span class="timer-seg">{{ tparts.minutes }}</span><span class="timer-colon" aria-hidden="true">:</span><span class="timer-seg">{{ tparts.seconds }}</span></div>
+            @let clockStopped = isFightClockStopped(d.current);
+            <div class="fight-timer-block" [class.fight-timer-block--stopped]="clockStopped">
+              <div
+                class="fight-timer fight-timer--xl"
+                [class.fight-timer--golden]="d.current.startedAtUtc && d.current.isGoldenScore"
+                [class.fight-timer--paused]="clockStopped"
+                [attr.aria-label]="'display.fightTime' | t"><span class="timer-seg">{{ tparts.minutes }}</span><span class="timer-colon" aria-hidden="true">:</span><span class="timer-seg">{{ tparts.seconds }}</span></div>
+              @if (clockStopped) {
+                <div class="fight-timer-stopped-label" role="status">{{ 'display.timeStopped' | t }}</div>
+              }
+            </div>
           }
         </header>
 
