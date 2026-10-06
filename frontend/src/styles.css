@@ -882,6 +882,17 @@ app-display .standings-table {
 app-display .standings-table :is(th,td) {padding:.35rem .45rem;border-bottom:1px solid var(--c-border);text-align:left}
 app-display .standings-table th {color:var(--c-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;background:var(--ink-800)}
 
+app-display .active-categories-section {margin-top:1.25rem;border-top:1px solid var(--c-border);padding-top:1rem}
+app-display .active-categories-title {margin:0 0 .75rem;font-size:1.1rem;letter-spacing:.02em;color:var(--txt)}
+app-display .active-categories-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem}
+app-display .active-categories-card {background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow)}
+app-display .active-categories-card-header {display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem}
+app-display .active-categories-tatami {font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:0;color:var(--txt)}
+app-display .active-categories-count {font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--c-muted);white-space:nowrap}
+app-display .active-categories-list {list-style:decimal;margin:0;padding-left:1.4rem;display:flex;flex-direction:column;gap:.4rem}
+app-display .active-categories-item {font-size:.92rem;color:var(--txt);font-weight:600}
+app-display .active-categories-empty {color:var(--c-muted);font-style:italic;background:var(--surface-muted);border:1px dashed var(--c-border);border-radius:var(--radius);padding:.6rem .75rem;margin:0}
+
 /* --side-accent is light-tuned (set inline by SideThemeService); on dark
    surfaces use the brighter contrast token so blue text keeps AA contrast. */
 [data-theme="dark"] app-display :is(.athlete-col--blue-left,.blue-name,.slot.blue) {color:var(--side-accent-contrast)}
