@@ -53,7 +53,7 @@ public sealed class AuditLogService : IAuditLogService
 
         _logger.LogInformation(
             "Audit: {Action} on {EntityType} {EntityId} by {User}.",
-            action, entityType, entityId, record.User);
+            LogSanitizer.Sanitize(action), LogSanitizer.Sanitize(entityType), entityId, LogSanitizer.Sanitize(record.User));
     }
 
     /// <inheritdoc />

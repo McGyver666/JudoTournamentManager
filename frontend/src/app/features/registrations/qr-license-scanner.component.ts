@@ -215,7 +215,7 @@ export class QrLicenseScannerComponent implements OnInit, OnDestroy {
       (result, error) => {
         if (result) {
           const qrUrl = result.getText();
-          if (qrUrl && qrUrl.includes('qr.dokume.net')) {
+          if (qrUrl && this.isDokumeQrUrl(qrUrl)) {
             this.onQrDetected(qrUrl);
           }
         }
@@ -246,6 +246,16 @@ export class QrLicenseScannerComponent implements OnInit, OnDestroy {
     }
 
     this.isScanning.set(false);
+  }
+
+  private isDokumeQrUrl(value: string): boolean {
+    // Must match the server-side allowlist in DokumePassParser.
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' && url.hostname === 'qr.dokume.net';
+    } catch {
+      return false;
+    }
   }
 
   private onQrDetected(qrUrl: string): void {

@@ -78,7 +78,7 @@ public sealed class SqliteCategoriesStore : ICategoriesStore
         {
             _logger.LogWarning(
                 "Duplicate category (AgeGroup={AgeGroup}, Gender={Gender}, WeightClassKg={WeightClassKg}) for tournament {TournamentId}.",
-                trimmedAgeGroup, genderString, weightClassKg, tournamentId);
+                LogSanitizer.Sanitize(trimmedAgeGroup), genderString, weightClassKg, tournamentId);
             return null;
         }
 

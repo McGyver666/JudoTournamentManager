@@ -231,8 +231,7 @@ public sealed class DokumePassParser : IDokumePassParser
                 return null;
             }
 
-            _logger.LogInformation("JWT parsed successfully. Pass: {PassNumber}, Name: {FirstName} {LastName}",
-                result.PassNumber, result.FirstName, result.LastName);
+            _logger.LogInformation("JWT parsed successfully.");
 
             return result;
         }

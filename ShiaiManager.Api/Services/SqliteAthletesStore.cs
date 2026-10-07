@@ -79,8 +79,8 @@ public sealed class SqliteAthletesStore : IAthletesStore
             if (isDuplicate)
             {
                 _logger.LogWarning(
-                    "Possible duplicate athlete '{LastName}, {FirstName}' ({BirthYear}) for club {ClubId} in tournament {TournamentId}.",
-                    trimmedLast, trimmedFirst, birthYear, clubId, tournamentId);
+                    "Possible duplicate athlete for club {ClubId} in tournament {TournamentId}.",
+                    clubId, tournamentId);
                 return null;
             }
         }
