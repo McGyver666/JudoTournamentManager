@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -14,7 +13,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
 @Component({
   selector: 'app-team-matchday',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './team-matchday.component.html',
   styleUrl: './team-matchday.component.css',
 })

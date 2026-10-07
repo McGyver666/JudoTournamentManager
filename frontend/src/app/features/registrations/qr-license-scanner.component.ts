@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -13,7 +12,7 @@ import { DokumePassCheckResult } from '../../core/models';
 @Component({
   selector: 'app-qr-license-scanner',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe],
   template: `
     <div class="qr-scanner-card">
       <h3>{{ 'registrations.scan' | t }}</h3>
