@@ -3,6 +3,21 @@ using ShiaiManager.Api.Models;
 namespace ShiaiManager.Api.Services;
 
 /// <summary>
+/// Outcome of deleting a category.
+/// </summary>
+public enum CategoryDeleteResult
+{
+    /// <summary>The category and its not yet started draw were deleted.</summary>
+    Deleted,
+
+    /// <summary>The category does not exist.</summary>
+    NotFound,
+
+    /// <summary>The category has started or completed fights or team matchday bouts and was kept.</summary>
+    HasStartedFights
+}
+
+/// <summary>
 /// Abstraction for category persistence.
 /// </summary>
 public interface ICategoriesStore
@@ -54,10 +69,11 @@ public interface ICategoriesStore
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Deletes a category. Returns <c>false</c> if the category was not found.
+    /// Deletes a category together with its not yet started draw.
+    /// Keeps the category when a real fight was started or completed or a team matchday bout references it.
     /// Callers must ensure the category is not locked before calling this method.
     /// </summary>
-    Task<bool> DeleteAsync(Guid categoryId, CancellationToken cancellationToken);
+    Task<CategoryDeleteResult> DeleteAsync(Guid categoryId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Returns the identifiers of all categories of a tournament that already have fights.
