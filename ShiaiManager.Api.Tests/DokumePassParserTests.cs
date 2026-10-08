@@ -1,3 +1,5 @@
+using System.Buffers.Text;
+using System.Text;
 using ShiaiManager.Api.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -11,15 +13,16 @@ public sealed class DokumePassParserTests
     [Fact]
     public void ParseQrUrl_WithValidUrl_ExtractsClaimsSuccessfully()
     {
-        const string validQrUrl = "https://qr.dokume.net?d=l&i=48958&s=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzM4NCJ9.eyJpc3MiOiJEb2t1TWUiLCJVSUQiOiI0ODk1OCIsIk5PIjoiSi0wMDgwNjU5IiwiQ0lEIjoiTS0wMDgwNzcwIiwiSUQiOiI0NjkwMjUiLCJGTiI6IkpvbmFzIiwiTE4iOiJXaW5rbGVyIiwiRE9CIjoiMTk4NS0wMy0xOCIsIk5BVCI6IjM3IiwiVE0iOiIiLCJMVCI6IjUyIiwiTFROIjoiSnVkb3Bhc3MiLCJleHAiOjE4MDM4NTU1OTAsIkxUMiI6NjksIktFWSI6ImNtUlpURzVLVDNsblkwODBibGRzV1hkcFVGcFJSVEpyY2xkNWJBPT0ifQ.UpMF99IJm--i_ry8efCvuwKfUuH_OWwucZkabuJDPNrebcvHumlgx5rQq1suEw9-r-hsXNaOoU7Y8MYlbFBdb4xp-bchNwlJzGxDeRoEcGDIG7-LfICKgQSAzdNY7ULivGR-_YvA6YVHgZGxLsDA_CTMFXNPUateNTGyPzj-BDs";
+        var validQrUrl = BuildQrUrl(
+            """{"iss":"DokuMe","NO":"J-TEST-0001","FN":"Max","LN":"Mustermann","DOB":"2001-04-12","LTN":"Judopass","exp":1803855590}""");
 
         var result = _parser.ParseQrUrl(validQrUrl);
 
         Assert.NotNull(result);
-        Assert.Equal("J-0080659", result.PassNumber);
-        Assert.Equal("Jonas", result.FirstName);
-        Assert.Equal("Winkler", result.LastName);
-        Assert.Equal(new DateOnly(1985, 3, 18), result.DateOfBirth);
+        Assert.Equal("J-TEST-0001", result.PassNumber);
+        Assert.Equal("Max", result.FirstName);
+        Assert.Equal("Mustermann", result.LastName);
+        Assert.Equal(new DateOnly(2001, 4, 12), result.DateOfBirth);
         Assert.Equal("Judopass", result.LicenseTypeName);
         Assert.Equal("DokuMe", result.Issuer);
         Assert.True(result.IsRs384Claimed);
@@ -59,7 +62,7 @@ public sealed class DokumePassParserTests
     [Fact]
     public void ParseQrUrl_WithMissingDocumentType_ReturnsNull()
     {
-        const string invalidQrUrl = "https://qr.dokume.net?i=48958&s=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzM4NCJ9.test.test";
+        const string invalidQrUrl = "https://qr.dokume.net?i=1&s=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzM4NCJ9.test.test";
         var result = _parser.ParseQrUrl(invalidQrUrl);
         Assert.Null(result);
     }
@@ -75,7 +78,7 @@ public sealed class DokumePassParserTests
     [Fact]
     public void ParseQrUrl_WithMissingJwtToken_ReturnsNull()
     {
-        const string invalidQrUrl = "https://qr.dokume.net?d=l&i=48958";
+        const string invalidQrUrl = "https://qr.dokume.net?d=l&i=1";
         var result = _parser.ParseQrUrl(invalidQrUrl);
         Assert.Null(result);
     }
@@ -319,5 +322,12 @@ public sealed class DokumePassParserTests
 
         Assert.True(result.IsValid);
     }
+
+    // Synthetic token: the parser does not verify signatures, so a placeholder signature suffices.
+    private static string BuildQrUrl(string payloadJson) =>
+        "https://qr.dokume.net?d=l&i=1&s="
+        + Encode("""{"typ":"JWT","alg":"RS384"}""") + "." + Encode(payloadJson) + "." + Encode("signature");
+
+    private static string Encode(string value) => Base64Url.EncodeToString(Encoding.UTF8.GetBytes(value));
 }
 
