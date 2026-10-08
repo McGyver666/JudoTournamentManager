@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
@@ -12,6 +12,7 @@ import { TranslatePipe } from '../../core/translate.pipe';
   standalone: true,
   imports: [FormsModule, TranslatePipe],
   templateUrl: './user-management.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './user-management.component.css',
 })
 export class UserManagementComponent implements OnInit {

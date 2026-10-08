@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { ATHLETE_GRADE_OPTIONS, athleteGradeLabelKey } from '../../core/athlete-grade';
@@ -19,6 +19,7 @@ import { QrLicenseScannerComponent } from './qr-license-scanner.component';
   standalone: true,
   imports: [FormsModule, TranslatePipe, QrLicenseScannerComponent],
   templateUrl: './registrations.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './registrations.component.css',
 })
 export class RegistrationsComponent implements OnInit {

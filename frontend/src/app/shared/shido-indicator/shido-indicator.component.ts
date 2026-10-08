@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { TranslatePipe } from '../../core/translate.pipe';
 
 /** Shido count that results in Hansoku-make (mirrors the backend's MatchService.HansokuMakeShidoCount). */
@@ -13,6 +13,7 @@ export const HANSOKU_MAKE_SHIDO_COUNT = 3;
   standalone: true,
   imports: [TranslatePipe],
   templateUrl: './shido-indicator.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './shido-indicator.component.css',
 })
 export class ShidoIndicatorComponent {

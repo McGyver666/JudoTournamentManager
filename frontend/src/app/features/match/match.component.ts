@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   signal,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -47,6 +48,7 @@ interface WinnerConfirmationState {
   standalone: true,
   imports: [TranslatePipe, ShidoIndicatorComponent],
   templateUrl: './match.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './match.component.css',
 })
 export class MatchComponent implements OnInit, OnDestroy {

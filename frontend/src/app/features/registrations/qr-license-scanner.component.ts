@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -73,6 +73,7 @@ import { DokumePassCheckResult } from '../../core/models';
       }
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .qr-scanner-card {
       background: #f5f5f5;

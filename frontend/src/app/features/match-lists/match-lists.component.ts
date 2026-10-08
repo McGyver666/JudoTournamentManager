@@ -6,6 +6,7 @@ import {
   computed,
   inject,
   signal,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { catchError, forkJoin, of, Subscription } from 'rxjs';
@@ -43,6 +44,7 @@ interface ConnectorPath {
   standalone: true,
   imports: [TranslatePipe],
   templateUrl: './match-lists.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './match-lists.component.css',
 })
 export class MatchListsComponent implements OnInit, OnDestroy {

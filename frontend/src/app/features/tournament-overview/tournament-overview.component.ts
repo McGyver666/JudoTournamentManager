@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, OnDestroy, computed, effect, inject, signal, untracked, ChangeDetectionStrategy } from '@angular/core';
 import { catchError, forkJoin, map, of, Subscription, switchMap } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { Category, Club, Fight, FightSide, GlobalClubScoringResponse, Athlete, Tatami, TatamiQueue, Tournament, TournamentOverviewStats } from '../../core/models';
@@ -31,6 +31,7 @@ interface QueueFight {
   standalone: true,
   imports: [TranslatePipe, ShidoIndicatorComponent],
   templateUrl: './tournament-overview.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './tournament-overview.component.css',
 })
 export class TournamentOverviewComponent implements OnDestroy {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -24,6 +24,7 @@ const MAX_RESTORE_MB = 50;
   standalone: true,
   imports: [FormsModule, DatePipe, TranslatePipe],
   templateUrl: './tournaments.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './tournaments.component.css',
 })
 export class TournamentsComponent implements OnInit {
