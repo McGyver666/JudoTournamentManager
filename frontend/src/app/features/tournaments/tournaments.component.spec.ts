@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -30,11 +31,14 @@ class I18nServiceStub {
 }
 
 describe('TournamentsComponent restore', () => {
-  let apiSpy: jasmine.SpyObj<ApiService>;
+  let apiSpy: { getTournaments: Mock; restoreTournamentBackup: Mock };
   let component: TournamentsComponent;
 
   beforeEach(async () => {
-    apiSpy = jasmine.createSpyObj<ApiService>('ApiService', ['getTournaments', 'restoreTournamentBackup']);
+    apiSpy = {
+      getTournaments: vi.fn().mockName('ApiService.getTournaments'),
+      restoreTournamentBackup: vi.fn().mockName('ApiService.restoreTournamentBackup')
+    };
 
     await TestBed.configureTestingModule({
       imports: [TournamentsComponent],
@@ -57,7 +61,7 @@ describe('TournamentsComponent restore', () => {
   }
 
   it('shows a German size hint when the proxy rejects the upload with 413', async () => {
-    apiSpy.restoreTournamentBackup.and.returnValue(throwError(() => new HttpErrorResponse({
+    apiSpy.restoreTournamentBackup.mockReturnValue(throwError(() => new HttpErrorResponse({
       status: 413,
       statusText: 'Request Entity Too Large',
       error: '<html><body>413 Request Entity Too Large</body></html>',
@@ -66,11 +70,11 @@ describe('TournamentsComponent restore', () => {
     await (component as any).restoreFromFile(fileChangeEvent());
 
     expect((component as any).error()).toBe('Die Backup-Datei ist zu groß (maximal 50 MB).');
-    expect((component as any).restoring()).toBeFalse();
+    expect((component as any).restoring()).toBe(false);
   });
 
   it('keeps the generic message for other non-ProblemDetails failures', async () => {
-    apiSpy.restoreTournamentBackup.and.returnValue(throwError(() => new HttpErrorResponse({
+    apiSpy.restoreTournamentBackup.mockReturnValue(throwError(() => new HttpErrorResponse({
       status: 502,
       error: '<html>Bad Gateway</html>',
     })));

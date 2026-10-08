@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
@@ -14,14 +15,14 @@ describe('DisplayComponent', () => {
   let serverTimeSync: Subject<string>;
   let reconnected: Subject<void>;
   let apiCalls: {
-    getTournament: jasmine.Spy;
-    getAthletes: jasmine.Spy;
-    getClubs: jasmine.Spy;
-    getCategories: jasmine.Spy;
-    getTatamis: jasmine.Spy;
-    getTatamiQueue: jasmine.Spy;
-    getFights: jasmine.Spy;
-    getCategoryStandings: jasmine.Spy;
+    getTournament: Mock;
+    getAthletes: Mock;
+    getClubs: Mock;
+    getCategories: Mock;
+    getTatamis: Mock;
+    getTatamiQueue: Mock;
+    getFights: Mock;
+    getCategoryStandings: Mock;
   };
 
   function createFight(overrides: Partial<Fight> = {}): Fight {
@@ -59,7 +60,7 @@ describe('DisplayComponent', () => {
       osaeKomiStartedAtUtc: null,
       osaeKomiPausedAtUtc: null,
       osaeKomiElapsedMilliseconds: 0,
-      startedAtUtc: new Date(Date.now() - 60_000).toISOString(),
+      startedAtUtc: new Date(Date.now() - 60000).toISOString(),
       completedAtUtc: null,
       isGoldenScore: false,
       createdAtUtc: new Date().toISOString(),
@@ -86,14 +87,14 @@ describe('DisplayComponent', () => {
     reconnected = new Subject<void>();
 
     apiCalls = {
-      getTournament: jasmine.createSpy('getTournament').and.returnValue(of({ name: 'Testturnier' })),
-      getAthletes: jasmine.createSpy('getAthletes').and.returnValue(of([])),
-      getClubs: jasmine.createSpy('getClubs').and.returnValue(of([])),
-      getCategories: jasmine.createSpy('getCategories').and.returnValue(of([])),
-      getTatamis: jasmine.createSpy('getTatamis').and.returnValue(of([])),
-      getTatamiQueue: jasmine.createSpy('getTatamiQueue').and.returnValue(of({ current: null, upcoming: [] })),
-      getFights: jasmine.createSpy('getFights').and.returnValue(of([])),
-      getCategoryStandings: jasmine.createSpy('getCategoryStandings').and.returnValue(of([])),
+      getTournament: vi.fn().mockName('getTournament').mockReturnValue(of({ name: 'Testturnier' })),
+      getAthletes: vi.fn().mockName('getAthletes').mockReturnValue(of([])),
+      getClubs: vi.fn().mockName('getClubs').mockReturnValue(of([])),
+      getCategories: vi.fn().mockName('getCategories').mockReturnValue(of([])),
+      getTatamis: vi.fn().mockName('getTatamis').mockReturnValue(of([])),
+      getTatamiQueue: vi.fn().mockName('getTatamiQueue').mockReturnValue(of({ current: null, upcoming: [] })),
+      getFights: vi.fn().mockName('getFights').mockReturnValue(of([])),
+      getCategoryStandings: vi.fn().mockName('getCategoryStandings').mockReturnValue(of([])),
     };
 
     TestBed.configureTestingModule({
@@ -102,16 +103,15 @@ describe('DisplayComponent', () => {
           provide: ApiService,
           useValue: {
             getServerTime: () => of({ serverTimeUtc: new Date().toISOString() }),
-            getGuestShare: () =>
-              of({
-                tournamentId: 'tournament-1',
-                exists: false,
-                isEnabled: false,
-                isActive: false,
-                token: null,
-                expiresAtUtc: null,
-                publicUrl: null,
-              }),
+            getGuestShare: () => of({
+              tournamentId: 'tournament-1',
+              exists: false,
+              isEnabled: false,
+              isActive: false,
+              token: null,
+              expiresAtUtc: null,
+              publicUrl: null,
+            }),
             getGuestShareQr: () => of(''),
             ...apiCalls,
           },
@@ -152,12 +152,12 @@ describe('DisplayComponent', () => {
 
     const activeHold = createFight({
       osaeKomiSide: 'White',
-      osaeKomiStartedAtUtc: new Date(Date.now() - 5_000).toISOString(),
+      osaeKomiStartedAtUtc: new Date(Date.now() - 5000).toISOString(),
     });
     const stoppedFight = createFight();
     const restartedHold = createFight({
       osaeKomiSide: 'Blue',
-      osaeKomiStartedAtUtc: new Date(Date.now() - 2_000).toISOString(),
+      osaeKomiStartedAtUtc: new Date(Date.now() - 2000).toISOString(),
     });
 
     (fixture.componentInstance as any).displays.set([
@@ -166,18 +166,18 @@ describe('DisplayComponent', () => {
 
     fightUpdates.next(activeHold);
 
-    expect((fixture.componentInstance as any).isOsaeKomiRunning(activeHold)).toBeTrue();
+    expect((fixture.componentInstance as any).isOsaeKomiRunning(activeHold)).toBe(true);
 
     fightUpdates.next(stoppedFight);
 
-    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(stoppedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(stoppedFight)).toBe(true);
     expect((fixture.componentInstance as any).osaeKomiSideLabel(stoppedFight)).toBe('white');
 
     fightUpdates.next(restartedHold);
 
     const displayedFight = (fixture.componentInstance as any).displays()[0].current as Fight;
 
-    expect((fixture.componentInstance as any).isOsaeKomiRunning(displayedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).isOsaeKomiRunning(displayedFight)).toBe(true);
     expect((fixture.componentInstance as any).osaeKomiSideLabel(displayedFight)).toBe('blue');
 
     fixture.destroy();
@@ -193,7 +193,7 @@ describe('DisplayComponent', () => {
       osaeKomiStartedAtUtc: startedAt.toISOString(),
     });
     const stoppedFight = createFight({
-      updatedAtUtc: new Date(startedAt.getTime() + 5_400).toISOString(),
+      updatedAtUtc: new Date(startedAt.getTime() + 5400).toISOString(),
     });
 
     (fixture.componentInstance as any).displays.set([
@@ -218,10 +218,10 @@ describe('DisplayComponent', () => {
       osaeKomiSide: 'White',
       osaeKomiStartedAtUtc: null,
       osaeKomiPausedAtUtc: new Date().toISOString(),
-      osaeKomiElapsedMilliseconds: 3_400,
+      osaeKomiElapsedMilliseconds: 3400,
     });
 
-    expect(component.isOsaeKomiPaused(pausedHold)).toBeTrue();
+    expect(component.isOsaeKomiPaused(pausedHold)).toBe(true);
     expect(component.osaeKomiSecondsLabel(pausedHold)).toBe('3.4s');
 
     fixture.destroy();
@@ -244,7 +244,7 @@ describe('DisplayComponent', () => {
       whiteWazaAriCount: 0,
     });
     const stoppedFight = createFight({
-      updatedAtUtc: new Date(startedAt.getTime() + 10_000).toISOString(),
+      updatedAtUtc: new Date(startedAt.getTime() + 10000).toISOString(),
       whiteWazaAriCount: 1,
     });
 
@@ -266,7 +266,7 @@ describe('DisplayComponent', () => {
 
     const activeHold = createFight({
       osaeKomiSide: 'White',
-      osaeKomiStartedAtUtc: new Date(Date.now() - 5_000).toISOString(),
+      osaeKomiStartedAtUtc: new Date(Date.now() - 5000).toISOString(),
     });
     const stoppedFight = createFight();
     const pausedFight = createFight({
@@ -283,18 +283,18 @@ describe('DisplayComponent', () => {
     fightUpdates.next(stoppedFight);
     fightUpdates.next(pausedFight);
 
-    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBe(true);
 
     fightUpdates.next(resumedFight);
 
-    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(resumedFight)).toBeFalse();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(resumedFight)).toBe(false);
 
     fixture.destroy();
   });
 
   function renderWithHansokuMake(paramMap: Record<string, string>): HTMLElement {
-    apiCalls.getTatamis.and.returnValue(of([createTatami()]));
-    apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight({ bluePenalties: 3, whiteIpponCount: 1 }), upcoming: [] }));
+    apiCalls.getTatamis.mockReturnValue(of([createTatami()]));
+    apiCalls.getTatamiQueue.mockReturnValue(of({ current: createFight({ bluePenalties: 3, whiteIpponCount: 1 }), upcoming: [] }));
     TestBed.overrideProvider(ActivatedRoute, {
       useValue: {
         paramMap: of(convertToParamMap(paramMap)),
@@ -332,18 +332,22 @@ describe('DisplayComponent', () => {
     expect(white.querySelectorAll('.shido-bubble').length).toBe(3);
   });
 
-  const clockCases: { name: string; fight: Partial<Fight>; stopped: boolean }[] = [
-    { name: 'running fight', fight: {}, stopped: false },
-    { name: 'paused fight', fight: { status: 'Paused', pausedAtUtc: new Date().toISOString() }, stopped: true },
-    { name: 'paused golden score', fight: { status: 'Paused', pausedAtUtc: new Date().toISOString(), isGoldenScore: true }, stopped: true },
-    { name: 'paused osae-komi', fight: { osaeKomiSide: 'Blue', osaeKomiPausedAtUtc: new Date().toISOString() }, stopped: true },
-    { name: 'not yet started fight', fight: { status: 'Pending', startedAtUtc: null }, stopped: false },
-  ];
+  const clockCases: {
+    name: string;
+    fight: Partial<Fight>;
+    stopped: boolean;
+  }[] = [
+      { name: 'running fight', fight: {}, stopped: false },
+      { name: 'paused fight', fight: { status: 'Paused', pausedAtUtc: new Date().toISOString() }, stopped: true },
+      { name: 'paused golden score', fight: { status: 'Paused', pausedAtUtc: new Date().toISOString(), isGoldenScore: true }, stopped: true },
+      { name: 'paused osae-komi', fight: { osaeKomiSide: 'Blue', osaeKomiPausedAtUtc: new Date().toISOString() }, stopped: true },
+      { name: 'not yet started fight', fight: { status: 'Pending', startedAtUtc: null }, stopped: false },
+    ];
 
   clockCases.forEach(({ name, fight, stopped }) => {
     it(`marks the tatami clock as stopped=${stopped} for a ${name}`, () => {
-      apiCalls.getTatamis.and.returnValue(of([createTatami()]));
-      apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight(fight), upcoming: [] }));
+      apiCalls.getTatamis.mockReturnValue(of([createTatami()]));
+      apiCalls.getTatamiQueue.mockReturnValue(of({ current: createFight(fight), upcoming: [] }));
       TestBed.overrideProvider(ActivatedRoute, {
         useValue: {
           paramMap: of(convertToParamMap({ tatamiId: 'tatami-1' })),
@@ -369,8 +373,8 @@ describe('DisplayComponent', () => {
   });
 
   it('refreshes the tournament view when a fight is completed', () => {
-    apiCalls.getTatamis.and.returnValue(of([createTatami()]));
-    apiCalls.getTatamiQueue.and.returnValue(of({ current: createFight(), upcoming: [] }));
+    apiCalls.getTatamis.mockReturnValue(of([createTatami()]));
+    apiCalls.getTatamiQueue.mockReturnValue(of({ current: createFight(), upcoming: [] }));
 
     TestBed.overrideProvider(ActivatedRoute, {
       useValue: {
@@ -401,7 +405,7 @@ describe('DisplayComponent', () => {
 
     const activeHold = createFight({
       osaeKomiSide: 'White',
-      osaeKomiStartedAtUtc: new Date(Date.now() - 5_000).toISOString(),
+      osaeKomiStartedAtUtc: new Date(Date.now() - 5000).toISOString(),
     });
     const pausedFight = createFight({
       status: 'Paused',
@@ -414,18 +418,18 @@ describe('DisplayComponent', () => {
 
     fightUpdates.next(activeHold);
 
-    expect((fixture.componentInstance as any).isOsaeKomiRunning(activeHold)).toBeTrue();
+    expect((fixture.componentInstance as any).isOsaeKomiRunning(activeHold)).toBe(true);
 
     fightUpdates.next(pausedFight);
 
-    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBe(true);
 
     fightUpdates.next(resumedFight);
 
     const displayedFight = (fixture.componentInstance as any).displays()[0].current as Fight;
 
-    expect((fixture.componentInstance as any).isOsaeKomiRunning(displayedFight)).toBeFalse();
-    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(resumedFight)).toBeFalse();
+    expect((fixture.componentInstance as any).isOsaeKomiRunning(displayedFight)).toBe(false);
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(resumedFight)).toBe(false);
 
     fixture.destroy();
   });
@@ -436,7 +440,7 @@ describe('DisplayComponent', () => {
 
     const activeHold = createFight({
       osaeKomiSide: 'White',
-      osaeKomiStartedAtUtc: new Date(Date.now() - 5_000).toISOString(),
+      osaeKomiStartedAtUtc: new Date(Date.now() - 5000).toISOString(),
     });
     const pausedFight = createFight({
       status: 'Paused',
@@ -451,14 +455,14 @@ describe('DisplayComponent', () => {
     fightUpdates.next(activeHold);
     fightUpdates.next(pausedFight);
 
-    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBeTrue();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(pausedFight)).toBe(true);
 
     fightUpdates.next(resumedFight);
     (fixture.componentInstance as any).updateDisplayedFight(resumedFight);
 
     const displayedFight = (fixture.componentInstance as any).displays()[0].current as Fight;
 
-    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(displayedFight)).toBeFalse();
+    expect((fixture.componentInstance as any).hasPersistedOsaeKomi(displayedFight)).toBe(false);
     expect((fixture.componentInstance as any).osaeKomiSideLabel(displayedFight)).toBeNull();
 
     fixture.destroy();

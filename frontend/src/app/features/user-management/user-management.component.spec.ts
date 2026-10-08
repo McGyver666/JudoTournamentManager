@@ -1,3 +1,4 @@
+import type { MockedObject } from 'vitest';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -38,11 +39,14 @@ describe('UserManagementComponent', () => {
     updatedUtc: '2026-01-01T00:00:00Z',
   };
 
-  let apiSpy: jasmine.SpyObj<any>;
+  let apiSpy: MockedObject<any>;
   let component: UserManagementComponent;
 
   beforeEach(async () => {
-    apiSpy = jasmine.createSpyObj('ApiService', ['getUsers', 'deleteUser']);
+    apiSpy = {
+      getUsers: vi.fn().mockName('ApiService.getUsers'),
+      deleteUser: vi.fn().mockName('ApiService.deleteUser')
+    };
 
     await TestBed.configureTestingModule({
       imports: [UserManagementComponent],
@@ -58,9 +62,9 @@ describe('UserManagementComponent', () => {
   });
 
   it('removes a confirmed user deletion from local state', () => {
-    apiSpy.getUsers.and.returnValue(of([user]));
-    apiSpy.deleteUser.and.returnValue(of(void 0));
-    spyOn(window, 'confirm').and.returnValue(true);
+    apiSpy.getUsers.mockReturnValue(of([user]));
+    apiSpy.deleteUser.mockReturnValue(of(void 0));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     component.ngOnInit();
     (component as any).deleteUser(user);
@@ -72,8 +76,8 @@ describe('UserManagementComponent', () => {
 
   it('does not delete the signed-in user', () => {
     const signedInUser = { ...user, id: 'admin-id', userName: 'admin', role: 'Admin' as const };
-    apiSpy.getUsers.and.returnValue(of([signedInUser]));
-    spyOn(window, 'confirm');
+    apiSpy.getUsers.mockReturnValue(of([signedInUser]));
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     component.ngOnInit();
     (component as any).deleteUser(signedInUser);
@@ -83,11 +87,9 @@ describe('UserManagementComponent', () => {
   });
 
   it('shows the API error when deletion fails', () => {
-    apiSpy.getUsers.and.returnValue(of([user]));
-    apiSpy.deleteUser.and.returnValue(
-      throwError(() => new HttpErrorResponse({ status: 409, error: { detail: 'last admin' } })),
-    );
-    spyOn(window, 'confirm').and.returnValue(true);
+    apiSpy.getUsers.mockReturnValue(of([user]));
+    apiSpy.deleteUser.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409, error: { detail: 'last admin' } })));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     component.ngOnInit();
     (component as any).deleteUser(user);

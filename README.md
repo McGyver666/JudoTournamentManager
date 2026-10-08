@@ -349,14 +349,14 @@ cd frontend
 npm start
 ```
 
-Run frontend unit tests once (headless, exits automatically):
+Run frontend unit tests once (Vitest with jsdom, no browser required, exits automatically):
 
 ```powershell
 cd frontend
 npm run test:ci
 ```
 
-This avoids Karma staying open in watch mode after tests finish.
+This avoids Vitest staying open in watch mode after tests finish.
 
 Localization assets are plain JSON dictionaries in `frontend/public/i18n/`
 (`de.json` is the complete German source; `en.json` is the English fallback) and

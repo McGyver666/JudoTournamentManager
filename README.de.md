@@ -348,14 +348,14 @@ cd frontend
 npm start
 ```
 
-Frontend-Unit-Tests einmalig ausfuehren (headless, beendet sich automatisch):
+Frontend-Unit-Tests einmalig ausfuehren (Vitest mit jsdom, kein Browser noetig, beendet sich automatisch):
 
 ```powershell
 cd frontend
 npm run test:ci
 ```
 
-Damit bleibt Karma nach Abschluss der Tests nicht im Watch-Modus offen.
+Damit bleibt Vitest nach Abschluss der Tests nicht im Watch-Modus offen.
 
 Lokalisierungsressourcen sind einfache JSON-Woerterbuecher in `frontend/public/i18n/`.
 `de.json` ist die vollstaendige deutsche Quelle, `en.json` der englische Fallback; sie werden unter `/i18n/{lang}.json` bereitgestellt.

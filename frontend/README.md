@@ -39,13 +39,13 @@ unless the frontend build is explicitly skipped and existing `wwwroot` files are
 
 ## Unit tests
 
-Run tests interactively with Karma:
+Run tests in watch mode with Vitest (jsdom, no browser required):
 
 ```bash
 npm test
 ```
 
-Run the headless CI form, which exits automatically:
+Run the CI form, which exits automatically:
 
 ```bash
 npm run test:ci

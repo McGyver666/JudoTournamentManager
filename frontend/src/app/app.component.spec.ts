@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { WritableSignal, signal } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeDe from '@angular/common/locales/de';
@@ -28,9 +29,13 @@ describe('AppComponent shell navigation', () => {
     isAdmin: WritableSignal<boolean>;
     canOperate: WritableSignal<boolean>;
     canOperateLive: WritableSignal<boolean>;
-    user: WritableSignal<{ userId: string; userName: string; role: string } | null>;
+    user: WritableSignal<{
+      userId: string;
+      userName: string;
+      role: string;
+    } | null>;
   };
-  let changePasswordSpy: jasmine.Spy;
+  let changePasswordSpy: Mock;
 
   function createTatami(overrides: Partial<Tatami> = {}): Tatami {
     return {
@@ -45,8 +50,11 @@ describe('AppComponent shell navigation', () => {
     };
   }
 
-  function configure(tatamis: Tatami[] = [], opts: { tournaments?: number; categories?: number } = {}): void {
-    changePasswordSpy = jasmine.createSpy('changePassword').and.returnValue(of(undefined));
+  function configure(tatamis: Tatami[] = [], opts: {
+    tournaments?: number;
+    categories?: number;
+  } = {}): void {
+    changePasswordSpy = vi.fn().mockName('changePassword').mockReturnValue(of(undefined));
     auth = {
       isAuthenticated: signal(true),
       isAdmin: signal(false),
@@ -184,7 +192,9 @@ describe('AppComponent shell navigation', () => {
     auth.canOperate.set(true);
     auth.canOperateLive.set(true);
     const fixture = render();
-    (fixture.componentInstance as unknown as { matchMenuOpen: WritableSignal<boolean> }).matchMenuOpen.set(true);
+    (fixture.componentInstance as unknown as {
+      matchMenuOpen: WritableSignal<boolean>;
+    }).matchMenuOpen.set(true);
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
@@ -202,7 +212,9 @@ describe('AppComponent shell navigation', () => {
       createTatami({ id: 't2', name: 'Matte 2', isActive: false, displayOrder: 2 }),
     ]);
     const fixture = render();
-    (fixture.componentInstance as unknown as { displayMenuOpen: WritableSignal<boolean> }).displayMenuOpen.set(true);
+    (fixture.componentInstance as unknown as {
+      displayMenuOpen: WritableSignal<boolean>;
+    }).displayMenuOpen.set(true);
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
@@ -215,13 +227,10 @@ describe('AppComponent shell navigation', () => {
   });
 
   it('renders nav count badges from the loaded tournament, category and tatami counts', () => {
-    configure(
-      [
-        createTatami({ id: 't1', name: 'Matte 1', isActive: true, displayOrder: 1 }),
-        createTatami({ id: 't2', name: 'Matte 2', isActive: true, displayOrder: 2 }),
-      ],
-      { tournaments: 3, categories: 5 },
-    );
+    configure([
+      createTatami({ id: 't1', name: 'Matte 1', isActive: true, displayOrder: 1 }),
+      createTatami({ id: 't2', name: 'Matte 2', isActive: true, displayOrder: 2 }),
+    ], { tournaments: 3, categories: 5 });
     auth.canOperate.set(true);
     const el = render().nativeElement as HTMLElement;
 
@@ -254,7 +263,9 @@ describe('AppComponent shell navigation', () => {
   it('shows a tooltip for collapsed sidebar navigation items', () => {
     configure();
     const fixture = render();
-    const component = fixture.componentInstance as unknown as { sidebarCollapsed: WritableSignal<boolean> };
+    const component = fixture.componentInstance as unknown as {
+      sidebarCollapsed: WritableSignal<boolean>;
+    };
     component.sidebarCollapsed.set(true);
     fixture.detectChanges();
 
