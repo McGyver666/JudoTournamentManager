@@ -24,6 +24,10 @@ updates:
       - dependency-name: "@angular/*"
         update-types:
           - version-update:semver-major
+      # TypeScript majors are gated by the @angular/build peer range.
+      - dependency-name: "typescript"
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: nuget
     directory: /
@@ -35,6 +39,11 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # Microsoft.AspNetCore.OpenApi 10.x requires Microsoft.OpenApi < 3.0.
+      - dependency-name: "Microsoft.OpenApi"
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
