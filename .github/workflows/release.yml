@@ -122,7 +122,7 @@ jobs:
         run: sha256sum "release-${{ matrix.runtime }}.zip" > "release-${{ matrix.runtime }}.zip.sha256"
 
       - name: Upload release package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: shiai-manager-${{ matrix.runtime }}-release
           path: |
