@@ -18,7 +18,7 @@
     "@angular/platform-browser": "^22.2.1",
     "@angular/platform-browser-dynamic": "^22.2.1",
     "@angular/router": "^22.2.1",
-    "@microsoft/signalr": "^8.0.17",
+    "@microsoft/signalr": "^10.0.11",
     "@zxing/browser": "^0.2.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
