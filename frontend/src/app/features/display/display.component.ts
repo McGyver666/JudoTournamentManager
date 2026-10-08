@@ -6,6 +6,7 @@ import {
   computed,
   inject,
   signal,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -31,6 +32,7 @@ interface TatamiDisplay {
   standalone: true,
   imports: [TranslatePipe, ShidoIndicatorComponent],
   templateUrl: './display.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './display.component.css',
 })
 export class DisplayComponent implements OnInit, OnDestroy {

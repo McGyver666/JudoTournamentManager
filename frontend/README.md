@@ -1,12 +1,12 @@
 # Shiai Manager frontend
 
-The Angular 19 single-page application for Shiai Manager lives in this directory. The API serves
+The Angular 22 single-page application for Shiai Manager lives in this directory. The API serves
 the compiled application from `ShiaiManager.Api/wwwroot`, so no separate web server is required
 for normal local or production operation.
 
 ## Prerequisites
 
-- Node.js and npm
+- Node.js `^22.22.3`, `^24.15.0` or `>=26` (required by Angular 22) and npm
 - A running Shiai Manager API for the development proxy
 
 Install dependencies once:
@@ -39,13 +39,13 @@ unless the frontend build is explicitly skipped and existing `wwwroot` files are
 
 ## Unit tests
 
-Run tests interactively with Karma:
+Run tests in watch mode with Vitest (jsdom, no browser required):
 
 ```bash
 npm test
 ```
 
-Run the headless CI form, which exits automatically:
+Run the CI form, which exits automatically:
 
 ```bash
 npm run test:ci

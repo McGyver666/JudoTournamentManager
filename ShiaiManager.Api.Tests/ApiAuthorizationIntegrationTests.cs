@@ -664,6 +664,8 @@ public sealed class ApiAuthorizationIntegrationTests : IClassFixture<ApiAuthoriz
         Assert.True(response.Headers.Contains("X-Frame-Options"));
         Assert.True(response.Headers.Contains("Referrer-Policy"));
         Assert.True(response.Headers.Contains("Content-Security-Policy"));
+        var csp = string.Join(" ", response.Headers.GetValues("Content-Security-Policy"));
+        Assert.Contains("script-src 'self';", csp);
     }
 
     [Fact]

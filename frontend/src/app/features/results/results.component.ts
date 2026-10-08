@@ -4,6 +4,7 @@ import {
   OnInit,
   inject,
   signal,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
@@ -33,6 +34,7 @@ interface CategoryRanking {
   standalone: true,
   imports: [TranslatePipe],
   templateUrl: './results.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './results.component.css',
 })
 export class ResultsComponent implements OnInit, OnDestroy {

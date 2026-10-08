@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable, firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/api.service';
@@ -50,6 +50,7 @@ interface PresetWarning {
   standalone: true,
   imports: [FormsModule, TranslatePipe],
   templateUrl: './config.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './config.component.css',
 })
 export class ConfigComponent implements OnInit {

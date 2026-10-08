@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
@@ -14,14 +15,17 @@ import { MatchComponent } from './match.component';
 
 describe('MatchComponent', () => {
   let fightUpdates: Subject<Fight>;
-  let categoryFightsUpdates: Subject<{ tournamentId: string; categoryId: string }>;
-  let getTatamiQueueSpy: jasmine.Spy;
-  let getAthletesSpy: jasmine.Spy;
-  let startFightSpy: jasmine.Spy;
-  let pauseFightSpy: jasmine.Spy;
-  let resumeFightSpy: jasmine.Spy;
-  let startOsaeKomiSpy: jasmine.Spy;
-  let stopOsaeKomiSpy: jasmine.Spy;
+  let categoryFightsUpdates: Subject<{
+    tournamentId: string;
+    categoryId: string;
+  }>;
+  let getTatamiQueueSpy: Mock;
+  let getAthletesSpy: Mock;
+  let startFightSpy: Mock;
+  let pauseFightSpy: Mock;
+  let resumeFightSpy: Mock;
+  let startOsaeKomiSpy: Mock;
+  let stopOsaeKomiSpy: Mock;
   let tournamentSignal: WritableSignal<Tournament>;
 
   function createTournament(): Tournament {
@@ -92,7 +96,7 @@ describe('MatchComponent', () => {
       osaeKomiStartedAtUtc: null,
       osaeKomiPausedAtUtc: null,
       osaeKomiElapsedMilliseconds: 0,
-      startedAtUtc: new Date(Date.now() - 60_000).toISOString(),
+      startedAtUtc: new Date(Date.now() - 60000).toISOString(),
       completedAtUtc: new Date().toISOString(),
       isGoldenScore: false,
       createdAtUtc: new Date().toISOString(),
@@ -103,16 +107,19 @@ describe('MatchComponent', () => {
 
   beforeEach(() => {
     fightUpdates = new Subject<Fight>();
-    categoryFightsUpdates = new Subject<{ tournamentId: string; categoryId: string }>();
+    categoryFightsUpdates = new Subject<{
+      tournamentId: string;
+      categoryId: string;
+    }>();
 
     const tournament = createTournament();
     tournamentSignal = signal(tournament);
 
     const apiMock: Partial<ApiService> = {
-      getTournament: jasmine.createSpy('getTournament').and.returnValue(of(tournament)),
-      getAthletes: jasmine.createSpy('getAthletes').and.returnValue(of([] as Athlete[])),
-      getClubs: jasmine.createSpy('getClubs').and.returnValue(of([] as Club[])),
-      getCategories: jasmine.createSpy('getCategories').and.returnValue(of([{ 
+      getTournament: vi.fn().mockName('getTournament').mockReturnValue(of(tournament)),
+      getAthletes: vi.fn().mockName('getAthletes').mockReturnValue(of([] as Athlete[])),
+      getClubs: vi.fn().mockName('getClubs').mockReturnValue(of([] as Club[])),
+      getCategories: vi.fn().mockName('getCategories').mockReturnValue(of([{
         id: 'category-1',
         tournamentId: 'tournament-1',
         name: 'U18 -66',
@@ -130,27 +137,27 @@ describe('MatchComponent', () => {
         createdAtUtc: new Date().toISOString(),
         updatedAtUtc: new Date().toISOString(),
       } as Category])),
-      getTatamis: jasmine.createSpy('getTatamis').and.returnValue(of([createTatami()])),
-      getTatamiQueue: jasmine.createSpy('getTatamiQueue').and.returnValue(of({
+      getTatamis: vi.fn().mockName('getTatamis').mockReturnValue(of([createTatami()])),
+      getTatamiQueue: vi.fn().mockName('getTatamiQueue').mockReturnValue(of({
         current: null,
         next: null,
         onDeck: null,
         upcoming: [],
       } as TatamiQueue)),
-      startFight: jasmine.createSpy('startFight').and.returnValue(of(undefined)),
-      pauseFight: jasmine.createSpy('pauseFight').and.returnValue(of(undefined)),
-      resumeFight: jasmine.createSpy('resumeFight').and.returnValue(of(undefined)),
-      startOsaeKomi: jasmine.createSpy('startOsaeKomi').and.returnValue(of(undefined)),
-      stopOsaeKomi: jasmine.createSpy('stopOsaeKomi').and.returnValue(of(undefined)),
+      startFight: vi.fn().mockName('startFight').mockReturnValue(of(undefined)),
+      pauseFight: vi.fn().mockName('pauseFight').mockReturnValue(of(undefined)),
+      resumeFight: vi.fn().mockName('resumeFight').mockReturnValue(of(undefined)),
+      startOsaeKomi: vi.fn().mockName('startOsaeKomi').mockReturnValue(of(undefined)),
+      stopOsaeKomi: vi.fn().mockName('stopOsaeKomi').mockReturnValue(of(undefined)),
     };
 
-    getTatamiQueueSpy = apiMock.getTatamiQueue as jasmine.Spy;
-    getAthletesSpy = apiMock.getAthletes as jasmine.Spy;
-    startFightSpy = apiMock.startFight as jasmine.Spy;
-    pauseFightSpy = apiMock.pauseFight as jasmine.Spy;
-    resumeFightSpy = apiMock.resumeFight as jasmine.Spy;
-    startOsaeKomiSpy = apiMock.startOsaeKomi as jasmine.Spy;
-    stopOsaeKomiSpy = apiMock.stopOsaeKomi as jasmine.Spy;
+    getTatamiQueueSpy = apiMock.getTatamiQueue as Mock;
+    getAthletesSpy = apiMock.getAthletes as Mock;
+    startFightSpy = apiMock.startFight as Mock;
+    pauseFightSpy = apiMock.pauseFight as Mock;
+    resumeFightSpy = apiMock.resumeFight as Mock;
+    startOsaeKomiSpy = apiMock.startOsaeKomi as Mock;
+    stopOsaeKomiSpy = apiMock.stopOsaeKomi as Mock;
 
     TestBed.configureTestingModule({
       providers: [
@@ -187,13 +194,13 @@ describe('MatchComponent', () => {
         { provide: TimeService, useValue: { synchronize: () => Promise.resolve(), synchronizeIfStale: () => Promise.resolve(), ingestServerNowUtc: () => undefined, nowMs: () => Date.now() } },
         { provide: I18nService, useValue: { translate: (key: string) => key } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({})), queryParamMap: of(convertToParamMap({ tatamiId: 'tatami-1' })) } },
-        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate').and.returnValue(Promise.resolve(true)) } },
+        { provide: Router, useValue: { navigate: vi.fn().mockName('navigate').mockResolvedValue(true) } },
       ],
     });
   });
 
   it('starts a pending fight with the space bar and refreshes the queue', () => {
-    getTatamiQueueSpy.and.returnValue(of({
+    getTatamiQueueSpy.mockReturnValue(of({
       current: createFight({ status: 'Pending', startedAtUtc: null, completedAtUtc: null }),
       next: null,
       onDeck: null,
@@ -202,14 +209,14 @@ describe('MatchComponent', () => {
 
     const fixture = TestBed.createComponent(MatchComponent);
     fixture.detectChanges();
-    getTatamiQueueSpy.calls.reset();
+    getTatamiQueueSpy.mockClear();
 
     const event = new KeyboardEvent('keydown', { key: ' ', code: 'Space', cancelable: true });
     document.dispatchEvent(event);
 
-    expect(startFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(startFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', expect.any(String));
     expect(getTatamiQueueSpy).toHaveBeenCalledTimes(1);
-    expect(event.defaultPrevented).toBeTrue();
+    expect(event.defaultPrevented).toBe(true);
 
     fixture.destroy();
   });
@@ -218,7 +225,7 @@ describe('MatchComponent', () => {
     const fixture = TestBed.createComponent(MatchComponent);
     const component = fixture.componentInstance as any;
 
-    getTatamiQueueSpy.and.returnValue(of({
+    getTatamiQueueSpy.mockReturnValue(of({
       current: createFight({ status: 'InProgress' }),
       next: null,
       onDeck: null,
@@ -227,7 +234,7 @@ describe('MatchComponent', () => {
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
 
-    expect(pauseFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(pauseFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', expect.any(String));
 
     component.queue.set({
       current: createFight({ status: 'Paused' }),
@@ -237,7 +244,7 @@ describe('MatchComponent', () => {
     });
     document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
 
-    expect(resumeFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(resumeFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', expect.any(String));
     expect(startFightSpy).not.toHaveBeenCalled();
     fixture.destroy();
   });
@@ -247,7 +254,7 @@ describe('MatchComponent', () => {
     const fixture = TestBed.createComponent(MatchComponent);
     const component = fixture.componentInstance as any;
     const fight = createFight({ status: 'InProgress' });
-    getTatamiQueueSpy.and.returnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
+    getTatamiQueueSpy.mockReturnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
     fixture.detectChanges();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 's' }));
@@ -255,9 +262,9 @@ describe('MatchComponent', () => {
     component.osaeKomiSide.set('white');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
 
-    expect(startOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', { side: 'white' }, jasmine.any(String));
-    expect(startOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', { side: 'blue' }, jasmine.any(String));
-    expect(stopOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(startOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', { side: 'white' }, expect.any(String));
+    expect(startOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', { side: 'blue' }, expect.any(String));
+    expect(stopOsaeKomiSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', expect.any(String));
     expect(pauseFightSpy).not.toHaveBeenCalled();
     expect(resumeFightSpy).not.toHaveBeenCalled();
     fixture.destroy();
@@ -265,10 +272,12 @@ describe('MatchComponent', () => {
 
   it('ignores repeated, modified, invalid, unauthorized, and focused-input shortcuts', () => {
     const fixture = TestBed.createComponent(MatchComponent);
-    const auth = TestBed.inject(AuthStateService) as AuthStateService & { canOperate: WritableSignal<boolean> };
+    const auth = TestBed.inject(AuthStateService) as AuthStateService & {
+      canOperate: WritableSignal<boolean>;
+    };
     const component = fixture.componentInstance as any;
     const fight = createFight({ status: 'InProgress' });
-    getTatamiQueueSpy.and.returnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
+    getTatamiQueueSpy.mockReturnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
     fixture.detectChanges();
 
     component.osaeKomiSide.set(null);
@@ -321,7 +330,7 @@ describe('MatchComponent', () => {
     const fixture = TestBed.createComponent(MatchComponent);
     const component = fixture.componentInstance as any;
     const fight = createFight({ status: 'Pending', startedAtUtc: null, completedAtUtc: null });
-    getTatamiQueueSpy.and.returnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
+    getTatamiQueueSpy.mockReturnValue(of({ current: fight, next: null, onDeck: null, upcoming: [] } as TatamiQueue));
     fixture.detectChanges();
 
     component.selectedTatamiId.set(null);
@@ -339,20 +348,20 @@ describe('MatchComponent', () => {
     document.dispatchEvent(dialogEvent);
 
     expect(startFightSpy).not.toHaveBeenCalled();
-    expect(noTatamiEvent.defaultPrevented).toBeFalse();
-    expect(noTournamentEvent.defaultPrevented).toBeFalse();
-    expect(dialogEvent.defaultPrevented).toBeFalse();
+    expect(noTatamiEvent.defaultPrevented).toBe(false);
+    expect(noTournamentEvent.defaultPrevented).toBe(false);
+    expect(dialogEvent.defaultPrevented).toBe(false);
     fixture.destroy();
   });
 
   it('uses the existing error path when a keyboard action fails', () => {
-    getTatamiQueueSpy.and.returnValue(of({
+    getTatamiQueueSpy.mockReturnValue(of({
       current: createFight({ status: 'Pending', startedAtUtc: null, completedAtUtc: null }),
       next: null,
       onDeck: null,
       upcoming: [],
     } as TatamiQueue));
-    startFightSpy.and.returnValue(throwError(() => new Error('start failed')));
+    startFightSpy.mockReturnValue(throwError(() => new Error('start failed')));
 
     const fixture = TestBed.createComponent(MatchComponent);
     fixture.detectChanges();
@@ -361,13 +370,13 @@ describe('MatchComponent', () => {
 
     expect(startFightSpy).toHaveBeenCalled();
     expect((fixture.componentInstance as any).errorMessage()).toBe('Kampf konnte nicht gestartet werden.');
-    expect(event.defaultPrevented).toBeTrue();
+    expect(event.defaultPrevented).toBe(true);
     fixture.destroy();
   });
 
   it('uses the shared keyboard lifecycle for TeamMatchday fights', () => {
     tournamentSignal.update((tournament) => ({ ...tournament, competitionMode: 'TeamMatchday' }));
-    getTatamiQueueSpy.and.returnValue(of({
+    getTatamiQueueSpy.mockReturnValue(of({
       current: createFight({ status: 'InProgress' }),
       next: null,
       onDeck: null,
@@ -378,12 +387,12 @@ describe('MatchComponent', () => {
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
 
-    expect(pauseFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', jasmine.any(String));
+    expect(pauseFightSpy).toHaveBeenCalledWith('tournament-1', 'fight-1', expect.any(String));
     fixture.destroy();
   });
 
   it('replaces the shido bubbles with a Hansoku-make badge after the third shido', () => {
-    getTatamiQueueSpy.and.returnValue(of({
+    getTatamiQueueSpy.mockReturnValue(of({
       current: createFight({ status: 'InProgress', whitePenalties: 3, blueIpponCount: 1, whiteIpponCount: 0 }),
       next: null,
       onDeck: null,
@@ -425,8 +434,8 @@ describe('MatchComponent', () => {
     const fixture = TestBed.createComponent(MatchComponent);
     fixture.detectChanges();
 
-    getTatamiQueueSpy.calls.reset();
-    getAthletesSpy.calls.reset();
+    getTatamiQueueSpy.mockClear();
+    getAthletesSpy.mockClear();
 
     fightUpdates.next(createFight());
 
@@ -438,7 +447,7 @@ describe('MatchComponent', () => {
 
   it('shows and wires the Hiki-wake button for team-matchday fights', () => {
     tournamentSignal.update((tournament) => ({ ...tournament, competitionMode: 'TeamMatchday' }));
-    getTatamiQueueSpy.and.returnValue(of({
+    getTatamiQueueSpy.mockReturnValue(of({
       current: createFight({ status: 'InProgress' }),
       next: null,
       onDeck: null,
@@ -473,7 +482,7 @@ describe('MatchComponent', () => {
     });
     const stoppedFight = createFight({
       status: 'InProgress',
-      updatedAtUtc: new Date(startedAt.getTime() + 5_400).toISOString(),
+      updatedAtUtc: new Date(startedAt.getTime() + 5400).toISOString(),
     });
 
     (fixture.componentInstance as any).restartTimer(activeHold);
@@ -494,12 +503,12 @@ describe('MatchComponent', () => {
       osaeKomiSide: 'White',
       osaeKomiStartedAtUtc: null,
       osaeKomiPausedAtUtc: new Date().toISOString(),
-      osaeKomiElapsedMilliseconds: 3_400,
+      osaeKomiElapsedMilliseconds: 3400,
     });
 
     component.restartTimer(pausedHold);
 
-    expect(component.isOsaeKomiPaused(pausedHold)).toBeTrue();
+    expect(component.isOsaeKomiPaused(pausedHold)).toBe(true);
     expect(component.osaeKomiToggleLabelKey()).toBe('match.resumeOsae');
     expect(component.holdTimerLabel()).toBe('3.4s / 20s');
 
@@ -508,12 +517,12 @@ describe('MatchComponent', () => {
       osaeKomiSide: 'White',
       osaeKomiStartedAtUtc: new Date().toISOString(),
       osaeKomiPausedAtUtc: null,
-      osaeKomiElapsedMilliseconds: 3_400,
+      osaeKomiElapsedMilliseconds: 3400,
     });
 
     component.restartTimer(runningHold);
 
-    expect(component.isOsaeKomiPaused(runningHold)).toBeFalse();
+    expect(component.isOsaeKomiPaused(runningHold)).toBe(false);
     expect(component.osaeKomiToggleLabelKey()).toBe('match.pauseOsae');
 
     fixture.destroy();

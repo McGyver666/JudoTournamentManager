@@ -136,10 +136,12 @@ sudo useradd --system --create-home --home-dir /opt/shiai-manager --shell /usr/s
 ```
 
 For a source-based deployment, build the frontend before publishing. The systemd unit publishes
-the API but does not run npm, so install Node.js/npm and build the Angular app explicitly:
+the API but does not run npm, so install Node.js/npm and build the Angular app explicitly. Angular 22
+needs Node.js `^22.22.3`, `^24.15.0` or `>=26`; the Debian `nodejs` package is older, so install a
+supported release (for example from NodeSource):
 
 ```bash
-sudo apt install -y nodejs npm
+node --version  # must satisfy the range above
 cd /opt/shiai-manager/frontend
 npm install
 npm run build

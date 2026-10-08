@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
@@ -35,6 +35,7 @@ interface ConnectorPath {
   standalone: true,
   imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './draw.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './draw.component.css',
 })
 export class DrawComponent implements OnInit {

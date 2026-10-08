@@ -62,7 +62,7 @@ Initial admin credentials (save these now):
 - **Solution style:** modular monolith
 - **Persistence:** SQLite via EF Core (`App_Data/judo-tournament.db`, auto-created on startup)
 - **Schema compatibility:** Startup uses EF Core migrations and migration history; legacy local databases without migration history are adopted safely at startup.
-- **Frontend:** Angular 19 SPA (`frontend/`), built into the API `wwwroot/` and served same-origin
+- **Frontend:** Angular 22 SPA (`frontend/`), built into the API `wwwroot/` and served same-origin
 - **Health endpoint:** `/health`
 - **App entry point:** `/` (Angular app; deep links fall back to `index.html`)
 
@@ -325,7 +325,7 @@ Output is written to `artifacts/transfer/` as a timestamped folder plus zip arch
 
 ## Frontend (Angular)
 
-The Angular 19 app lives in `frontend/` and is compiled into the API's `wwwroot/`,
+The Angular 22 app lives in `frontend/` and is compiled into the API's `wwwroot/`,
 so the running API serves the UI at `/` (no separate web server needed).
 
 Install dependencies (once):
@@ -349,14 +349,14 @@ cd frontend
 npm start
 ```
 
-Run frontend unit tests once (headless, exits automatically):
+Run frontend unit tests once (Vitest with jsdom, no browser required, exits automatically):
 
 ```powershell
 cd frontend
 npm run test:ci
 ```
 
-This avoids Karma staying open in watch mode after tests finish.
+This avoids Vitest staying open in watch mode after tests finish.
 
 Localization assets are plain JSON dictionaries in `frontend/public/i18n/`
 (`de.json` is the complete German source; `en.json` is the English fallback) and

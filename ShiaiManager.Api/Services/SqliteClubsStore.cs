@@ -59,7 +59,7 @@ public sealed class SqliteClubsStore : IClubsStore
         if (isDuplicate)
         {
             _logger.LogWarning(
-                "Duplicate club name '{ClubName}' for tournament {TournamentId}.", trimmedName, tournamentId);
+                "Duplicate club name '{ClubName}' for tournament {TournamentId}.", LogSanitizer.Sanitize(trimmedName), tournamentId);
             return null;
         }
 

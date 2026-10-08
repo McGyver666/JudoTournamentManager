@@ -1,5 +1,4 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -13,7 +12,7 @@ import { DokumePassCheckResult } from '../../core/models';
 @Component({
   selector: 'app-qr-license-scanner',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe],
   template: `
     <div class="qr-scanner-card">
       <h3>{{ 'registrations.scan' | t }}</h3>
@@ -74,6 +73,7 @@ import { DokumePassCheckResult } from '../../core/models';
       }
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .qr-scanner-card {
       background: #f5f5f5;
@@ -215,7 +215,7 @@ export class QrLicenseScannerComponent implements OnInit, OnDestroy {
       (result, error) => {
         if (result) {
           const qrUrl = result.getText();
-          if (qrUrl && qrUrl.includes('qr.dokume.net')) {
+          if (qrUrl && this.isDokumeQrUrl(qrUrl)) {
             this.onQrDetected(qrUrl);
           }
         }
@@ -246,6 +246,16 @@ export class QrLicenseScannerComponent implements OnInit, OnDestroy {
     }
 
     this.isScanning.set(false);
+  }
+
+  private isDokumeQrUrl(value: string): boolean {
+    // Must match the server-side allowlist in DokumePassParser.
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' && url.hostname === 'qr.dokume.net';
+    } catch {
+      return false;
+    }
   }
 
   private onQrDetected(qrUrl: string): void {

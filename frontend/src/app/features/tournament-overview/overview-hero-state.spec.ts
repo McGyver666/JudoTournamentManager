@@ -8,12 +8,12 @@ describe('overview hero rotation', () => {
   });
 
   it('does not auto-rotate when motion or focus safety requires a pause', () => {
-    expect(canAutoRotateHero({ reducedMotion: true, interactionPaused: false, osaeKomiActive: false })).toBeFalse();
-    expect(canAutoRotateHero({ reducedMotion: false, interactionPaused: true, osaeKomiActive: false })).toBeFalse();
-    expect(canAutoRotateHero({ reducedMotion: false, interactionPaused: false, osaeKomiActive: true })).toBeFalse();
+    expect(canAutoRotateHero({ reducedMotion: true, interactionPaused: false, osaeKomiActive: false })).toBe(false);
+    expect(canAutoRotateHero({ reducedMotion: false, interactionPaused: true, osaeKomiActive: false })).toBe(false);
+    expect(canAutoRotateHero({ reducedMotion: false, interactionPaused: false, osaeKomiActive: true })).toBe(false);
   });
 
   it('auto-rotates when the hero is idle and motion is allowed', () => {
-    expect(canAutoRotateHero({ reducedMotion: false, interactionPaused: false, osaeKomiActive: false })).toBeTrue();
+    expect(canAutoRotateHero({ reducedMotion: false, interactionPaused: false, osaeKomiActive: false })).toBe(true);
   });
 });

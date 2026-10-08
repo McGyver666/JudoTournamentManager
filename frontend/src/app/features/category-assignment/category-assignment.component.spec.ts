@@ -1,3 +1,4 @@
+import type { MockedObject } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
@@ -8,7 +9,7 @@ import { TournamentContextService } from '../../core/tournament-context.service'
 import { CategoryAssignmentComponent } from './category-assignment.component';
 
 describe('CategoryAssignmentComponent', () => {
-  let apiSpy: jasmine.SpyObj<Pick<ApiService, 'assignCategory'>>;
+  let apiSpy: MockedObject<Pick<ApiService, 'assignCategory'>>;
   let component: any;
 
   const category = {
@@ -28,8 +29,10 @@ describe('CategoryAssignmentComponent', () => {
   } as RegistrationDetail;
 
   beforeEach(() => {
-    apiSpy = jasmine.createSpyObj('ApiService', ['assignCategory']);
-    apiSpy.assignCategory.and.returnValue(of({} as any));
+    apiSpy = {
+      assignCategory: vi.fn().mockName('ApiService.assignCategory')
+    };
+    apiSpy.assignCategory.mockReturnValue(of({} as any));
     TestBed.configureTestingModule({
       imports: [CategoryAssignmentComponent],
       providers: [
@@ -52,7 +55,7 @@ describe('CategoryAssignmentComponent', () => {
   }
 
   it('asks for confirmation when the birth year is outside the category range and keeps the old value on cancel', () => {
-    spyOn(window, 'confirm').and.returnValue(false);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
     const select = selectWith(category.id);
 
     component.reassign(registration, select);
@@ -63,7 +66,7 @@ describe('CategoryAssignmentComponent', () => {
   });
 
   it('assigns after confirmation because the birth-year range is only a plausibility check', () => {
-    spyOn(window, 'confirm').and.returnValue(true);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     component.reassign(registration, selectWith(category.id));
 

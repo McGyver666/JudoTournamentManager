@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -31,6 +31,7 @@ interface CategoryFightGroup {
   standalone: true,
   imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './tatami-assignment.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './tatami-assignment.component.css',
 })
 export class TatamiAssignmentComponent implements OnInit {

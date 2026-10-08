@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { TranslatePipe } from '../../core/translate.pipe';
@@ -16,6 +16,7 @@ import { AutoAssignResult, Category, Gender, RegistrationDetail } from '../../co
   selector: 'app-category-assignment',
   standalone: true,
   imports: [FormsModule, TranslatePipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './category-assignment.component.html',
 })
 export class CategoryAssignmentComponent implements OnInit {

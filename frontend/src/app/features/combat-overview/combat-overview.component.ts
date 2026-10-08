@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
@@ -42,6 +42,7 @@ interface EditState {
   standalone: true,
   imports: [DatePipe, FormsModule, TranslatePipe],
   templateUrl: './combat-overview.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './combat-overview.component.css',
 })
 export class CombatOverviewComponent implements OnInit {

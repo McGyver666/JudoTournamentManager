@@ -6,12 +6,18 @@ import { TournamentContextService } from './tournament-context.service';
 import { requireAdminGuard, requireAuthGuard, requireDisplayGuard, requireLiveOperationGuard, requireOperatorGuard, requireTournamentContextGuard } from './auth.guards';
 
 describe('auth guards', () => {
-  function configure(authState: { isAuthenticated: () => boolean; isAdmin: () => boolean; canOperate: () => boolean; canOperateLive: () => boolean; canDisplay: () => boolean }) {
+  function configure(authState: {
+    isAuthenticated: () => boolean;
+    isAdmin: () => boolean;
+    canOperate: () => boolean;
+    canOperateLive: () => boolean;
+    canDisplay: () => boolean;
+  }) {
     const loginTree = { path: '/login' };
     const tournamentsTree = { path: '/tournaments' };
     const tournamentId = signal<string | null>(null);
 
-    const parseUrl = jasmine.createSpy('parseUrl').and.callFake((url: string) => {
+    const parseUrl = vi.fn().mockName('parseUrl').mockImplementation((url: string) => {
       if (url === '/login') {
         return loginTree as never;
       }
@@ -69,7 +75,7 @@ describe('auth guards', () => {
 
     const result = TestBed.runInInjectionContext(() => requireOperatorGuard({} as never, {} as never));
 
-    expect(result).toBeTrue();
+    expect(result).toBe(true);
   });
 
   it('requireDisplayGuard allows display role', () => {
@@ -83,7 +89,7 @@ describe('auth guards', () => {
 
     const result = TestBed.runInInjectionContext(() => requireDisplayGuard({} as never, {} as never));
 
-    expect(result).toBeTrue();
+    expect(result).toBe(true);
   });
 
   it('requireLiveOperationGuard allows competition role', () => {
@@ -97,7 +103,7 @@ describe('auth guards', () => {
 
     const result = TestBed.runInInjectionContext(() => requireLiveOperationGuard({} as never, {} as never));
 
-    expect(result).toBeTrue();
+    expect(result).toBe(true);
   });
 
   it('requireTournamentContextGuard redirects an authenticated user without a tournament', () => {
@@ -125,6 +131,6 @@ describe('auth guards', () => {
 
     const result = TestBed.runInInjectionContext(() => requireTournamentContextGuard({} as never, {} as never));
 
-    expect(result).toBeTrue();
+    expect(result).toBe(true);
   });
 });

@@ -1,5 +1,4 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { concat, forkJoin } from 'rxjs';
@@ -14,8 +13,9 @@ import { TranslatePipe } from '../../core/translate.pipe';
 @Component({
   selector: 'app-team-matchday',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './team-matchday.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './team-matchday.component.css',
 })
 export class TeamMatchdayComponent implements OnInit {

@@ -1,3 +1,4 @@
+import type { MockedObject } from 'vitest';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -22,8 +23,7 @@ class I18nServiceStub {
   private readonly values: Record<string, string> = {
     'common.confirmDelete': 'delete?',
     'errors.delete': 'Löschen fehlgeschlagen.',
-    'errors.clubHasAthletes':
-      'Der Verein kann nicht gelöscht werden, solange ihm Athleten zugeordnet sind. Bitte Athleten zuerst entfernen oder einem anderen Verein zuordnen.',
+    'errors.clubHasAthletes': 'Der Verein kann nicht gelöscht werden, solange ihm Athleten zugeordnet sind. Bitte Athleten zuerst entfernen oder einem anderen Verein zuordnen.',
     'athletes.filterBirthYearFrom': 'Jahrgang von',
     'athletes.filterBirthYearTo': 'Jahrgang bis',
     'athletes.filterAllGenders': 'Alle',
@@ -38,8 +38,7 @@ class I18nServiceStub {
 
   translate(key: string, params?: Record<string, string | number>): string {
     const template = this.values[key] ?? key;
-    return template.replace(/\{(\w+)\}/g, (_match, name: string) =>
-      params?.[name] === undefined ? `{${name}}` : String(params[name]));
+    return template.replace(/\{(\w+)\}/g, (_match, name: string) => params?.[name] === undefined ? `{${name}}` : String(params[name]));
   }
 }
 
@@ -55,16 +54,17 @@ describe('ConfigComponent', () => {
     updatedAtUtc: '2026-01-01T00:00:00Z',
   };
 
-  let apiSpy: jasmine.SpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete' | 'getCategoryPresetWarnings'>>;
+  let apiSpy: MockedObject<Pick<ApiService, 'deleteClub' | 'deleteAthlete' | 'getCategoryPresetWarnings'>>;
   let context: TournamentContextStub;
   let component: ConfigComponent;
   let fixture: ComponentFixture<ConfigComponent>;
 
   beforeEach(async () => {
-    apiSpy = jasmine.createSpyObj<Pick<ApiService, 'deleteClub' | 'deleteAthlete' | 'getCategoryPresetWarnings'>>(
-      'ApiService',
-      ['deleteClub', 'deleteAthlete', 'getCategoryPresetWarnings'],
-    );
+    apiSpy = {
+      deleteClub: vi.fn().mockName('ApiService.deleteClub'),
+      deleteAthlete: vi.fn().mockName('ApiService.deleteAthlete'),
+      getCategoryPresetWarnings: vi.fn().mockName('ApiService.getCategoryPresetWarnings')
+    };
     context = new TournamentContextStub();
 
     await TestBed.configureTestingModule({
@@ -83,29 +83,22 @@ describe('ConfigComponent', () => {
 
   it('shows a specific localized message when deleting a club fails with HTTP 409', () => {
     context.tournamentId.set('t-1');
-    apiSpy.deleteClub.and.returnValue(
-      throwError(
-        () =>
-          new HttpErrorResponse({
-            status: 409,
-            error: { title: 'Verein hat Athleten.' },
-          }),
-      ),
-    );
-    spyOn(window, 'confirm').and.returnValue(true);
+    apiSpy.deleteClub.mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 409,
+      error: { title: 'Verein hat Athleten.' },
+    })));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     (component as any).deleteClub(club);
 
     expect(apiSpy.deleteClub).toHaveBeenCalledWith('t-1', 'club-1');
-    expect((component as any).error()).toBe(
-      'Der Verein kann nicht gelöscht werden, solange ihm Athleten zugeordnet sind. Bitte Athleten zuerst entfernen oder einem anderen Verein zuordnen.',
-    );
+    expect((component as any).error()).toBe('Der Verein kann nicht gelöscht werden, solange ihm Athleten zugeordnet sind. Bitte Athleten zuerst entfernen oder einem anderen Verein zuordnen.');
   });
 
   it('keeps generic delete error handling for non-409 club delete failures', () => {
     context.tournamentId.set('t-1');
-    apiSpy.deleteClub.and.returnValue(throwError(() => new Error('network')));
-    spyOn(window, 'confirm').and.returnValue(true);
+    apiSpy.deleteClub.mockReturnValue(throwError(() => new Error('network')));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     (component as any).deleteClub(club);
 
@@ -114,8 +107,8 @@ describe('ConfigComponent', () => {
 
   it('removes the club from local state after successful delete', () => {
     context.tournamentId.set('t-1');
-    apiSpy.deleteClub.and.returnValue(of(void 0));
-    spyOn(window, 'confirm').and.returnValue(true);
+    apiSpy.deleteClub.mockReturnValue(of(void 0));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     (component as any).clubs.set([club]);
 
     (component as any).deleteClub(club);
@@ -142,9 +135,7 @@ describe('ConfigComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerHTML).toContain('athlete-filters');
-    const clubFilter = fixture.nativeElement.querySelector(
-      '#athlete-filter-club',
-    ) as HTMLSelectElement;
+    const clubFilter = fixture.nativeElement.querySelector('#athlete-filter-club') as HTMLSelectElement;
     expect(clubFilter).toBeTruthy();
 
     clubFilter.value = 'club-1';
@@ -208,9 +199,9 @@ describe('ConfigComponent', () => {
     testComponent.selectedAthleteBirthYearTo.set(2013);
     testComponent.selectedAthleteGender.set('Male');
     testComponent.selectedAthleteClubId.set('club-1');
-    spyOn(window, 'confirm').and.returnValue(true);
-    apiSpy.deleteClub.and.returnValue(of(void 0));
-    apiSpy.deleteAthlete.and.returnValue(of(void 0));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    apiSpy.deleteClub.mockReturnValue(of(void 0));
+    apiSpy.deleteAthlete.mockReturnValue(of(void 0));
 
     testComponent.deleteClub(club);
     expect(testComponent.selectedAthleteClubId()).toBe('');
@@ -232,7 +223,7 @@ describe('ConfigComponent', () => {
 
     testComponent.resetAthleteFilters();
 
-    expect(testComponent.hasAthleteFilters()).toBeFalse();
+    expect(testComponent.hasAthleteFilters()).toBe(false);
     expect(testComponent.filteredAthletes().length).toBe(0);
   });
 
@@ -248,7 +239,7 @@ describe('ConfigComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Keine Athleten entsprechen den Filtern.');
     expect(fixture.nativeElement.textContent).not.toContain('athletes.empty');
     expect(fixture.nativeElement.querySelector('tbody')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.toolbar-actions button').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.toolbar-actions button').disabled).toBe(true);
   });
 
   it('starts new athlete forms without a grade and shows a dash for missing grades', () => {
@@ -303,9 +294,9 @@ describe('ConfigComponent', () => {
   });
 
   it('exports only the filtered athletes', async () => {
-    const createObjectUrl = spyOn(URL, 'createObjectURL').and.returnValue('blob:athletes');
-    spyOn(URL, 'revokeObjectURL');
-    spyOn(HTMLAnchorElement.prototype, 'click');
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:athletes');
+    vi.spyOn(URL, 'revokeObjectURL').mockReturnValue(undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockReturnValue(undefined);
     const testComponent = component as any;
     testComponent.athletes.set([
       createAthlete('athlete-1', 'club-1', 'Anna'),
@@ -315,7 +306,7 @@ describe('ConfigComponent', () => {
 
     testComponent.exportAthletesCsv();
 
-    const csv = await (createObjectUrl.calls.first().args[0] as Blob).text();
+    const csv = await (createObjectUrl.mock.calls[0][0] as Blob).text();
     expect(csv).toContain('Anna');
     expect(csv).not.toContain('Berta');
   });
@@ -328,7 +319,9 @@ describe('ConfigComponent', () => {
       'English;Grade;2012;w;DJK Test;8th Kyu (white-yellow belt);',
     ].join('\n'));
 
-    expect(rows.map((row: { grade: number | null }) => row.grade)).toEqual([null, 2, 2]);
+    expect(rows.map((row: {
+      grade: number | null;
+    }) => row.grade)).toEqual([null, 2, 2]);
   });
 
   it('reports invalid CSV belt grades with the physical line and value', () => {
@@ -343,7 +336,7 @@ describe('ConfigComponent', () => {
       parseError = error;
     }
 
-    expect(parseError?.isCsvGradeError).toBeTrue();
+    expect(parseError?.isCsvGradeError).toBe(true);
     expect(parseError?.lineNumber).toBe(3);
     expect(parseError?.value).toBe('Yellow');
 
@@ -360,16 +353,16 @@ describe('ConfigComponent', () => {
   });
 
   it('exports an athlete without a belt grade as an empty CSV field', async () => {
-    const createObjectUrl = spyOn(URL, 'createObjectURL').and.returnValue('blob:athletes');
-    spyOn(URL, 'revokeObjectURL');
-    spyOn(HTMLAnchorElement.prototype, 'click');
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:athletes');
+    vi.spyOn(URL, 'revokeObjectURL').mockReturnValue(undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockReturnValue(undefined);
     (component as any).athletes.set([
       { ...createAthlete('athlete-1', 'club-1', 'Anna'), grade: null },
     ]);
 
     (component as any).exportAthletesCsv();
 
-    const csv = await (createObjectUrl.calls.first().args[0] as Blob).text();
+    const csv = await (createObjectUrl.mock.calls[0][0] as Blob).text();
     expect(csv).toContain('Test;Anna;2012;w;;;');
   });
 
@@ -384,7 +377,7 @@ describe('ConfigComponent', () => {
 
     expect(testComponent.generationAgeGroups()).toEqual(['U9']);
     expect(testComponent.generationGenderModes()).toEqual(['Male', 'Female', 'Mixed']);
-    expect(testComponent.canUseStandardWeightClasses()).toBeFalse();
+    expect(testComponent.canUseStandardWeightClasses()).toBe(false);
 
     testComponent.categoryGeneratorForm.weightMode = 'StandardClasses';
     testComponent.onCategoryGeneratorSelectionChanged();
@@ -393,7 +386,7 @@ describe('ConfigComponent', () => {
 
   it('shows preset warnings computed by the backend with their translation parameters', () => {
     context.tournamentId.set('t-1');
-    apiSpy.getCategoryPresetWarnings.and.returnValue(of([
+    apiSpy.getCategoryPresetWarnings.mockReturnValue(of([
       { key: 'presets.warningNoAgeGroup', ageGroup: null, count: 2 },
       { key: 'presets.warningHiddenAgeGroup', ageGroup: 'U11', count: null },
     ]));
@@ -440,13 +433,7 @@ describe('ConfigComponent', () => {
     };
   }
 
-  function createAthlete(
-    id: string,
-    clubId: string,
-    firstName: string,
-    birthYear = 2012,
-    gender: Athlete['gender'] = 'Female',
-  ): Athlete {
+  function createAthlete(id: string, clubId: string, firstName: string, birthYear = 2012, gender: Athlete['gender'] = 'Female'): Athlete {
     return {
       id,
       tournamentId: 't-1',

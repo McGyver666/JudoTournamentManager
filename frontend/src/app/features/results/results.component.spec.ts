@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { signal } from '@angular/core';
 import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
@@ -5,29 +6,26 @@ import { of, Subject, throwError } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthStateService } from '../../core/auth-state.service';
 import { I18nService } from '../../core/i18n.service';
-import {
-  AgeGroupClubScoringResponse,
-  Category,
-  ClubScoringEntry,
-  Fight,
-  GlobalClubScoringResponse,
-} from '../../core/models';
+import { AgeGroupClubScoringResponse, Category, ClubScoringEntry, Fight, GlobalClubScoringResponse, } from '../../core/models';
 import { TournamentContextService } from '../../core/tournament-context.service';
 import { TournamentHubService } from '../../core/tournament-hub.service';
 import { ResultsComponent } from './results.component';
 
 describe('ResultsComponent (Vereinswertung tab)', () => {
   let fightUpdated: Subject<Fight>;
-  let categoryFightsUpdated: Subject<{ tournamentId: string; categoryId: string }>;
+  let categoryFightsUpdated: Subject<{
+    tournamentId: string;
+    categoryId: string;
+  }>;
   let reconnected: Subject<void>;
   let tournamentId: ReturnType<typeof signal<string | null>>;
   let apiSpies: {
-    getCategories: jasmine.Spy;
-    getCategoryRankings: jasmine.Spy;
-    getMedalTable: jasmine.Spy;
-    getAgeGroupClubScoring: jasmine.Spy;
-    getGlobalClubScoring: jasmine.Spy;
-    downloadResultsCsv: jasmine.Spy;
+    getCategories: Mock;
+    getCategoryRankings: Mock;
+    getMedalTable: Mock;
+    getAgeGroupClubScoring: Mock;
+    getGlobalClubScoring: Mock;
+    downloadResultsCsv: Mock;
   };
 
   function clubEntry(overrides: Partial<ClubScoringEntry> = {}): ClubScoringEntry {
@@ -93,28 +91,25 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
 
   beforeEach(() => {
     fightUpdated = new Subject<Fight>();
-    categoryFightsUpdated = new Subject<{ tournamentId: string; categoryId: string }>();
+    categoryFightsUpdated = new Subject<{
+      tournamentId: string;
+      categoryId: string;
+    }>();
     reconnected = new Subject<void>();
     tournamentId = signal<string | null>('tournament-1');
 
     apiSpies = {
-      getCategories: jasmine.createSpy('getCategories').and.returnValue(of([])),
-      getCategoryRankings: jasmine.createSpy('getCategoryRankings').and.returnValue(of([])),
-      getMedalTable: jasmine.createSpy('getMedalTable').and.returnValue(of([])),
-      getAgeGroupClubScoring: jasmine
-        .createSpy('getAgeGroupClubScoring')
-        .and.returnValue(of(ageGroupResponse())),
-      getGlobalClubScoring: jasmine
-        .createSpy('getGlobalClubScoring')
-        .and.returnValue(of(globalResponse())),
-      downloadResultsCsv: jasmine
-        .createSpy('downloadResultsCsv')
-        .and.returnValue(of(new HttpResponse<Blob>({
-          body: new Blob(['csv'], { type: 'text/csv' }),
-          headers: new HttpHeaders({
-            'Content-Disposition': 'attachment; filename="ergebnisse-test.csv"',
-          }),
-        }))),
+      getCategories: vi.fn().mockName('getCategories').mockReturnValue(of([])),
+      getCategoryRankings: vi.fn().mockName('getCategoryRankings').mockReturnValue(of([])),
+      getMedalTable: vi.fn().mockName('getMedalTable').mockReturnValue(of([])),
+      getAgeGroupClubScoring: vi.fn().mockName('getAgeGroupClubScoring').mockReturnValue(of(ageGroupResponse())),
+      getGlobalClubScoring: vi.fn().mockName('getGlobalClubScoring').mockReturnValue(of(globalResponse())),
+      downloadResultsCsv: vi.fn().mockName('downloadResultsCsv').mockReturnValue(of(new HttpResponse<Blob>({
+        body: new Blob(['csv'], { type: 'text/csv' }),
+        headers: new HttpHeaders({
+          'Content-Disposition': 'attachment; filename="ergebnisse-test.csv"',
+        }),
+      }))),
     };
 
     TestBed.configureTestingModule({
@@ -146,8 +141,11 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
     const fixture = TestBed.createComponent(ResultsComponent);
     fixture.detectChanges();
 
-    expect(apiSpies.getAgeGroupClubScoring).toHaveBeenCalledOnceWith('tournament-1');
-    expect(apiSpies.getGlobalClubScoring).toHaveBeenCalledOnceWith('tournament-1');
+    expect(apiSpies.getAgeGroupClubScoring).toHaveBeenCalledTimes(1);
+
+    expect(apiSpies.getAgeGroupClubScoring).toHaveBeenCalledWith('tournament-1');
+    expect(apiSpies.getGlobalClubScoring).toHaveBeenCalledTimes(1);
+    expect(apiSpies.getGlobalClubScoring).toHaveBeenCalledWith('tournament-1');
 
     const component = fixture.componentInstance as unknown as {
       ageGroupScoring: () => AgeGroupClubScoringResponse['items'];
@@ -163,7 +161,9 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
     const fixture = TestBed.createComponent(ResultsComponent);
     fixture.detectChanges();
 
-    (fixture.componentInstance as unknown as { setTab: (t: string) => void }).setTab('clubs');
+    (fixture.componentInstance as unknown as {
+      setTab: (t: string) => void;
+    }).setTab('clubs');
     fixture.detectChanges();
 
     const html = (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -187,7 +187,9 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
     const fixture = TestBed.createComponent(ResultsComponent);
     fixture.detectChanges();
 
-    (fixture.componentInstance as unknown as { setTab: (t: string) => void }).setTab('clubs');
+    (fixture.componentInstance as unknown as {
+      setTab: (t: string) => void;
+    }).setTab('clubs');
     fixture.detectChanges();
 
     const html = (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -229,30 +231,40 @@ describe('ResultsComponent (Vereinswertung tab)', () => {
   });
 
   it('starts the CSV download for the active tournament', () => {
-    const createObjectUrl = spyOn(URL, 'createObjectURL').and.returnValue('blob:results');
-    const revokeObjectUrl = spyOn(URL, 'revokeObjectURL');
-    const click = spyOn(HTMLAnchorElement.prototype, 'click');
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:results');
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockReturnValue(undefined);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockReturnValue(undefined);
     const fixture = TestBed.createComponent(ResultsComponent);
     fixture.detectChanges();
 
-    (fixture.componentInstance as unknown as { exportResultsCsv: () => void }).exportResultsCsv();
+    (fixture.componentInstance as unknown as {
+      exportResultsCsv: () => void;
+    }).exportResultsCsv();
 
-    expect(apiSpies.downloadResultsCsv).toHaveBeenCalledOnceWith('tournament-1');
-    expect(createObjectUrl).toHaveBeenCalledOnceWith(jasmine.any(Blob));
+    expect(apiSpies.downloadResultsCsv).toHaveBeenCalledTimes(1);
+
+    expect(apiSpies.downloadResultsCsv).toHaveBeenCalledWith('tournament-1');
+    expect(createObjectUrl).toHaveBeenCalledTimes(1);
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalled();
-    expect(revokeObjectUrl).toHaveBeenCalledOnceWith('blob:results');
+    expect(revokeObjectUrl).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:results');
 
     fixture.destroy();
   });
 
   it('shows a localized error when the CSV download fails', () => {
-    apiSpies.downloadResultsCsv.and.returnValue(throwError(() => new Error('download failed')));
+    apiSpies.downloadResultsCsv.mockReturnValue(throwError(() => new Error('download failed')));
     const fixture = TestBed.createComponent(ResultsComponent);
     fixture.detectChanges();
 
-    (fixture.componentInstance as unknown as { exportResultsCsv: () => void }).exportResultsCsv();
+    (fixture.componentInstance as unknown as {
+      exportResultsCsv: () => void;
+    }).exportResultsCsv();
 
-    const component = fixture.componentInstance as unknown as { exportError: () => string | null };
+    const component = fixture.componentInstance as unknown as {
+      exportError: () => string | null;
+    };
     expect(component.exportError()).toBe('results.exportError');
 
     fixture.destroy();
