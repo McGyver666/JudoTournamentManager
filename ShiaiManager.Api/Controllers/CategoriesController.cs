@@ -200,8 +200,8 @@ public sealed class CategoriesController : ControllerBase
     }
 
     /// <summary>
-    /// Deletes a category.
-    /// Returns 409 Conflict when the category is locked.
+    /// Deletes a category together with its not yet started draw.
+    /// Returns 409 Conflict when the category is locked or already has started fights.
     /// </summary>
     [Authorize(Roles = "Admin,Operator")]
     [HttpDelete("{categoryId:guid}")]
@@ -234,8 +234,18 @@ public sealed class CategoriesController : ControllerBase
             });
         }
 
-        await _categoriesStore.DeleteAsync(categoryId, cancellationToken);
-        return NoContent();
+        var result = await _categoriesStore.DeleteAsync(categoryId, cancellationToken);
+        return result switch
+        {
+            CategoryDeleteResult.Deleted => NoContent(),
+            CategoryDeleteResult.NotFound => NotFound(),
+            _ => Conflict(new ProblemDetails
+            {
+                Title = "Kategorie hat bereits Kämpfe.",
+                Detail = "In dieser Kategorie wurden bereits Kämpfe gestartet oder Mannschaftskämpfe angelegt. Sie kann nicht mehr gelöscht werden.",
+                Status = StatusCodes.Status409Conflict
+            })
+        };
     }
 
     /// <summary>

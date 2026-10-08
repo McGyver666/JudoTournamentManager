@@ -154,7 +154,7 @@ public sealed class SqliteCategoriesStore : ICategoriesStore
     }
 
     /// <inheritdoc />
-    public async Task<bool> DeleteAsync(Guid categoryId, CancellationToken cancellationToken)
+    public async Task<CategoryDeleteResult> DeleteAsync(Guid categoryId, CancellationToken cancellationToken)
     {
         var record = await _dbContext.Categories
             .FirstOrDefaultAsync(x => x.Id == categoryId, cancellationToken);
@@ -162,13 +162,29 @@ public sealed class SqliteCategoriesStore : ICategoriesStore
         if (record is null)
         {
             _logger.LogWarning("Category {CategoryId} not found for deletion.", categoryId);
-            return false;
+            return CategoryDeleteResult.NotFound;
         }
 
+        var fights = await _dbContext.Fights
+            .Where(x => x.CategoryId == categoryId)
+            .ToListAsync(cancellationToken);
+        var fightIds = fights.Select(x => x.Id).ToArray();
+        var pending = FightStatus.Pending.ToString();
+        var hasStartedFights = fights.Any(x => !x.IsBye && x.Status != pending)
+            || await _dbContext.EncounterBouts.AnyAsync(x => fightIds.Contains(x.FightId), cancellationToken);
+
+        if (hasStartedFights)
+        {
+            _logger.LogWarning("Category {CategoryId} not deleted: it has started fights or team matchday bouts.", categoryId);
+            return CategoryDeleteResult.HasStartedFights;
+        }
+
+        _dbContext.Fights.RemoveRange(fights);
         _dbContext.Categories.Remove(record);
         await _dbContext.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Category {CategoryId} deleted.", categoryId);
-        return true;
+        _logger.LogInformation(
+            "Category {CategoryId} deleted together with {FightCount} unstarted draw fights.", categoryId, fights.Count);
+        return CategoryDeleteResult.Deleted;
     }
 
     /// <inheritdoc />

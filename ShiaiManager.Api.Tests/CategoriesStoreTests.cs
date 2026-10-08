@@ -213,8 +213,56 @@ public sealed class CategoriesStoreTests
 
         var deleted = await store.DeleteAsync(created!.Id, CancellationToken.None);
 
-        Assert.True(deleted);
+        Assert.Equal(CategoryDeleteResult.Deleted, deleted);
         Assert.Null(await store.GetByIdAsync(created.Id, CancellationToken.None));
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task DeleteAsync_WhenCategoryHasUnstartedDraw_RemovesCategoryFightsAndClearsAssignments()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var tid = await SeedTournamentAsync(ctx);
+        var store = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var created = await store.CreateAsync(
+            tid, "U13 W -40 kg", "U13", Gender.Female, 40m, 2014, 2016, null, 180, false, 180, CancellationToken.None);
+        var registrationId = await SeedRegistrationAsync(ctx, tid, created!.Id);
+        ctx.Fights.Add(NewFight(tid, created.Id, "Pending", isBye: false));
+        ctx.Fights.Add(NewFight(tid, created.Id, "Completed", isBye: true));
+        await ctx.SaveChangesAsync();
+        ctx.ChangeTracker.Clear();
+
+        var deleted = await store.DeleteAsync(created.Id, CancellationToken.None);
+
+        Assert.Equal(CategoryDeleteResult.Deleted, deleted);
+        Assert.Null(await store.GetByIdAsync(created.Id, CancellationToken.None));
+        Assert.False(await ctx.Fights.AnyAsync(x => x.CategoryId == created.Id));
+        var registration = await ctx.Registrations.AsNoTracking().SingleAsync(x => x.Id == registrationId);
+        Assert.Null(registration.CategoryId);
+    }
+
+    [Fact]
+    [Trait("Category", "UnitTest")]
+    public async Task DeleteAsync_WhenCategoryHasStartedFight_KeepsCategory()
+    {
+        var db = CreateDatabasePath();
+        await using var ctx = CreateDbContext(db);
+        await ctx.Database.EnsureCreatedAsync();
+        var tid = await SeedTournamentAsync(ctx);
+        var store = new SqliteCategoriesStore(ctx, NullLogger<SqliteCategoriesStore>.Instance);
+        var created = await store.CreateAsync(
+            tid, "U13 W -40 kg", "U13", Gender.Female, 40m, 2014, 2016, null, 180, false, 180, CancellationToken.None);
+        ctx.Fights.Add(NewFight(tid, created!.Id, "InProgress", isBye: false));
+        await ctx.SaveChangesAsync();
+        ctx.ChangeTracker.Clear();
+
+        var deleted = await store.DeleteAsync(created.Id, CancellationToken.None);
+
+        Assert.Equal(CategoryDeleteResult.HasStartedFights, deleted);
+        Assert.NotNull(await store.GetByIdAsync(created.Id, CancellationToken.None));
+        Assert.True(await ctx.Fights.AnyAsync(x => x.CategoryId == created.Id));
     }
 
     [Fact]
@@ -228,7 +276,7 @@ public sealed class CategoriesStoreTests
 
         var deleted = await store.DeleteAsync(Guid.NewGuid(), CancellationToken.None);
 
-        Assert.False(deleted);
+        Assert.Equal(CategoryDeleteResult.NotFound, deleted);
     }
 
     [Fact]
@@ -300,6 +348,18 @@ public sealed class CategoriesStoreTests
 
     private static NewCategory NewCategory(string ageGroup, decimal? weightClassKg) =>
         new($"{ageGroup} W {weightClassKg}", ageGroup, Gender.Female, weightClassKg, 2014, 2016, null, 180, false, 180);
+
+    private static FightRecord NewFight(Guid tournamentId, Guid categoryId, string status, bool isBye) => new()
+    {
+        Id = Guid.NewGuid(),
+        TournamentId = tournamentId,
+        CategoryId = categoryId,
+        BracketType = "Main",
+        Round = 1,
+        FightNumber = 1,
+        IsBye = isBye,
+        Status = status
+    };
 
     private static async Task<Guid> SeedRegistrationAsync(AppDbContext ctx, Guid tournamentId, Guid categoryId)
     {
