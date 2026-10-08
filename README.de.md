@@ -62,7 +62,7 @@ Initial admin credentials (save these now):
 - **Loesungsstil:** modularer Monolith
 - **Persistenz:** SQLite ueber EF Core (`App_Data/judo-tournament.db`, wird beim Start automatisch angelegt)
 - **Schemakompatibilitaet:** Der Start verwendet EF-Core-Migrationen und eine Migrationshistorie; bestehende lokale Datenbanken ohne Migrationshistorie werden beim Start sicher uebernommen.
-- **Frontend:** Angular-19-SPA (`frontend/`), in das API-Verzeichnis `wwwroot/` gebaut und same-origin bereitgestellt
+- **Frontend:** Angular-22-SPA (`frontend/`), in das API-Verzeichnis `wwwroot/` gebaut und same-origin bereitgestellt
 - **Health-Endpunkt:** `/health`
 - **Anwendungseinstieg:** `/` (Angular-App; Deep Links fallen auf `index.html` zurueck)
 
@@ -325,7 +325,7 @@ Die Ausgabe wird als zeitgestempelter Ordner und ZIP-Archiv unter `artifacts/tra
 
 ## Frontend (Angular)
 
-Die Angular-19-Anwendung liegt in `frontend/` und wird in das `wwwroot/`-Verzeichnis der API kompiliert. Die laufende API stellt die Benutzeroberflaeche daher unter `/` bereit; ein separater Webserver ist nicht erforderlich.
+Die Angular-22-Anwendung liegt in `frontend/` und wird in das `wwwroot/`-Verzeichnis der API kompiliert. Die laufende API stellt die Benutzeroberflaeche daher unter `/` bereit; ein separater Webserver ist nicht erforderlich.
 
 Abhaengigkeiten installieren (einmalig):
 

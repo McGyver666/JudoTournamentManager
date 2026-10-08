@@ -1,12 +1,12 @@
 # Shiai Manager frontend
 
-The Angular 19 single-page application for Shiai Manager lives in this directory. The API serves
+The Angular 22 single-page application for Shiai Manager lives in this directory. The API serves
 the compiled application from `ShiaiManager.Api/wwwroot`, so no separate web server is required
 for normal local or production operation.
 
 ## Prerequisites
 
-- Node.js and npm
+- Node.js `^22.22.3`, `^24.15.0` or `>=26` (required by Angular 22) and npm
 - A running Shiai Manager API for the development proxy
 
 Install dependencies once:
